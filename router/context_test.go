@@ -11,6 +11,26 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+func TestContext_Context(t *testing.T) {
+	t.Run("Context", func(t *testing.T) {
+		r := New(&lumex.Bot{})
+		ctx := context.Background()
+		eventCtx := r.acquireContext(ctx, nil)
+		assert.Equal(t, ctx, eventCtx.Context(), "eventCtx.Context() = %v; want %v", eventCtx.Context(), ctx)
+	})
+
+	t.Run("SetContext", func(t *testing.T) {
+		r := New(&lumex.Bot{})
+		ctx := context.Background()
+		eventCtx := r.acquireContext(ctx, nil)
+		eventCtx.SetContext(context.WithValue(eventCtx.Context(), "test", "test"))
+
+		v, ok := eventCtx.Context().Value("test").(string)
+		assert.True(t, ok, "eventCtx.Context().Value() = %v; want string", v)
+		assert.Equal(t, "test", v, "eventCtx.Context().Value() = %v; want test", v)
+	})
+
+}
 func TestContext_GetState(t *testing.T) {
 	ctx := new(Context)
 	if ctx.GetState() != nil {
@@ -143,7 +163,7 @@ func TestContext_Next(t *testing.T) {
 
 func TestContext_Message(t *testing.T) {
 	r := New(&lumex.Bot{})
-	ctx := r.acquireContext(nil,
+	ctx := r.acquireContext(context.Background(),
 		&lumex.Update{
 			CallbackQuery: &lumex.CallbackQuery{
 				Message: &lumex.Message{
@@ -154,7 +174,7 @@ func TestContext_Message(t *testing.T) {
 	if ctx.Message() == nil || ctx.Message().MessageId != 1 {
 		t.Errorf("ctx.Message()[CallbackQuery] = %v; want 1", ctx.Message())
 	}
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		EditedMessage: &lumex.Message{
 			MessageId: 1,
 		},
@@ -162,7 +182,7 @@ func TestContext_Message(t *testing.T) {
 	if ctx.Message() == nil || ctx.Message().MessageId != 1 {
 		t.Errorf("ctx.Message()[EditedMessage] = %v; want 1", ctx.Message())
 	}
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		ChannelPost: &lumex.Message{
 			MessageId: 1,
 		},
@@ -170,7 +190,7 @@ func TestContext_Message(t *testing.T) {
 	if ctx.Message() == nil || ctx.Message().MessageId != 1 {
 		t.Errorf("ctx.Message()[ChannelPost] = %v; want 1", ctx.Message())
 	}
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		EditedChannelPost: &lumex.Message{
 			MessageId: 1,
 		},
@@ -178,7 +198,7 @@ func TestContext_Message(t *testing.T) {
 	if ctx.Message() == nil || ctx.Message().MessageId != 1 {
 		t.Errorf("ctx.Message()[EditedChannelPost] = %v; want 1", ctx.Message())
 	}
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		Message: &lumex.Message{
 			MessageId: 1,
 		},
@@ -186,7 +206,7 @@ func TestContext_Message(t *testing.T) {
 	if ctx.Message() == nil || ctx.Message().MessageId != 1 {
 		t.Errorf("ctx.Message()[Message] = %v; want 1", ctx.Message())
 	}
-	ctx = r.acquireContext(nil, &lumex.Update{})
+	ctx = r.acquireContext(context.Background(), &lumex.Update{})
 	if ctx.Message() != nil {
 		t.Errorf("ctx.Message() = %v; want <nil>", ctx.Message())
 	}
@@ -194,7 +214,7 @@ func TestContext_Message(t *testing.T) {
 
 func TestContext_Sender(t *testing.T) {
 	r := New(&lumex.Bot{})
-	ctx := r.acquireContext(nil, &lumex.Update{
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
 		CallbackQuery: &lumex.CallbackQuery{
 			From: lumex.User{
 				Id: 1,
@@ -204,7 +224,7 @@ func TestContext_Sender(t *testing.T) {
 	if ctx.Sender() == nil || ctx.Sender().Id != 1 {
 		t.Errorf("ctx.Sender()[CallbackQuery] = %v; want 1", ctx.Sender())
 	}
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		EditedMessage: &lumex.Message{
 			From: &lumex.User{
 				Id: 1,
@@ -214,7 +234,7 @@ func TestContext_Sender(t *testing.T) {
 	if ctx.Sender() == nil || ctx.Sender().Id != 1 {
 		t.Errorf("ctx.Sender()[EditedMessage] = %v; want 1", ctx.Sender())
 	}
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		ChannelPost: &lumex.Message{
 			From: &lumex.User{
 				Id: 1,
@@ -224,7 +244,7 @@ func TestContext_Sender(t *testing.T) {
 	if ctx.Sender() == nil || ctx.Sender().Id != 1 {
 		t.Errorf("ctx.Sender()[ChannelPost] = %v; want 1", ctx.Sender())
 	}
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		EditedChannelPost: &lumex.Message{
 			From: &lumex.User{
 				Id: 1,
@@ -234,7 +254,7 @@ func TestContext_Sender(t *testing.T) {
 	if ctx.Sender() == nil || ctx.Sender().Id != 1 {
 		t.Errorf("ctx.Sender()[EditedChannelPost] = %v; want 1", ctx.Sender())
 	}
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		Message: &lumex.Message{
 			From: &lumex.User{
 				Id: 1,
@@ -245,7 +265,7 @@ func TestContext_Sender(t *testing.T) {
 		t.Errorf("ctx.Sender()[Message] = %v; want 1", ctx.Sender())
 	}
 
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		InlineQuery: &lumex.InlineQuery{
 			From: lumex.User{
 				Id: 1,
@@ -256,7 +276,7 @@ func TestContext_Sender(t *testing.T) {
 		t.Errorf("ctx.Sender()[InlineQuery] = %v; want 1", ctx.Sender())
 	}
 
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		ShippingQuery: &lumex.ShippingQuery{
 			From: lumex.User{
 				Id: 1,
@@ -267,7 +287,7 @@ func TestContext_Sender(t *testing.T) {
 		t.Errorf("ctx.Sender()[ShippingQuery] = %v; want 1", ctx.Sender())
 	}
 
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		PreCheckoutQuery: &lumex.PreCheckoutQuery{
 			From: lumex.User{
 				Id: 1,
@@ -278,7 +298,7 @@ func TestContext_Sender(t *testing.T) {
 		t.Errorf("ctx.Sender()[PreCheckoutQuery] = %v; want 1", ctx.Sender())
 	}
 
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		PollAnswer: &lumex.PollAnswer{
 			User: &lumex.User{
 				Id: 1,
@@ -289,7 +309,7 @@ func TestContext_Sender(t *testing.T) {
 		t.Errorf("ctx.Sender()[PollAnswer] = %v; want 1", ctx.Sender())
 	}
 
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		MyChatMember: &lumex.ChatMemberUpdated{
 			From: lumex.User{
 				Id: 1,
@@ -300,7 +320,7 @@ func TestContext_Sender(t *testing.T) {
 		t.Errorf("ctx.Sender()[MyChatMember] = %v; want 1", ctx.Sender())
 	}
 
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		ChatMember: &lumex.ChatMemberUpdated{
 			From: lumex.User{
 				Id: 1,
@@ -311,7 +331,7 @@ func TestContext_Sender(t *testing.T) {
 		t.Errorf("ctx.Sender()[ChatMember] = %v; want 1", ctx.Sender())
 	}
 
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		ChatJoinRequest: &lumex.ChatJoinRequest{
 			From: lumex.User{
 				Id: 1,
@@ -322,7 +342,7 @@ func TestContext_Sender(t *testing.T) {
 		t.Errorf("ctx.Sender()[ChatJoinRequest] = %v; want 1", ctx.Sender())
 	}
 
-	ctx = r.acquireContext(nil, &lumex.Update{})
+	ctx = r.acquireContext(context.Background(), &lumex.Update{})
 	if ctx.Sender() != nil {
 		t.Errorf("ctx.Sender() = %v; want <nil>", ctx.Sender())
 	}
@@ -330,7 +350,7 @@ func TestContext_Sender(t *testing.T) {
 
 func TestContext_Chat(t *testing.T) {
 	r := New(&lumex.Bot{})
-	ctx := r.acquireContext(nil, &lumex.Update{
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
 		CallbackQuery: &lumex.CallbackQuery{
 			Message: &lumex.Message{
 				Chat: lumex.Chat{
@@ -342,7 +362,7 @@ func TestContext_Chat(t *testing.T) {
 	if ctx.Chat() == nil || ctx.Chat().Id != 1 {
 		t.Errorf("ctx.Chat()[CallbackQuery] = %v; want 1", ctx.Chat())
 	}
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		EditedMessage: &lumex.Message{
 			Chat: lumex.Chat{
 				Id: 1,
@@ -352,7 +372,7 @@ func TestContext_Chat(t *testing.T) {
 	if ctx.Chat() == nil || ctx.Chat().Id != 1 {
 		t.Errorf("ctx.Chat()[EditedMessage] = %v; want 1", ctx.Chat())
 	}
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		ChannelPost: &lumex.Message{
 			Chat: lumex.Chat{
 				Id: 1,
@@ -362,7 +382,7 @@ func TestContext_Chat(t *testing.T) {
 	if ctx.Chat() == nil || ctx.Chat().Id != 1 {
 		t.Errorf("ctx.Chat()[ChannelPost] = %v; want 1", ctx.Chat())
 	}
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		EditedChannelPost: &lumex.Message{
 			Chat: lumex.Chat{
 				Id: 1,
@@ -372,7 +392,7 @@ func TestContext_Chat(t *testing.T) {
 	if ctx.Chat() == nil || ctx.Chat().Id != 1 {
 		t.Errorf("ctx.Chat()[EditedChannelPost] = %v; want 1", ctx.Chat())
 	}
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		Message: &lumex.Message{
 			Chat: lumex.Chat{
 				Id: 1,
@@ -383,7 +403,7 @@ func TestContext_Chat(t *testing.T) {
 		t.Errorf("ctx.Chat()[Message] = %v; want 1", ctx.Chat())
 	}
 
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		MyChatMember: &lumex.ChatMemberUpdated{
 			Chat: lumex.Chat{
 				Id: 1,
@@ -394,7 +414,7 @@ func TestContext_Chat(t *testing.T) {
 		t.Errorf("ctx.Chat()[MyChatMember] = %v; want 1", ctx.Chat())
 	}
 
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		ChatMember: &lumex.ChatMemberUpdated{
 			Chat: lumex.Chat{
 				Id: 1,
@@ -405,7 +425,7 @@ func TestContext_Chat(t *testing.T) {
 		t.Errorf("ctx.Chat()[ChatMember] = %v; want 1", ctx.Chat())
 	}
 
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		ChatJoinRequest: &lumex.ChatJoinRequest{
 			Chat: lumex.Chat{
 				Id: 1,
@@ -416,7 +436,7 @@ func TestContext_Chat(t *testing.T) {
 		t.Errorf("ctx.Chat()[ChatJoinRequest] = %v; want 1", ctx.Chat())
 	}
 
-	ctx = r.acquireContext(nil, &lumex.Update{})
+	ctx = r.acquireContext(context.Background(), &lumex.Update{})
 	if ctx.Chat() != nil {
 		t.Errorf("ctx.Chat() = %v; want <nil>", ctx.Chat())
 	}
@@ -424,7 +444,7 @@ func TestContext_Chat(t *testing.T) {
 
 func TestContext_ChatID(t *testing.T) {
 	r := New(&lumex.Bot{})
-	ctx := r.acquireContext(nil, &lumex.Update{
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
 		ChannelPost: &lumex.Message{
 			Chat: lumex.Chat{
 				Id: 1,
@@ -432,7 +452,7 @@ func TestContext_ChatID(t *testing.T) {
 		},
 	})
 	assert.Equal(t, int64(1), ctx.ChatID(), "ctx.ChatId()[ChannelPost] = %v; want 1", ctx.ChatID())
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		PreCheckoutQuery: &lumex.PreCheckoutQuery{
 			From: lumex.User{
 				Id: 1,
@@ -441,13 +461,13 @@ func TestContext_ChatID(t *testing.T) {
 	})
 	assert.Equal(t, int64(1), ctx.ChatID(), "ctx.ChatId()[PreCheckoutQuery] = %v; want 1", ctx.ChatID())
 
-	ctx = r.acquireContext(nil, &lumex.Update{})
+	ctx = r.acquireContext(context.Background(), &lumex.Update{})
 	assert.Equal(t, int64(0), ctx.ChatID(), "ctx.ChatId() = %v; want 0", ctx.ChatID())
 }
 
 func TestContext_CommandArgs(t *testing.T) {
 	r := New(&lumex.Bot{})
-	ctx := r.acquireContext(nil, &lumex.Update{
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
 		Message: &lumex.Message{
 			Text: "/test arg1 arg2",
 		},
@@ -462,7 +482,7 @@ func TestContext_CommandArgs(t *testing.T) {
 		t.Errorf("ctx.CommandArgs()[1] = %s; want arg2", ctx.CommandArgs()[1])
 	}
 
-	ctx = r.acquireContext(nil, &lumex.Update{
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		Message: &lumex.Message{
 			Text: "/test",
 		},
@@ -471,7 +491,7 @@ func TestContext_CommandArgs(t *testing.T) {
 		t.Errorf("len(ctx.CommandArgs()) = %d; want 0", len(ctx.CommandArgs()))
 	}
 
-	ctx = r.acquireContext(nil, &lumex.Update{})
+	ctx = r.acquireContext(context.Background(), &lumex.Update{})
 	if ctx.CommandArgs() != nil {
 		t.Errorf("ctx.CommandArgs() = %v; want <nil>", ctx.CommandArgs())
 	}

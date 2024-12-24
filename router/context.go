@@ -22,38 +22,45 @@ type Context struct {
 	Bot       *lumex.Bot
 }
 
-func newContext(ctx context.Context, router *Router, update *lumex.Update) *Context {
-	updateCtx := &Context{
-		ctx:          ctx,
-		indexHandler: -1,
-		indexRoute:   -1,
-		Update:       update,
-		router:       router,
-		Bot:          router.bot,
-	}
-	bot, ok := ctx.Value(BotContextKey).(*lumex.Bot)
-	if ok {
-		updateCtx.Bot = bot
-	}
-	return updateCtx
-}
-
+// Context
+//
+// returns event context
 func (ctx *Context) Context() context.Context {
 	return ctx.ctx
 }
 
+// SetContext
+//
+// sets event context
+func (ctx *Context) SetContext(newCtx context.Context) {
+	ctx.ctx = newCtx
+}
+
+// SetParseMode
+//
+// sets default parse mode for context helpers like Reply, ReplyWithMenu, etc.
+// if it set, it will be overridden by parse mode in options
 func (ctx *Context) SetParseMode(parseMode string) {
 	ctx.parseMode = &parseMode
 }
 
+// GetState
+//
+// returns state of the event context
 func (ctx *Context) GetState() *string {
 	return ctx.state
 }
 
+// SetState
+//
+// sets state of the event context
 func (ctx *Context) SetState(state string) {
 	ctx.state = &state
 }
 
+// Next
+//
+// calls handler in the chain
 func (ctx *Context) Next() error {
 	var err error
 	ctx.indexHandler++
@@ -64,11 +71,15 @@ func (ctx *Context) Next() error {
 	} else if ctx.route == nil {
 		err = ctx.router.next(ctx)
 	}
+
 	return err
 }
 
 // HELPER GETTERS
 
+// Message
+//
+// returns message from any type of update
 func (ctx *Context) Message() *lumex.Message {
 	if m := firstNotNil(
 		ctx.Update.Message,
@@ -103,6 +114,9 @@ func (ctx *Context) Message() *lumex.Message {
 	return nil
 }
 
+// Sender
+//
+// returns sender from any type of update
 func (ctx *Context) Sender() *lumex.User {
 	switch {
 	case ctx.Update.CallbackQuery != nil:
@@ -128,6 +142,9 @@ func (ctx *Context) Sender() *lumex.User {
 	}
 }
 
+// Chat
+//
+// returns chat from any type of update
 func (ctx *Context) Chat() *lumex.Chat {
 	if m := ctx.Message(); m != nil {
 		return &m.Chat
@@ -137,11 +154,14 @@ func (ctx *Context) Chat() *lumex.Chat {
 		return &ctx.Update.ChatMember.Chat
 	} else if ctx.Update.ChatJoinRequest != nil {
 		return &ctx.Update.ChatJoinRequest.Chat
-	} else {
-		return nil
 	}
+
+	return nil
 }
 
+// ChatID
+//
+// returns chat id from any type of update
 func (ctx *Context) ChatID() int64 {
 	if c := ctx.Chat(); c != nil {
 		return c.Id
@@ -155,6 +175,10 @@ func (ctx *Context) ChatID() int64 {
 	return 0
 }
 
+// CommandArgs
+//
+// returns command arguments from message
+// Example: "/command arg1 arg2 arg3" -> ["arg1", "arg2", "arg3"]
 func (ctx *Context) CommandArgs() []string {
 	if ctx.Update.Message == nil {
 		return nil
@@ -270,6 +294,7 @@ func (ctx *Context) DeleteMessageVoid(opts ...*lumex.DeleteMessageOpts) error {
 	return err
 }
 
+// EditMessageText edits message text which is in update
 func (ctx *Context) EditMessageText(text string, opts ...*lumex.EditMessageTextOpts) (*lumex.Message, bool, error) {
 	if ctx.parseMode != nil {
 		if len(opts) == 0 {
@@ -295,11 +320,13 @@ func (ctx *Context) EditMessageText(text string, opts ...*lumex.EditMessageTextO
 	return ctx.Bot.EditMessageTextWithContext(ctx.Context(), text, opt)
 }
 
+// EditMessageTextVoid edits message text which is in update without returning result
 func (ctx *Context) EditMessageTextVoid(text string, opts ...*lumex.EditMessageTextOpts) error {
 	_, _, err := ctx.EditMessageText(text, opts...)
 	return err
 }
 
+// ReplyEmojiReaction sends emoji reaction to message which is in update
 func (ctx *Context) ReplyEmojiReaction(emoji ...string) (bool, error) {
 	reactions := make([]lumex.ReactionType, len(emoji))
 	for i, e := range emoji {
@@ -314,11 +341,13 @@ func (ctx *Context) ReplyEmojiReaction(emoji ...string) (bool, error) {
 		})
 }
 
+// ReplyEmojiReactionVoid sends emoji reaction to message which is in update without returning result
 func (ctx *Context) ReplyEmojiReactionVoid(emoji ...string) error {
 	_, err := ctx.ReplyEmojiReaction(emoji...)
 	return err
 }
 
+// ReplyEmojiBigReaction sends big emoji reaction to message which is in update
 func (ctx *Context) ReplyEmojiBigReaction(emoji ...string) (bool, error) {
 	reactions := make([]lumex.ReactionType, 0, len(emoji))
 	for _, e := range emoji {
@@ -333,6 +362,7 @@ func (ctx *Context) ReplyEmojiBigReaction(emoji ...string) (bool, error) {
 		})
 }
 
+// ReplyEmojiBigReactionVoid sends big emoji reaction to message which is in update without returning result
 func (ctx *Context) ReplyEmojiBigReactionVoid(emoji ...string) error {
 	_, err := ctx.ReplyEmojiBigReaction(emoji...)
 	return err

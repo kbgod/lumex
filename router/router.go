@@ -8,7 +8,10 @@ import (
 	"github.com/kbgod/lumex"
 )
 
-var ErrRouteNotFound = errors.New("route not found")
+var (
+	ErrGroupCannotHandleUpdates = errors.New("group cannot handle updates")
+	ErrRouteNotFound            = errors.New("route not found")
+)
 
 type Handler func(*Context) error
 
@@ -61,12 +64,24 @@ func (r *Router) UseState(state string, handlers ...Handler) *Router {
 	}
 }
 
+// Group creates a new router group with the given handlers.
+//
+// Example:
+// Instead of writing:
+// r.On(Message(), routeMiddleware, handler3)
+// r.On(Message(), routeMiddleware, handler4)
+// r.On(Message(), routeMiddleware, handler5)
+// You can write:
+// g := r.Group(routeMiddleware)
+// g.On(Message(), handler3)
+// g.On(Message(), handler4)
+// g.On(Message(), handler5)
 func (r *Router) Group(handlers ...Handler) *Router {
 	return &Router{
 		parent:   r,
 		state:    r.state,
 		bot:      r.bot,
-		routes:   r.routes,
+		routes:   nil,
 		handlers: handlers,
 	}
 }
@@ -83,6 +98,7 @@ func (r *Router) addRoute(route *Route) {
 	}
 }
 
+// On registers a new route with the given filter and handlers.
 func (r *Router) On(filter RouteFilter, handlers ...Handler) *Route {
 	var route *Route
 	if r.parent != nil {
@@ -118,8 +134,8 @@ func (r *Router) OnTextContains(text string, handlers ...Handler) *Route {
 	return r.On(TextContains(text), handlers...)
 }
 
-func (r *Router) OnCommandWithAt(command, username string, handlers ...Handler) *Route {
-	return r.On(CommandWithAt(command, username), handlers...)
+func (r *Router) OnCommandWithAt(command string, handlers ...Handler) *Route {
+	return r.On(CommandWithAt(command), handlers...)
 }
 
 func (r *Router) OnCallbackPrefix(prefix string, handlers ...Handler) *Route {
@@ -178,12 +194,21 @@ func (r *Router) OnAnimation(handlers ...Handler) *Route {
 	return r.On(Animation(), handlers...)
 }
 
+func (r *Router) OnPurchasedPaidMedia(handlers ...Handler) *Route {
+	return r.On(PurchasedPaidMedia(), handlers...)
+}
+
 func (r *Router) acquireContext(ctx context.Context, update *lumex.Update) *Context {
 	eventCtx := r.contextPool.Get().(*Context)
 	eventCtx.ctx = ctx
 	eventCtx.Update = update
 	eventCtx.router = r
-	eventCtx.Bot = r.bot
+	bot, ok := ctx.Value(BotContextKey).(*lumex.Bot)
+	if ok {
+		eventCtx.Bot = bot
+	} else {
+		eventCtx.Bot = r.bot
+	}
 
 	// clean up
 	eventCtx.state = nil
@@ -200,6 +225,9 @@ func (r *Router) releaseContext(ctx *Context) {
 }
 
 func (r *Router) HandleUpdate(ctx context.Context, update *lumex.Update) error {
+	if r.parent != nil {
+		return ErrGroupCannotHandleUpdates
+	}
 	eventCtx := r.acquireContext(ctx, update)
 	defer r.releaseContext(eventCtx)
 	return eventCtx.Next()
