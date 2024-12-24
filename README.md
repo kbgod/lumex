@@ -170,11 +170,18 @@ func routeMiddleware(ctx *router.Context) error {
 }
 ```
 
+### Code examples
+[Webhook](/examples/webhook/main.go)
+
+[Webhook for bot or mini app builders](/examples/webhook_many/main.go)
+
 
 ### Example bots
 
 [@ScreamPrankBot](https://t.me/ScreamPrankBot)
+
 [@ExplosionPrankBot](https://t.me/ExplosionPrankBot)
+
 [@FruitCoinBot](https://t.me/FruitCoinBot)
 
 
