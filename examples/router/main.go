@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/kbgod/illuminate"
-	"github.com/kbgod/illuminate/router"
+
+	"github.com/kbgod/lumex"
+	"github.com/kbgod/lumex/router"
 )
 
 func printMiddleware(text string) router.Handler {
@@ -17,7 +18,7 @@ func printMiddleware(text string) router.Handler {
 
 func filterUpdateID(updateID int64) router.RouteFilter {
 	return func(ctx *router.Context) bool {
-		if ctx.Update.UpdateID == updateID {
+		if ctx.Update.UpdateId == updateID {
 			return true
 		}
 		return false
@@ -47,11 +48,11 @@ func hasRole(role string) router.Handler {
 	}
 }
 func main() {
-	update := &illuminate.Update{
-		UpdateID: 2001,
+	update := &lumex.Update{
+		UpdateId: 2001,
 	}
 
-	bot := &illuminate.Bot{}
+	bot := &lumex.Bot{}
 	app := router.New(bot)
 
 	app.Use(printMiddleware("1"))

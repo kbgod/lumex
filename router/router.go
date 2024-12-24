@@ -3,7 +3,9 @@ package router
 import (
 	"context"
 	"errors"
-	"github.com/kbgod/illuminate"
+	"sync"
+
+	"github.com/kbgod/lumex"
 )
 
 var ErrRouteNotFound = errors.New("route not found")
@@ -13,14 +15,21 @@ type Handler func(*Context) error
 type Router struct {
 	state    *string
 	parent   *Router
-	bot      *illuminate.Bot
+	bot      *lumex.Bot
 	routes   []*Route
 	handlers []Handler
+
+	contextPool sync.Pool
 }
 
-func New(bot *illuminate.Bot) *Router {
+func New(bot *lumex.Bot) *Router {
 	return &Router{
 		bot: bot,
+		contextPool: sync.Pool{
+			New: func() any {
+				return new(Context)
+			},
+		},
 	}
 }
 
@@ -117,6 +126,81 @@ func (r *Router) OnCallbackPrefix(prefix string, handlers ...Handler) *Route {
 	return r.On(CallbackPrefix(prefix), handlers...)
 }
 
-func (r *Router) HandleUpdate(ctx context.Context, update *illuminate.Update) error {
-	return newContext(ctx, r, update).Next()
+func (r *Router) OnMyChatMember(handlers ...Handler) *Route {
+	return r.On(MyChatMember(), handlers...)
+}
+
+func (r *Router) OnChatMember(handlers ...Handler) *Route {
+	return r.On(ChatMember(), handlers...)
+}
+
+func (r *Router) OnPreCheckoutQuery(handlers ...Handler) *Route {
+	return r.On(PreCheckoutQuery(), handlers...)
+}
+
+func (r *Router) OnSuccessfulPayment(handlers ...Handler) *Route {
+	return r.On(SuccessfulPayment(), handlers...)
+}
+
+func (r *Router) OnForwardedChannelMessage(handlers ...Handler) *Route {
+	return r.On(ForwardedChannelMessage(), handlers...)
+}
+
+func (r *Router) OnPhoto(handlers ...Handler) *Route {
+	return r.On(Photo(), handlers...)
+}
+
+func (r *Router) OnAudio(handlers ...Handler) *Route {
+	return r.On(Audio(), handlers...)
+}
+
+func (r *Router) OnDocument(handlers ...Handler) *Route {
+	return r.On(Document(), handlers...)
+}
+
+func (r *Router) OnSticker(handlers ...Handler) *Route {
+	return r.On(Sticker(), handlers...)
+}
+
+func (r *Router) OnVideo(handlers ...Handler) *Route {
+	return r.On(Video(), handlers...)
+}
+
+func (r *Router) OnVoice(handlers ...Handler) *Route {
+	return r.On(Voice(), handlers...)
+}
+
+func (r *Router) OnVideoNote(handlers ...Handler) *Route {
+	return r.On(VideoNote(), handlers...)
+}
+
+func (r *Router) OnAnimation(handlers ...Handler) *Route {
+	return r.On(Animation(), handlers...)
+}
+
+func (r *Router) acquireContext(ctx context.Context, update *lumex.Update) *Context {
+	eventCtx := r.contextPool.Get().(*Context)
+	eventCtx.ctx = ctx
+	eventCtx.Update = update
+	eventCtx.router = r
+	eventCtx.Bot = r.bot
+
+	// clean up
+	eventCtx.state = nil
+	eventCtx.route = nil
+	eventCtx.indexRoute = -1
+	eventCtx.indexHandler = -1
+	eventCtx.parseMode = nil
+
+	return eventCtx
+}
+
+func (r *Router) releaseContext(ctx *Context) {
+	r.contextPool.Put(ctx)
+}
+
+func (r *Router) HandleUpdate(ctx context.Context, update *lumex.Update) error {
+	eventCtx := r.acquireContext(ctx, update)
+	defer r.releaseContext(eventCtx)
+	return eventCtx.Next()
 }

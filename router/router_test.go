@@ -1,21 +1,23 @@
 package router
 
 import (
+	"context"
 	"errors"
 	"testing"
 
-	"github.com/kbgod/illuminate"
+	"github.com/kbgod/lumex"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRouterNew(t *testing.T) {
-	bot, _ := illuminate.NewBot("test", nil)
+	bot, err := lumex.NewBot("123:test", &lumex.BotOpts{
+		DisableTokenCheck: true,
+	})
+	assert.Nil(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
 	router := New(bot)
-	if router == nil {
-		t.Error("New() = <nil>; want <Router>")
-	}
-	if router.bot == nil {
-		t.Error("New().bot = <nil>; want <Bot>")
-	}
+	assert.NotNil(t, router, "New() = <nil>; want <Router>")
+	assert.NotNil(t, router.bot, "New().bot = <nil>; want <Bot>")
 }
 
 func TestRouter_GetRoutes(t *testing.T) {
@@ -30,8 +32,8 @@ func TestRouter_GetRoutes(t *testing.T) {
 }
 
 func TestRouter_next(t *testing.T) {
-	router := new(Router)
-	ctx := newContext(nil, router, &illuminate.Update{})
+	router := New(nil)
+	ctx := router.acquireContext(context.Background(), &lumex.Update{})
 	if err := router.next(ctx); err == nil {
 		t.Errorf("router.next() = <nil>; want %v", ErrRouteNotFound)
 	}
@@ -43,8 +45,8 @@ func TestRouter_next(t *testing.T) {
 	if err := router.next(ctx); !errors.Is(err, ErrRouteNotFound) {
 		t.Errorf("router.next() = %v; want %v", err, ErrRouteNotFound)
 	}
-	ctx = newContext(nil, router, &illuminate.Update{
-		Message: &illuminate.Message{
+	ctx = router.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
 			Text: "/test",
 		},
 	})
@@ -52,7 +54,6 @@ func TestRouter_next(t *testing.T) {
 	if err := router.next(ctx); !errors.Is(err, testHandlerErr) {
 		t.Errorf("router.next() = %v; want %v", err, testHandlerErr)
 	}
-
 }
 
 func TestRouter_Use(t *testing.T) {
@@ -115,7 +116,7 @@ func TestContext_addRoute(t *testing.T) {
 }
 
 func TestRouter_On(t *testing.T) {
-	router := new(Router)
+	router := New(nil)
 	if len(router.routes) != 0 {
 		t.Errorf("router.routes = %d; want 0", len(router.routes))
 	}
@@ -127,8 +128,8 @@ func TestRouter_On(t *testing.T) {
 		t.Errorf("router.routes = %d; want 1", len(router.routes))
 	}
 
-	ctx := newContext(nil, router, &illuminate.Update{
-		Message: &illuminate.Message{
+	ctx := router.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
 			Text: "/test",
 		},
 	})
@@ -147,20 +148,20 @@ func TestRouter_On(t *testing.T) {
 }
 
 func TestRouter_HandleUpdate(t *testing.T) {
-	router := new(Router)
-	if err := router.HandleUpdate(nil, &illuminate.Update{}); !errors.Is(err, ErrRouteNotFound) {
-		t.Errorf("router.HandleUpdate(nil, &illuminate.Update{}) = %v; want %v", err, ErrRouteNotFound)
+	router := New(nil)
+	if err := router.HandleUpdate(nil, &lumex.Update{}); !errors.Is(err, ErrRouteNotFound) {
+		t.Errorf("router.HandleUpdate(nil, &lumex.Update{}) = %v; want %v", err, ErrRouteNotFound)
 	}
 
 	router.On(Command("test"), func(ctx *Context) error {
 		return nil
 	})
 
-	if err := router.HandleUpdate(nil, &illuminate.Update{
-		Message: &illuminate.Message{
+	if err := router.HandleUpdate(nil, &lumex.Update{
+		Message: &lumex.Message{
 			Text: "/test",
 		},
 	}); err != nil {
-		t.Errorf("router.HandleUpdate(nil, &illuminate.Update{ Message: &illuminate.Message{ Text: \"/test\" } }) = %v; want <nil>", err)
+		t.Errorf("router.HandleUpdate(nil, &lumex.Update{ Message: &lumex.Message{ Text: \"/test\" } }) = %v; want <nil>", err)
 	}
 }

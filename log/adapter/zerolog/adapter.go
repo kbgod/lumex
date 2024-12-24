@@ -1,7 +1,7 @@
 package zerolog
 
 import (
-	"github.com/kbgod/illuminate/log"
+	"github.com/kbgod/lumex/log"
 	"github.com/rs/zerolog"
 )
 

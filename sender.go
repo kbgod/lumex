@@ -1,4 +1,4 @@
-package illuminate
+package lumex
 
 // Sender is a merge of the User and SenderChat fields of a message, to provide easier interaction with
 // message senders from the telegram API.

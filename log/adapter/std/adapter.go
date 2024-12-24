@@ -1,8 +1,9 @@
 package std
 
 import (
-	"github.com/kbgod/illuminate/log"
 	stdlog "log"
+
+	"github.com/kbgod/lumex/log"
 )
 
 type LogLevel int
