@@ -2,15 +2,16 @@ package main
 
 import (
 	"context"
-	"github.com/kbgod/illuminate"
-	zerologAdapter "github.com/kbgod/illuminate/log/adapter/zerolog"
-	"github.com/kbgod/illuminate/plugin"
-	"github.com/kbgod/illuminate/router"
-	"github.com/rs/zerolog"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/kbgod/lumex"
+	zerologAdapter "github.com/kbgod/lumex/log/adapter/zerolog"
+	"github.com/kbgod/lumex/plugin"
+	"github.com/kbgod/lumex/router"
+	"github.com/rs/zerolog"
 )
 
 var logger = zerolog.New(
@@ -29,7 +30,7 @@ func main() {
 		cancel()
 	}()
 	logger.WithContext(ctx)
-	bot, err := illuminate.NewBot(os.Getenv("BOT_TOKEN"), nil)
+	bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"), nil)
 	if err != nil {
 		panic(err)
 	}
@@ -76,7 +77,7 @@ func main() {
 	logger.Info().Str("username", bot.User.Username).Msg("bot stopped")
 }
 
-func runWorkerPool(ctx context.Context, size int, router *router.Router, updates <-chan illuminate.Update) {
+func runWorkerPool(ctx context.Context, size int, router *router.Router, updates <-chan lumex.Update) {
 	for i := 0; i < size; i++ {
 		go func(id int) {
 			for update := range updates {

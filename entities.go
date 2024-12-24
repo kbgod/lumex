@@ -1,4 +1,4 @@
-package illuminate
+package lumex
 
 import "unicode/utf16"
 

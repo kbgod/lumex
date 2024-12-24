@@ -1,4 +1,4 @@
-package illuminate
+package lumex
 
 import (
 	"context"
@@ -157,3 +157,5 @@ func (bot *Bot) GetChannelWithContext(ctx context.Context, username string, opts
 	var c ChatFullInfo
 	return &c, json.Unmarshal(r, &c)
 }
+
+//go:generate go run github.com/vektra/mockery/v2@latest --name=BotClient --filename=bot_client.go

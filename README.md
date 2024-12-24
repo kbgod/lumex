@@ -1,6 +1,6 @@
-# Golang Telegram Bot Fremework
-[![Test](https://github.com/kbgod/illuminate/actions/workflows/test.yml/badge.svg)](https://github.com/kbgod/illuminate/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/kbgod/illuminate/graph/badge.svg?token=VHJJZGTWUI)](https://codecov.io/gh/kbgod/illuminate)
+# Golang Telegram Bot Framework
+[![Test](https://github.com/kbgod/lumex/actions/workflows/test.yml/badge.svg)](https://github.com/kbgod/lumex/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/kbgod/lumex/graph/badge.svg?token=VHJJZGTWUI)](https://codecov.io/gh/kbgod/lumex)
 Based on [paulsonoflars/gotgbot](https://github.com/paulsonoflars/gotgbot) types generation and inspired by [mr-linch/go-tg](https://github.com/mr-linch/go-tg)
 
 All the telegram types and methods are generated from
@@ -25,8 +25,130 @@ All the telegram types and methods are generated from
 Download the library with the standard `go get` command:
 
 ```bash
-go get github.com/kbgod/illuminate
+go get github.com/kbgod/lumex
 ```
+
+### Example
+```go
+package main
+
+import (
+  "context"
+  "log"
+  "os"
+  "sync"
+
+  "github.com/kbgod/lumex/router"
+)
+
+func runWorkerPool(
+        ctx context.Context,
+        wg *sync.WaitGroup,
+        size int,
+        r *router.Router,
+        updates <-chan lumex.Update,
+) {
+  for i := 0; i < size; i++ {
+    go func(id int) {
+      wg.Add(1)
+      defer wg.Done()
+      for {
+        select {
+        case update, ok := <-updates:
+          if !ok {
+            log.Println("worker", id, "shutting down")
+            return
+          }
+          u := update
+          _ = r.HandleUpdate(ctx, &u)
+        }
+      }
+    }(i)
+  }
+}
+
+func main() {
+  ctx := context.Background()
+  bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"), nil)
+  if err != nil {
+      log.Fatal(err)
+  }
+  updates := bot.GetUpdatesChanWithContext(ctx, &lumex.GetUpdatesChanOpts{
+    Buffer: 100,
+    GetUpdatesOpts: &lumex.GetUpdatesOpts{
+      Timeout: 600,
+      RequestOpts: &lumex.RequestOpts{
+        Timeout: 600 * time.Second,
+      },
+      AllowedUpdates: []string{
+        "message",
+        "callback_query",
+        "my_chat_member",
+        "chat_member",
+        "inline_query",
+        "chosen_inline_result",
+        "chat_join_request",
+      },
+    },
+    ErrorHandler: func(err error) {
+      observer.Logger.Error().Err(err).Msg("get updates error")
+    },
+  })
+
+  interrupt := make(chan os.Signal, 1)
+  signal.Notify(interrupt, os.Interrupt, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+
+  poolCtx, poolCancel := context.WithCancel(context.Background())
+  poolWG := &sync.WaitGroup{}
+
+  r := router.New(bot)
+  applyRoutes(r)
+  
+  runWorkerPool(poolCtx, poolWG, 100, r, updates)
+
+  select {
+  case <-interrupt:
+    log.Println("interrupt signal received")
+    cancel()
+	log.Println("updates channel closed")
+    go func() {
+      <-time.After(cfg.ShutdownTimeout)
+      log.Println("shutdown timeout")
+      poolCancel()
+    }()
+    poolWG.Wait()
+	log.Println("worker pool stopped")
+  }
+  
+  log.Println("bot stopped gracefully")
+}
+
+func applyRoutes(r *router.Router) {
+  r.Use(func (ctx *router.Context) error {
+    log.Println("this is global middleware, executes even all route filters return false")
+    if ctx.ChatID() == 123456 {
+      ctx.SetState("admin")
+    }
+    return ctx.Next()
+  })
+	r.OnStart(routeMiddleware, func (ctx *router.Context) error {
+		return ctx.ReplyVoid("Hello!")
+    })
+  
+    adminPanel := r.UseState("admin") // routes defined in adminPanel router executes only if was called ctx.SetState("admin") in global middleware
+    adminPanel.OnCommand("admin", func (ctx *router.Context) error {
+        
+        return ctx.ReplyVoid("Admin panel")
+    })
+}
+
+func routeMiddleware(ctx *router.Context) error {
+  log.Println("this is route middleware, executes only if route filter returns true")
+  
+  return ctx.Next()
+}
+```
+
 
 ### Example bots
 
@@ -38,7 +160,7 @@ You can find a quick start guide [here](https://github.com/kbgod/tg-bot-layout).
 
 ## Docs
 
-Docs can be found [here](https://pkg.go.dev/github.com/kbgod/illuminate).
+Docs can be found [here](https://pkg.go.dev/github.com/kbgod/lumex).
 
 ## Contributing
 

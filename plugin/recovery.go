@@ -1,9 +1,10 @@
 package plugin
 
 import (
-	"github.com/kbgod/illuminate/log"
-	"github.com/kbgod/illuminate/router"
 	"runtime/debug"
+
+	"github.com/kbgod/lumex/log"
+	"github.com/kbgod/lumex/router"
 )
 
 func RecoveryMiddleware(log log.Logger) router.Handler {

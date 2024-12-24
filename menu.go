@@ -1,4 +1,4 @@
-package illuminate
+package lumex
 
 type IMenu interface {
 	Unwrap() ReplyMarkup
