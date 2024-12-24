@@ -1,6 +1,5 @@
 # Golang Telegram Bot Framework
 [![Test](https://github.com/kbgod/lumex/actions/workflows/test.yml/badge.svg)](https://github.com/kbgod/lumex/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/kbgod/lumex/graph/badge.svg?token=VHJJZGTWUI)](https://codecov.io/gh/kbgod/lumex)
 Based on [paulsonoflars/gotgbot](https://github.com/paulsonoflars/gotgbot) types generation and inspired by [mr-linch/go-tg](https://github.com/mr-linch/go-tg)
 
 All the telegram types and methods are generated from
@@ -174,7 +173,10 @@ func routeMiddleware(ctx *router.Context) error {
 
 ### Example bots
 
-*in progress...*
+[@ScreamPrankBot](https://t.me/ScreamPrankBot)
+[@ExplosionPrankBot](https://t.me/ExplosionPrankBot)
+[@FruitCoinBot](https://t.me/FruitCoinBot)
+
 
 ### Quick start
 
