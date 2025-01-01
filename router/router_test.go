@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/kbgod/lumex"
 	"github.com/stretchr/testify/assert"
@@ -866,6 +867,74 @@ func TestRouter_Events(t *testing.T) {
 			PurchasedPaidMedia: &lumex.PaidMediaPurchased{},
 		})
 
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+}
+
+func TestRouter_ErrorHandler(t *testing.T) {
+	t.Run("router has error handler", func(t *testing.T) {
+		errorHandlerCalled := false
+		router := New(nil, WithErrorHandler(func(ctx *Context, err error) {
+			errorHandlerCalled = true
+
+			assert.Equal(t, ErrRouteNotFound, err, "err.Error() = %s; want ErrRouteNotFound")
+		}))
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{})
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+		assert.True(t, errorHandlerCalled, "errorHandlerCalled = %v; want true", errorHandlerCalled)
+	})
+
+	t.Run("router has no error handler", func(t *testing.T) {
+		router := New(nil)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{})
+		assert.Equal(t, ErrRouteNotFound, err, "router.HandleUpdate() = %v; want ErrRouteNotFound")
+	})
+}
+
+func TestRouter_CancelHandler(t *testing.T) {
+	t.Run("router has cancel handler", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		router := New(nil, WithCancelHandler(CancelHandler))
+
+		handlerCalled := false
+		router.On(AnyUpdate(), func(ctx *Context) error {
+			handlerCalled = true
+			time.Sleep(1 * time.Second)
+			assert.False(t, true, "handler should be canceled before this line")
+			return nil
+		})
+
+		go func() {
+			time.Sleep(50 * time.Millisecond)
+			cancel()
+		}()
+		err := router.HandleUpdate(ctx, &lumex.Update{})
+
+		assert.True(t, handlerCalled, "handlerCalled = %v; want true", handlerCalled)
+		assert.Equal(t, context.Canceled, err, "router.HandleUpdate() = %v; want context.Canceled", err)
+	})
+
+	t.Run("router has no cancel handler", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		router := New(nil)
+
+		handlerCalled := false
+		router.On(AnyUpdate(), func(ctx *Context) error {
+			handlerCalled = true
+			time.Sleep(100 * time.Millisecond)
+			assert.True(t, true, "handler should not be canceled")
+			return nil
+		})
+
+		go func() {
+			time.Sleep(50 * time.Millisecond)
+			cancel()
+		}()
+		err := router.HandleUpdate(ctx, &lumex.Update{})
+
+		assert.True(t, handlerCalled, "handlerCalled = %v; want true", handlerCalled)
 		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
 	})
 }

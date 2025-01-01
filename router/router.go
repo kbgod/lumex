@@ -3,17 +3,18 @@ package router
 import (
 	"context"
 	"errors"
+	"os"
 	"sync"
+	"time"
 
 	"github.com/kbgod/lumex"
+	"github.com/kbgod/lumex/log"
 )
 
 var (
 	ErrGroupCannotHandleUpdates = errors.New("group cannot handle updates")
 	ErrRouteNotFound            = errors.New("route not found")
 )
-
-type Handler func(*Context) error
 
 type Router struct {
 	state    *string
@@ -23,10 +24,15 @@ type Router struct {
 	handlers []Handler
 
 	contextPool sync.Pool
+
+	cancelHandler Handler
+	errorHandler  ErrorHandler
+
+	log log.Logger
 }
 
-func New(bot *lumex.Bot) *Router {
-	return &Router{
+func New(bot *lumex.Bot, opts ...Option) *Router {
+	router := &Router{
 		bot: bot,
 		contextPool: sync.Pool{
 			New: func() any {
@@ -34,6 +40,16 @@ func New(bot *lumex.Bot) *Router {
 			},
 		},
 	}
+
+	for _, opt := range opts {
+		opt(router)
+	}
+
+	if router.log == nil {
+		router.log = log.EmptyLogger{}
+	}
+
+	return router
 }
 
 func (r *Router) next(ctx *Context) error {
@@ -224,11 +240,77 @@ func (r *Router) releaseContext(ctx *Context) {
 	r.contextPool.Put(ctx)
 }
 
+// HandleUpdate
+//
+// This method is used to handle updates. Can be used in long-polling mode or webhook mode.
 func (r *Router) HandleUpdate(ctx context.Context, update *lumex.Update) error {
 	if r.parent != nil {
 		return ErrGroupCannotHandleUpdates
 	}
 	eventCtx := r.acquireContext(ctx, update)
 	defer r.releaseContext(eventCtx)
-	return eventCtx.Next()
+	var err error
+	if r.cancelHandler != nil {
+		err = r.cancelHandler(eventCtx)
+	} else {
+		err = eventCtx.Next()
+	}
+
+	if err != nil && r.errorHandler != nil {
+		r.errorHandler(eventCtx, err)
+
+		return nil
+	}
+
+	return err
+}
+
+// Listen starts getting updates using bot.GetUpdatesChanWithContext method
+// this is preferred way to get updates in production
+// Attention: this method blocks until interrupt signal received and all workers finished or timeout reached
+// Attention: you must add router.WithCancelHandler handler for safe work
+func (r *Router) Listen(
+	ctx context.Context,
+	interrupt chan os.Signal,
+	timeout time.Duration,
+	poolSize int,
+	updatesOpts *lumex.GetUpdatesChanOpts,
+) {
+	if r.cancelHandler == nil {
+		r.log.Warn("router doesn't have cancel handler, use router.WithCancelHandler option", nil)
+	}
+	updatesCtx, updatesCancel := context.WithCancel(ctx)
+	updates := r.bot.GetUpdatesChanWithContext(updatesCtx, updatesOpts)
+
+	var wg sync.WaitGroup
+	poolCtx, poolCancel := context.WithCancel(ctx)
+	for i := 0; i < poolSize; i++ {
+		go func(id int) {
+			wg.Add(1)
+			defer wg.Done()
+			for {
+				select {
+				case update, ok := <-updates:
+					if !ok {
+						r.log.Debug("worker shutting down", map[string]any{"id": id})
+						return
+					}
+					_ = r.HandleUpdate(poolCtx, &update)
+				}
+			}
+		}(i)
+	}
+
+	<-interrupt
+	updatesCancel()
+	//log.Println("updates channel closed")
+	r.log.Debug("updates channel closed", nil)
+	//log.Printf("waiting for %v to finish workers\n", timeout)
+	r.log.Debug("waiting for workers to finish", map[string]any{"timeout": timeout})
+	go func() {
+		<-time.After(timeout)
+		poolCancel()
+	}()
+
+	wg.Wait()
 }

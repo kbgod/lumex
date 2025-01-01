@@ -17,6 +17,7 @@ func RecoveryMiddleware(log log.Logger) router.Handler {
 				debug.PrintStack()
 			}
 		}()
+
 		return ctx.Next()
 	}
 }
