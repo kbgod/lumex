@@ -899,14 +899,20 @@ func TestRouter_CancelHandler(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		router := New(nil, WithCancelHandler(CancelHandler))
 
-		handlerCalled := false
+		var (
+			handlerCalled    bool
+			handlerCompleted bool
+		)
 		mu := new(sync.Mutex)
 		router.On(AnyUpdate(), func(ctx *Context) error {
 			mu.Lock()
 			handlerCalled = true
 			mu.Unlock()
 			time.Sleep(1 * time.Second)
-			assert.False(t, true, "handler should be canceled before this line")
+
+			mu.Lock()
+			handlerCompleted = true
+			mu.Unlock()
 			return nil
 		})
 
@@ -918,6 +924,7 @@ func TestRouter_CancelHandler(t *testing.T) {
 
 		mu.Lock()
 		assert.True(t, handlerCalled, "handlerCalled = %v; want true", handlerCalled)
+		assert.False(t, handlerCompleted, "handlerCompleted = %v; want false", handlerCompleted)
 		mu.Unlock()
 		assert.Equal(t, context.Canceled, err, "router.HandleUpdate() = %v; want context.Canceled", err)
 	})
