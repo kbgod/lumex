@@ -28,7 +28,7 @@ go get github.com/kbgod/lumex
 ```
 
 ### Examples
-#### Just use telegra bot API methods
+#### Just use telegram bot API methods
 
 ```go
 package main
