@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -899,20 +900,25 @@ func TestRouter_CancelHandler(t *testing.T) {
 		router := New(nil, WithCancelHandler(CancelHandler))
 
 		handlerCalled := false
+		mu := new(sync.Mutex)
 		router.On(AnyUpdate(), func(ctx *Context) error {
+			mu.Lock()
 			handlerCalled = true
+			mu.Unlock()
 			time.Sleep(1 * time.Second)
 			assert.False(t, true, "handler should be canceled before this line")
 			return nil
 		})
 
 		go func() {
-			time.Sleep(50 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
 			cancel()
 		}()
 		err := router.HandleUpdate(ctx, &lumex.Update{})
 
+		mu.Lock()
 		assert.True(t, handlerCalled, "handlerCalled = %v; want true", handlerCalled)
+		mu.Unlock()
 		assert.Equal(t, context.Canceled, err, "router.HandleUpdate() = %v; want context.Canceled", err)
 	})
 
