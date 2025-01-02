@@ -27,57 +27,91 @@ Download the library with the standard `go get` command:
 go get github.com/kbgod/lumex
 ```
 
-### Example
+### Examples
+#### Just use telegram bot API methods
+
+```go
+package main
+
+import (
+  "os"
+
+  "github.com/kbgod/lumex"
+)
+
+func main() {
+  bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"), nil)
+  if err != nil {
+    panic(err)
+  }
+
+  message, err := bot.SendMessage(123, "hello", nil)
+}
+```
+
+#### Simple production ready bot (LongPool)
+> This example demonstrates simple bot with graceful shutdown, logging, error handling and panic handling
 ```go
 package main
 
 import (
   "context"
-  "log"
+  "errors"
+  "fmt"
   "os"
   "os/signal"
-  "sync"
   "syscall"
   "time"
 
   "github.com/kbgod/lumex"
+  zerologAdapter "github.com/kbgod/lumex/log/adapter/zerolog"
+  "github.com/kbgod/lumex/plugin"
   "github.com/kbgod/lumex/router"
+  "github.com/rs/zerolog"
 )
 
-func runWorkerPool(
-        ctx context.Context,
-        wg *sync.WaitGroup,
-        size int,
-        r *router.Router,
-        updates <-chan lumex.Update,
-) {
-  for i := 0; i < size; i++ {
-    go func(id int) {
-      wg.Add(1)
-      defer wg.Done()
-      for {
-        select {
-        case update, ok := <-updates:
-          if !ok {
-            log.Println("worker", id, "shutting down")
-            return
-          }
-          u := update
-          _ = r.HandleUpdate(ctx, &u)
-        }
-      }
-    }(i)
-  }
-}
+var logger = zerolog.New(
+  zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
+    w.Out = os.Stderr
+    w.TimeFormat = time.RFC3339
+  }),
+).With().Timestamp().Logger()
 
 func main() {
-  ctx, cancel := context.WithCancel(context.Background())
-
   bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"), nil)
   if err != nil {
-    log.Fatal(err)
+    logger.Fatal().Err(err).Msg("failed to create bot")
   }
-  updates := bot.GetUpdatesChanWithContext(ctx, &lumex.GetUpdatesChanOpts{
+  logger.Info().Str("username", bot.User.Username).Msg("bot authorized successfully")
+
+  routerLogger := zerologAdapter.NewAdapter(&logger)
+  r := router.New(
+    bot,
+    router.WithLogger(routerLogger),
+    router.WithCancelHandler(router.CancelHandler),
+    router.WithErrorHandler(func(ctx *router.Context, err error) {
+      if errors.Is(err, router.ErrRouteNotFound) {
+        return
+      }
+      logger.Error().Err(err).Interface("upd", ctx.Update).Msg("handle update error")
+    }),
+  )
+  r.Use(
+    plugin.RecoveryMiddleware(routerLogger),
+  )
+  r.OnStart(func(ctx *router.Context) error {
+    return ctx.ReplyVoid("Hello")
+  })
+  r.OnMessage(func(ctx *router.Context) error {
+    return ctx.ReplyVoid("Undefined command!")
+  })
+
+  interrupt := make(chan os.Signal, 1)
+  signal.Notify(interrupt, os.Interrupt, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+
+  ctx := context.Background()
+
+  r.Listen(ctx, interrupt, 5*time.Second, 100, &lumex.GetUpdatesChanOpts{
     Buffer: 100,
     GetUpdatesOpts: &lumex.GetUpdatesOpts{
       Timeout: 600,
@@ -95,85 +129,103 @@ func main() {
       },
     },
     ErrorHandler: func(err error) {
-      log.Println("get updates error:", err)
+      logger.Error().Err(err).Msg("get updates error")
     },
   })
 
-  interrupt := make(chan os.Signal, 1)
-  signal.Notify(interrupt, os.Interrupt, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
-
-  poolCtx, poolCancel := context.WithCancel(context.Background())
-  poolWG := &sync.WaitGroup{}
-
-  r := router.New(bot)
-  applyRoutes(r)
-
-  runWorkerPool(poolCtx, poolWG, 100, r, updates)
-
-  select {
-  case <-interrupt:
-    log.Println("interrupt signal received")
-    cancel()
-    log.Println("updates channel closed")
-    go func() {
-      <-time.After(10 * time.Second)
-      log.Println("shutdown timeout")
-      poolCancel()
-    }()
-    poolWG.Wait()
-    log.Println("worker pool stopped")
-  }
-
-  log.Println("bot stopped gracefully")
-}
-
-func applyRoutes(r *router.Router) {
-  r.OnCommand("after", func(ctx *router.Context) error {
-    // this event will be handled after global middleware,
-    // global middlewares executes always before checking route filters
-    log.Println("this is after event")
-    return ctx.ReplyVoid("after")
-  })
-
-  r.Use(func(ctx *router.Context) error {
-    log.Println("this is global middleware, executes even all route filters return false")
-    if ctx.ChatID() == 123456 {
-      ctx.SetState("admin")
-    }
-    return ctx.Next()
-  })
-  r.OnStart(routeMiddleware, func(ctx *router.Context) error {
-    return ctx.ReplyVoid("Hello!")
-  })
-
-  adminPanel := r.UseState("admin") // routes defined in adminPanel router executes only if was called ctx.SetState("admin") in global middleware
-  adminPanel.OnCommand("admin", func(ctx *router.Context) error {
-    return ctx.ReplyVoid("Admin panel")
-  })
-
-  r.On(router.Message(), func(ctx *router.Context) error {
-    log.Println("this is any update event")
-    return ctx.ReplyVoid("any update")
-  })
-
-  // unreachable route, because before this route defined route with filter that handles any message fields
-  // order of routes is important
-  r.OnCommand("unreachable", func(ctx *router.Context) error {
-    return ctx.ReplyVoid("unreachable")
-  })
-}
-
-func routeMiddleware(ctx *router.Context) error {
-  log.Println("this is route middleware, executes only if route filter returns true")
-
-  return ctx.Next()
+  logger.Info().Str("username", bot.User.Username).Msg("bot stopped")
 }
 ```
+>P.S. You can handle every update manually using `bot.GetUpdatesChanWithContext` and `router.HandleUpdate` instead of `router.Listen`
 
-### Code examples
+#### Handler context data
+```go
+// ...
+const userCtxKey = "user"
+
+func UserMiddleware(ctx *router.Context) error {
+    user := getUserFromDB(ctx.Sender().Id)
+	ctx.SetContext(context.WithValue(ctx.Context(), userCtxKey, user))
+
+    return ctx.Next()
+}
+// ...
+
+r.Use(UserMiddleware)
+```
+
+#### Keyboard
+```go
+menu := lumex.NewMenu().SetPlaceholder("Select an option")
+menu.Row().TextBtn("1")
+
+return ctx.ReplyWithMenuVoid("keyboard", menu)
+// or
+ctx.Bot.SendMessage(ctx.ChatID(), "test", &lumex.SendMessageOpts{
+ReplyMarkup: menu,
+})
+```
+
+#### Inline Keyboard
+```go
+menu := lumex.NewInlineMenu()
+// menu.Row().PayBtn("pay") - supported only in invoice messages
+menu.Row().CallbackBtn("callback", "callback_data")
+// menu.Row().
+// URLBtn("URL", "https://google.com").
+//	LoginBtn("login", "https://google.com") // verify domain in bot settings
+menu.Row().WebAppBtn("webapp", "https://google.com")
+menu.Row().
+  SwitchInlineQueryBtn("switch", "query").
+  SwitchInlineCurrentChatBtn("switch chat", "query")
+menu.Row().CopyBtn("copy", "copied value")
+
+return ctx.ReplyWithMenuVoid("Inline keyboard", menu)
+// or
+ctx.Bot.SendMessage(ctx.ChatID(), "test", &lumex.SendMessageOpts{
+ReplyMarkup: menu,
+})
+```
+
+#### CallbackQuery
+We often code our `callbackQuery.data`, so with lumex you can work with it so easily
+```go
+r.OnStart(func(ctx *router.Context) error {
+    menu := lumex.NewInlineMenu()
+    var buttons []lumex.InlineKeyboardButton
+    for i := 0; i < 5; i++ {
+        sid := fmt.Sprintf("%d", i)
+        buttons = append(buttons, lumex.CallbackBtn("Product "+sid, "product:"+sid))
+    }
+    for i := 0; i < 5; i++ {
+        sid := fmt.Sprintf("%d", i)
+        buttons = append(buttons, lumex.CallbackBtn("Category "+sid, "category:"+sid))
+    }
+    
+    menu.Fill(2, buttons...)
+    
+    return ctx.ReplyWithMenuVoid("Menu", menu)
+})
+
+r.OnCallbackPrefix("product", func(ctx *router.Context) error {
+    return ctx.AnswerAlertVoid("You selected product " + ctx.ShiftCallbackData(":"))
+})
+r.OnCallbackPrefix("category", func(ctx *router.Context) error {
+    return ctx.AnswerAlertVoid("You selected category " + ctx.ShiftCallbackData(":"))
+})
+```
+> Context has similar methods for `InlineQuery` as `ctx.Query()`, `ctx.ShiftInlineQuery(...)` and `router.OnInlinePrefix`
+
+### More detailed code examples
+[Echobot](/examples/echobot/main.go)
+
+[Keyboards](/examples/keyboard/main.go)
+
+[CallbackQuery](/examples/callback/main.go)
+
 [Webhook](/examples/webhook/main.go)
 
-[Webhook for bot or mini app builders](/examples/webhook_many/main.go)
+[Webhook for many bots in one API or mini app builders](/examples/webhook_many/main.go)
 
 
 ### Example bots
@@ -185,13 +237,11 @@ func routeMiddleware(ctx *router.Context) error {
 [@FruitCoinBot](https://t.me/FruitCoinBot)
 
 
-### Quick start
-
-You can find a quick start guide [here](https://github.com/kbgod/tg-bot-layout).
-
 ## Docs
 
-Docs can be found [here](https://pkg.go.dev/github.com/kbgod/lumex).
+Raw telegram methods [here](https://pkg.go.dev/github.com/kbgod/lumex).
+
+Router & Context [here](https://pkg.go.dev/github.com/kbgod/lumex/router).
 
 ## Contributing
 

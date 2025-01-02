@@ -273,7 +273,7 @@ func TestContext_Sender(t *testing.T) {
 		},
 	})
 	if ctx.Sender() == nil || ctx.Sender().Id != 1 {
-		t.Errorf("ctx.Sender()[InlineQuery] = %v; want 1", ctx.Sender())
+		t.Errorf("ctx.Sender()[Query] = %v; want 1", ctx.Sender())
 	}
 
 	ctx = r.acquireContext(context.Background(), &lumex.Update{
@@ -613,4 +613,262 @@ func TestContext_Reply(t *testing.T) {
 	} else if m.Chat.Id != 1 {
 		t.Errorf("ctx.Reply() = %d; want 1", m.Chat.Id)
 	}
+}
+
+func TestContext_CallbackData(t *testing.T) {
+	t.Run("empty if update is not callbackQuery", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			Message: &lumex.Message{},
+		})
+
+		assert.Equal(
+			t, "", ctx.CallbackData(), "ctx.CallbackData() = %v; want ''", ctx.CallbackData(),
+		)
+	})
+
+	t.Run("has value if update is callbackQuery", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			CallbackQuery: &lumex.CallbackQuery{
+				Data: "test",
+			},
+		})
+
+		assert.Equal(
+			t, "test",
+			ctx.CallbackData(),
+			"ctx.CallbackData() = %v; want 'test'",
+			ctx.CallbackData(),
+		)
+	})
+}
+
+func TestContext_ShiftCallbackData(t *testing.T) {
+	t.Run("empty if update is not callbackQuery", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			Message: &lumex.Message{},
+		})
+		data := ctx.ShiftCallbackData(":")
+		assert.Equal(
+			t, "", data, "ctx.ShiftCallbackData() = %v; want ''", data,
+		)
+	})
+
+	t.Run("empty is separator mismatched", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			CallbackQuery: &lumex.CallbackQuery{
+				Data: "test",
+			},
+		})
+		data := ctx.ShiftCallbackData(":")
+		assert.Equal(
+			t, "", data, "ctx.ShiftCallbackData() = %v; want ''", data,
+		)
+	})
+
+	t.Run("original data if separator is empty", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			CallbackQuery: &lumex.CallbackQuery{
+				Data: "test",
+			},
+		})
+		data := ctx.ShiftCallbackData("")
+		assert.Equal(
+			t, "test", data, "ctx.ShiftCallbackData() = %v; want 'test'", data,
+		)
+	})
+
+	t.Run("separator matched, shifted 1 part", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			CallbackQuery: &lumex.CallbackQuery{
+				Data: "test:part2",
+			},
+		})
+		data := ctx.ShiftCallbackData(":")
+		assert.Equal(
+			t, "part2", data, "ctx.ShiftCallbackData() = %v; want 'part2'", data,
+		)
+	})
+
+	t.Run("separator matched, separator occurs several times, shifted 1 part", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			CallbackQuery: &lumex.CallbackQuery{
+				Data: "test:part2:part3",
+			},
+		})
+		data := ctx.ShiftCallbackData(":")
+		assert.Equal(
+			t, "part2:part3", data, "ctx.ShiftCallbackData() = %v; want 'part2:part3'", data,
+		)
+	})
+
+	t.Run("separator matched, shifted 2 parts", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			CallbackQuery: &lumex.CallbackQuery{
+				Data: "test:part2:part3",
+			},
+		})
+		data := ctx.ShiftCallbackData(":", 2)
+		assert.Equal(
+			t, "part3", data, "ctx.ShiftCallbackData() = %v; want 'part3'", data)
+	})
+}
+
+func TestContext_CallbackID(t *testing.T) {
+	t.Run("empty if update is not callbackQuery", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			Message: &lumex.Message{},
+		})
+
+		assert.Equal(
+			t, "", ctx.CallbackID(), "ctx.CallbackID() = %v; want ''", ctx.CallbackID(),
+		)
+	})
+
+	t.Run("has value if update is callbackQuery", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			CallbackQuery: &lumex.CallbackQuery{
+				Id: "test",
+			},
+		})
+
+		assert.Equal(
+			t, "test",
+			ctx.CallbackID(),
+			"ctx.CallbackID() = %v; want 'test'",
+			ctx.CallbackID(),
+		)
+	})
+}
+
+func TestContext_Query(t *testing.T) {
+	t.Run("empty if update is not inlineQuery", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			Message: &lumex.Message{},
+		})
+
+		assert.Equal(
+			t, "", ctx.Query(), "ctx.Query() = %v; want ''", ctx.Query(),
+		)
+	})
+
+	t.Run("has value if update is inlineQuery", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			InlineQuery: &lumex.InlineQuery{
+				Query: "test",
+			},
+		})
+
+		assert.Equal(
+			t, "test",
+			ctx.Query(),
+			"ctx.Query() = %v; want 'test'",
+			ctx.Query(),
+		)
+	})
+}
+
+func TestContext_QueryID(t *testing.T) {
+	t.Run("empty if update is not inlineQuery", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			Message: &lumex.Message{},
+		})
+
+		assert.Equal(
+			t, "", ctx.QueryID(), "ctx.QueryID() = %v; want ''", ctx.QueryID(),
+		)
+	})
+
+	t.Run("has value if update is inlineQuery", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			InlineQuery: &lumex.InlineQuery{
+				Id: "test",
+			},
+		})
+
+		assert.Equal(
+			t, "test",
+			ctx.QueryID(),
+			"ctx.QueryID() = %v; want 'test'",
+			ctx.QueryID(),
+		)
+	})
+}
+
+func TestContext_ShiftInlineQuery(t *testing.T) {
+	t.Run("empty if update is not inlineQuery", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			Message: &lumex.Message{},
+		})
+		data := ctx.ShiftInlineQuery(":")
+		assert.Equal(
+			t, "", data, "ctx.ShiftInlineQuery() = %v; want ''", data,
+		)
+	})
+
+	t.Run("empty is separator mismatched", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			InlineQuery: &lumex.InlineQuery{
+				Query: "test",
+			},
+		})
+		data := ctx.ShiftInlineQuery(":")
+		assert.Equal(
+			t, "", data, "ctx.ShiftInlineQuery() = %v; want ''", data,
+		)
+	})
+
+	t.Run("original data if separator is empty", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			InlineQuery: &lumex.InlineQuery{
+				Query: "test",
+			},
+		})
+		data := ctx.ShiftInlineQuery("")
+		assert.Equal(
+			t, "test", data, "ctx.ShiftInlineQuery() = %v; want 'test'", data,
+		)
+	})
+
+	t.Run("separator matched, shifted 1 part", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			InlineQuery: &lumex.InlineQuery{
+				Query: "test:part2",
+			},
+		})
+		data := ctx.ShiftInlineQuery(":")
+		assert.Equal(
+			t, "part2", data, "ctx.ShiftInlineQuery() = %v; want 'part2'", data,
+		)
+	})
+
+	t.Run("separator matched, separator occurs several times, shifted 1 part", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			InlineQuery: &lumex.InlineQuery{
+				Query: "test:part2:part3",
+			},
+		})
+		data := ctx.ShiftInlineQuery(":")
+		assert.Equal(
+			t, "part2:part3", data, "ctx.ShiftInlineQuery() = %v; want 'part2:part3'", data,
+		)
+	})
 }

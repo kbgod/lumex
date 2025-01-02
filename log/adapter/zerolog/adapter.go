@@ -21,6 +21,10 @@ func (a *LogAdapter) Error(err error, message string, fields map[string]any) {
 	a.log.Error().Err(err).Fields(fields).Msg(message)
 }
 
+func (a *LogAdapter) Warn(message string, fields map[string]any) {
+	a.log.Warn().Fields(fields).Msg(message)
+}
+
 func (a *LogAdapter) Info(message string, fields map[string]any) {
 	a.log.Info().Fields(fields).Msg(message)
 }

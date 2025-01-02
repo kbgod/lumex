@@ -11,6 +11,7 @@ type LogLevel int
 const (
 	LevelDebug = iota
 	LevelInfo
+	LevelWarn
 	LevelError
 )
 
@@ -31,6 +32,14 @@ func (a *LogAdapter) Error(err error, message string, fields map[string]any) {
 		return
 	}
 	stdlog.Println("[ERROR] ", err, message, fields)
+}
+
+func (a *LogAdapter) Warn(message string, fields map[string]any) {
+	if a.level > LevelWarn {
+		return
+	}
+	stdlog.Println("[WARN] ", message, fields)
+
 }
 
 func (a *LogAdapter) Info(message string, fields map[string]any) {

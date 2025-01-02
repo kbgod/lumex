@@ -3,7 +3,9 @@ package router
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/kbgod/lumex"
 	"github.com/stretchr/testify/assert"
@@ -539,6 +541,74 @@ func TestRouter_Events(t *testing.T) {
 		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
 	})
 
+	t.Run("OnCallbackQuery", func(t *testing.T) {
+		router := New(nil)
+		router.OnCallbackQuery(func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+		assert.Equal(
+			t, "test", router.GetRoutes()[0].GetName(),
+			"router.GetRoutes()[0].GetName() = %s; want test", router.GetRoutes()[0].GetName(),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			CallbackQuery: &lumex.CallbackQuery{},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
+	t.Run("OnInlinePrefix", func(t *testing.T) {
+		router := New(nil)
+		router.OnInlinePrefix("test", func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+		assert.Equal(
+			t, "test", router.GetRoutes()[0].GetName(),
+			"router.GetRoutes()[0].GetName() = %s; want test", router.GetRoutes()[0].GetName(),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			InlineQuery: &lumex.InlineQuery{
+				Query: "test",
+			},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
+	t.Run("OnInlineQuery", func(t *testing.T) {
+		router := New(nil)
+		router.OnInlineQuery(func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+		assert.Equal(
+			t, "test", router.GetRoutes()[0].GetName(),
+			"router.GetRoutes()[0].GetName() = %s; want test", router.GetRoutes()[0].GetName(),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			InlineQuery: &lumex.InlineQuery{},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
 	t.Run("OnMyChatMember", func(t *testing.T) {
 		router := New(nil)
 		router.OnMyChatMember(func(ctx *Context) error {
@@ -866,6 +936,134 @@ func TestRouter_Events(t *testing.T) {
 			PurchasedPaidMedia: &lumex.PaidMediaPurchased{},
 		})
 
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
+	t.Run("OnChatShared", func(t *testing.T) {
+		router := New(nil)
+		router.OnChatShared(func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+		assert.Equal(
+			t, "test", router.GetRoutes()[0].GetName(),
+			"router.GetRoutes()[0].GetName() = %s; want test", router.GetRoutes()[0].GetName(),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				ChatShared: &lumex.ChatShared{},
+			},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
+	t.Run("OnUsersShared", func(t *testing.T) {
+		router := New(nil)
+		router.OnUsersShared(func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+		assert.Equal(
+			t, "test", router.GetRoutes()[0].GetName(),
+			"router.GetRoutes()[0].GetName() = %s; want test", router.GetRoutes()[0].GetName(),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				UsersShared: &lumex.UsersShared{},
+			},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+}
+
+func TestRouter_ErrorHandler(t *testing.T) {
+	t.Run("router has error handler", func(t *testing.T) {
+		errorHandlerCalled := false
+		router := New(nil, WithErrorHandler(func(ctx *Context, err error) {
+			errorHandlerCalled = true
+
+			assert.Equal(t, ErrRouteNotFound, err, "err.Error() = %s; want ErrRouteNotFound")
+		}))
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{})
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+		assert.True(t, errorHandlerCalled, "errorHandlerCalled = %v; want true", errorHandlerCalled)
+	})
+
+	t.Run("router has no error handler", func(t *testing.T) {
+		router := New(nil)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{})
+		assert.Equal(t, ErrRouteNotFound, err, "router.HandleUpdate() = %v; want ErrRouteNotFound")
+	})
+}
+
+func TestRouter_CancelHandler(t *testing.T) {
+	t.Run("router has cancel handler", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		router := New(nil, WithCancelHandler(CancelHandler))
+
+		var (
+			handlerCalled    bool
+			handlerCompleted bool
+		)
+		mu := new(sync.Mutex)
+		router.On(AnyUpdate(), func(ctx *Context) error {
+			mu.Lock()
+			handlerCalled = true
+			mu.Unlock()
+			time.Sleep(1 * time.Second)
+
+			mu.Lock()
+			handlerCompleted = true
+			mu.Unlock()
+			return nil
+		})
+
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+			cancel()
+		}()
+		err := router.HandleUpdate(ctx, &lumex.Update{})
+
+		mu.Lock()
+		assert.True(t, handlerCalled, "handlerCalled = %v; want true", handlerCalled)
+		assert.False(t, handlerCompleted, "handlerCompleted = %v; want false", handlerCompleted)
+		mu.Unlock()
+		assert.Equal(t, context.Canceled, err, "router.HandleUpdate() = %v; want context.Canceled", err)
+	})
+
+	t.Run("router has no cancel handler", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		router := New(nil)
+
+		handlerCalled := false
+		router.On(AnyUpdate(), func(ctx *Context) error {
+			handlerCalled = true
+			time.Sleep(100 * time.Millisecond)
+			assert.True(t, true, "handler should not be canceled")
+			return nil
+		})
+
+		go func() {
+			time.Sleep(50 * time.Millisecond)
+			cancel()
+		}()
+		err := router.HandleUpdate(ctx, &lumex.Update{})
+
+		assert.True(t, handlerCalled, "handlerCalled = %v; want true", handlerCalled)
 		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
 	})
 }
