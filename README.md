@@ -18,6 +18,11 @@ All the telegram types and methods are generated from
 - Updates are each processed in their own go routine, encouraging concurrent processing, and keeping your bot
   responsive.
 - Code panics are automatically recovered from and logged, avoiding unexpected downtime.
+- FSM (finite state machine) support
+- Router with middleware support
+- Keyboard and InlineKeyboard builders
+- Webhook support
+- Event driven updates handling
 
 ## Getting started
 
@@ -49,7 +54,7 @@ func main() {
 }
 ```
 
-#### Simple production ready bot (LongPool)
+#### Simple production ready bot (Long-Poll)
 > This example demonstrates simple bot with graceful shutdown, logging, error handling and panic handling
 ```go
 package main
@@ -215,6 +220,52 @@ r.OnCallbackPrefix("category", func(ctx *router.Context) error {
 })
 ```
 > Context has similar methods for `InlineQuery` as `ctx.Query()`, `ctx.ShiftInlineQuery(...)` and `router.OnInlinePrefix`
+
+#### FSM and event system
+Using Lumex, you can define event handlers either without state or with state.
+Routes associated with a specific state are ignored if the state is not set (i.e., `ctx.SetState(...)` has not been called). This means that routes without a specific state are global and accessible from any state.
+To make a handler global, you simply need to declare it before all state-specific routers.
+
+Additionally, you can define a fallback handler. To do this, declare it at the very end, after all global event handlers and state-specific routers. A fallback handler will only trigger if no global or state-specific handler matches before it.
+
+This approach allows you to define global routes like MainMenu, Help, and others, while also ensuring that unmatched events are handled appropriately by the fallback handler.
+```go
+r.Use(func(ctx *router.Context) error {
+    state := loadStateFromDB(ctx.Sender().Id)
+	if state != nil {
+        ctx.SetState(state)
+    }
+    
+    return ctx.Next()
+})
+
+r.OnStart(mainMenu) // always available, because defined before any UseState router
+
+enterProductName := r.UseState("enter_product_name")
+enterProductName.OnMessage(...)
+
+r.OnMessage(mainMenu) // will be called only if `ctx.UseState("enter_product_name")` not called
+```
+> Real FSM implementation you can find in [examples](/examples/fsm/main.go)
+
+#### Middlewares
+Global (router) middlewares declares using `r.Use(...)`.
+```go
+r.Use(logAllUpdates)
+r.Use(userMiddleware)
+// ...
+```
+Global middlewares executes always before checking routes (Even no routes defined or matched).
+Also you can add route middleware. Route middlewares executes only if route matched, before route handler
+```go
+r.OnMessage(logMessage, mainMenu) // logMessage is a route middleware
+```
+Sometimes you need to add one route middleware to group of routes:
+```go
+typingGroup := r.Group(typingMiddleware) // typingMiddleware provides sending typing action
+typingGroup.OnCommand("/download_big_file", downloadBigFile)
+typingGroup.OnMessage(processMessageViaAI)
+```
 
 ### More detailed code examples
 [Echobot](/examples/echobot/main.go)
