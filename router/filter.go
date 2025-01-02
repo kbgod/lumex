@@ -64,6 +64,13 @@ func TextPrefix(text string) RouteFilter {
 	}
 }
 
+// CallbackQuery returns a filter that checks if the update is a callback query.
+func CallbackQuery() RouteFilter {
+	return func(ctx *Context) bool {
+		return ctx.Update.CallbackQuery != nil
+	}
+}
+
 // CallbackPrefix returns a filter that checks if the callback data starts with the given text.
 func CallbackPrefix(text string) RouteFilter {
 	return func(ctx *Context) bool {
@@ -71,6 +78,23 @@ func CallbackPrefix(text string) RouteFilter {
 			return false
 		}
 		return strings.HasPrefix(ctx.Update.CallbackQuery.Data, text)
+	}
+}
+
+// InlineQuery returns a filter that checks if the update is an inline query.
+func InlineQuery() RouteFilter {
+	return func(ctx *Context) bool {
+		return ctx.Update.InlineQuery != nil
+	}
+}
+
+// InlineQueryPrefix returns a filter that checks if the inline query text starts with the given text.
+func InlineQueryPrefix(text string) RouteFilter {
+	return func(ctx *Context) bool {
+		if ctx.Update.InlineQuery == nil {
+			return false
+		}
+		return strings.HasPrefix(ctx.Update.InlineQuery.Query, text)
 	}
 }
 
@@ -174,5 +198,19 @@ func Sticker() RouteFilter {
 func PurchasedPaidMedia() RouteFilter {
 	return func(ctx *Context) bool {
 		return ctx.Update.PurchasedPaidMedia != nil
+	}
+}
+
+// ChatShared returns a filter that checks if the message is a shared chat.
+func ChatShared() RouteFilter {
+	return func(ctx *Context) bool {
+		return ctx.Update.Message != nil && ctx.Update.Message.ChatShared != nil
+	}
+}
+
+// UsersShared returns a filter that checks if the message is a shared user.
+func UsersShared() RouteFilter {
+	return func(ctx *Context) bool {
+		return ctx.Update.Message != nil && ctx.Update.Message.UsersShared != nil
 	}
 }

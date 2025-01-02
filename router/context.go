@@ -190,6 +190,110 @@ func (ctx *Context) CommandArgs() []string {
 	return nil
 }
 
+// CallbackData
+//
+// returns callback data from callback query, empty string if not exists
+func (ctx *Context) CallbackData() string {
+	if ctx.Update.CallbackQuery != nil {
+		return ctx.Update.CallbackQuery.Data
+	}
+
+	return ""
+}
+
+// CallbackID
+//
+// returns callback id from callback query, empty string if not exists
+func (ctx *Context) CallbackID() string {
+	if ctx.Update.CallbackQuery != nil {
+		return ctx.Update.CallbackQuery.Id
+	}
+
+	return ""
+}
+
+// ShiftCallbackData
+//
+// returns callback data without count parts separated by separator. Default count is 1
+// Example: you encoded data like "command:arg1:arg2", you will get next results:
+// ShiftCallbackData(":") -> "arg1:arg2"
+// ShiftCallbackData(":", 2) -> "arg2"
+// ShiftCallbackData("") -> "command:arg1:arg2"
+// ShiftCallbackData("/") -> "" (separator doesn't match)
+func (ctx *Context) ShiftCallbackData(separator string, count ...int) string {
+	c := 1
+	if len(count) > 0 {
+		c = count[0]
+	}
+	data := ctx.CallbackData()
+	if data == "" {
+		return ""
+	}
+
+	if separator == "" {
+		return data
+	}
+
+	parts := strings.Split(data, separator)
+	if len(parts) < c {
+		return ""
+	}
+
+	return strings.Join(parts[c:], separator)
+}
+
+// Query
+//
+// returns inline query from inline query update, empty string if not exists
+func (ctx *Context) Query() string {
+	if ctx.Update.InlineQuery != nil {
+		return ctx.Update.InlineQuery.Query
+	}
+
+	return ""
+}
+
+// QueryID
+//
+// returns inline query id from inline query update, empty string if not exists
+func (ctx *Context) QueryID() string {
+	if ctx.Update.InlineQuery != nil {
+		return ctx.Update.InlineQuery.Id
+	}
+
+	return ""
+}
+
+// ShiftInlineQuery
+//
+// returns inline query without count parts separated by separator. Default count is 1
+// Example: you encoded query like "command:arg1:arg2" you will get next results:
+// ShiftInlineQuery(":") -> "arg1:arg2"
+// ShiftInlineQuery(":", 2) -> "arg2"
+// ShiftInlineQuery("") -> "command:arg1:arg2"
+// ShiftInlineQuery("/") -> "" (separator doesn't match)
+func (ctx *Context) ShiftInlineQuery(separator string, count ...int) string {
+	c := 1
+	if len(count) > 0 {
+		c = count[0]
+	}
+	query := ctx.Query()
+	if query == "" {
+		return ""
+	}
+
+	if separator == "" {
+		return query
+	}
+
+	parts := strings.Split(query, separator)
+	if len(parts) < c {
+		return ""
+	}
+
+	return strings.Join(parts[c:], separator)
+}
+
 // HELPER FUNCTIONS
 
 // Reply sends message to the chat from update
@@ -207,12 +311,14 @@ func (ctx *Context) Reply(text string, opts ...*lumex.SendMessageOpts) (*lumex.M
 	if len(opts) > 0 {
 		opt = opts[0]
 	}
+
 	return ctx.Bot.SendMessageWithContext(ctx.Context(), ctx.ChatID(), text, opt)
 }
 
 // ReplyVoid sends message without returning result
 func (ctx *Context) ReplyVoid(text string, opts ...*lumex.SendMessageOpts) error {
 	_, err := ctx.Reply(text, opts...)
+
 	return err
 }
 
@@ -226,6 +332,7 @@ func (ctx *Context) ReplyWithMenu(
 			ReplyMarkup: menu.Unwrap(),
 		})
 	}
+
 	return ctx.Reply(text, opts...)
 }
 
@@ -234,6 +341,7 @@ func (ctx *Context) ReplyWithMenuVoid(
 	text string, menu lumex.IMenu, opts ...*lumex.SendMessageOpts,
 ) error {
 	_, err := ctx.ReplyWithMenu(text, menu, opts...)
+
 	return err
 }
 
@@ -252,12 +360,14 @@ func (ctx *Context) Answer(text string, opts ...*lumex.AnswerCallbackQueryOpts) 
 	if len(opts) > 0 {
 		opt = opts[0]
 	}
+
 	return ctx.Bot.AnswerCallbackQueryWithContext(ctx.Context(), ctx.Update.CallbackQuery.Id, opt)
 }
 
 // AnswerVoid sends answer to callback query without returning result
 func (ctx *Context) AnswerVoid(text string, opts ...*lumex.AnswerCallbackQueryOpts) error {
 	_, err := ctx.Answer(text, opts...)
+
 	return err
 }
 
@@ -270,12 +380,29 @@ func (ctx *Context) AnswerAlert(text string, opts ...*lumex.AnswerCallbackQueryO
 	} else {
 		opts[0].ShowAlert = true
 	}
+
 	return ctx.Answer(text, opts...)
 }
 
 // AnswerAlertVoid sends answer to callback query with alert without returning result
 func (ctx *Context) AnswerAlertVoid(text string, opts ...*lumex.AnswerCallbackQueryOpts) error {
 	_, err := ctx.AnswerAlert(text, opts...)
+
+	return err
+}
+
+func (ctx *Context) AnswerQuery(results []lumex.InlineQueryResult, opts ...*lumex.AnswerInlineQueryOpts) (bool, error) {
+	var opt *lumex.AnswerInlineQueryOpts
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
+
+	return ctx.Bot.AnswerInlineQueryWithContext(ctx.Context(), ctx.Update.InlineQuery.Id, results, opt)
+}
+
+func (ctx *Context) AnswerQueryVoid(results []lumex.InlineQueryResult, opts ...*lumex.AnswerInlineQueryOpts) error {
+	_, err := ctx.AnswerQuery(results, opts...)
+
 	return err
 }
 
@@ -285,12 +412,14 @@ func (ctx *Context) DeleteMessage(opts ...*lumex.DeleteMessageOpts) (bool, error
 	if len(opts) > 0 {
 		opt = opts[0]
 	}
+
 	return ctx.Bot.DeleteMessageWithContext(ctx.Context(), ctx.ChatID(), ctx.Message().MessageId, opt)
 }
 
 // DeleteMessageVoid deletes message which is in update without returning result
 func (ctx *Context) DeleteMessageVoid(opts ...*lumex.DeleteMessageOpts) error {
 	_, err := ctx.DeleteMessage(opts...)
+
 	return err
 }
 
@@ -323,6 +452,7 @@ func (ctx *Context) EditMessageText(text string, opts ...*lumex.EditMessageTextO
 // EditMessageTextVoid edits message text which is in update without returning result
 func (ctx *Context) EditMessageTextVoid(text string, opts ...*lumex.EditMessageTextOpts) error {
 	_, _, err := ctx.EditMessageText(text, opts...)
+
 	return err
 }
 
@@ -332,6 +462,7 @@ func (ctx *Context) ReplyEmojiReaction(emoji ...string) (bool, error) {
 	for i, e := range emoji {
 		reactions[i] = lumex.ReactionTypeEmoji{Emoji: e}
 	}
+
 	return ctx.Bot.SetMessageReactionWithContext(
 		ctx.Context(),
 		ctx.ChatID(),
@@ -344,6 +475,7 @@ func (ctx *Context) ReplyEmojiReaction(emoji ...string) (bool, error) {
 // ReplyEmojiReactionVoid sends emoji reaction to message which is in update without returning result
 func (ctx *Context) ReplyEmojiReactionVoid(emoji ...string) error {
 	_, err := ctx.ReplyEmojiReaction(emoji...)
+
 	return err
 }
 
@@ -353,6 +485,7 @@ func (ctx *Context) ReplyEmojiBigReaction(emoji ...string) (bool, error) {
 	for _, e := range emoji {
 		reactions = append(reactions, lumex.ReactionTypeEmoji{Emoji: e})
 	}
+
 	return ctx.Bot.SetMessageReactionWithContext(
 		ctx.Context(),
 		ctx.ChatID(),
@@ -365,5 +498,6 @@ func (ctx *Context) ReplyEmojiBigReaction(emoji ...string) (bool, error) {
 // ReplyEmojiBigReactionVoid sends big emoji reaction to message which is in update without returning result
 func (ctx *Context) ReplyEmojiBigReactionVoid(emoji ...string) error {
 	_, err := ctx.ReplyEmojiBigReaction(emoji...)
+
 	return err
 }

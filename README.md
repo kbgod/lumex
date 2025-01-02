@@ -154,12 +154,78 @@ func UserMiddleware(ctx *router.Context) error {
 r.Use(UserMiddleware)
 ```
 
+#### Keyboard
+```go
+menu := lumex.NewMenu().SetPlaceholder("Select an option")
+menu.Row().TextBtn("1")
+
+return ctx.ReplyWithMenuVoid("keyboard", menu)
+// or
+ctx.Bot.SendMessage(ctx.ChatID(), "test", &lumex.SendMessageOpts{
+ReplyMarkup: menu,
+})
+```
+
+#### Inline Keyboard
+```go
+menu := lumex.NewInlineMenu()
+// menu.Row().PayBtn("pay") - supported only in invoice messages
+menu.Row().CallbackBtn("callback", "callback_data")
+// menu.Row().
+// URLBtn("URL", "https://google.com").
+//	LoginBtn("login", "https://google.com") // verify domain in bot settings
+menu.Row().WebAppBtn("webapp", "https://google.com")
+menu.Row().
+  SwitchInlineQueryBtn("switch", "query").
+  SwitchInlineCurrentChatBtn("switch chat", "query")
+menu.Row().CopyBtn("copy", "copied value")
+
+return ctx.ReplyWithMenuVoid("Inline keyboard", menu)
+// or
+ctx.Bot.SendMessage(ctx.ChatID(), "test", &lumex.SendMessageOpts{
+ReplyMarkup: menu,
+})
+```
+
+#### CallbackQuery
+We often code our `callbackQuery.data`, so with lumex you can work with it so easily
+```go
+r.OnStart(func(ctx *router.Context) error {
+    menu := lumex.NewInlineMenu()
+    var buttons []lumex.InlineKeyboardButton
+    for i := 0; i < 5; i++ {
+        sid := fmt.Sprintf("%d", i)
+        buttons = append(buttons, lumex.CallbackBtn("Product "+sid, "product:"+sid))
+    }
+    for i := 0; i < 5; i++ {
+        sid := fmt.Sprintf("%d", i)
+        buttons = append(buttons, lumex.CallbackBtn("Category "+sid, "category:"+sid))
+    }
+    
+    menu.Fill(2, buttons...)
+    
+    return ctx.ReplyWithMenuVoid("Menu", menu)
+})
+
+r.OnCallbackPrefix("product", func(ctx *router.Context) error {
+    return ctx.AnswerAlertVoid("You selected product " + ctx.ShiftCallbackData(":"))
+})
+r.OnCallbackPrefix("category", func(ctx *router.Context) error {
+    return ctx.AnswerAlertVoid("You selected category " + ctx.ShiftCallbackData(":"))
+})
+```
+> Context has similar methods for `InlineQuery` as `ctx.Query()`, `ctx.ShiftInlineQuery(...)` and `router.OnInlinePrefix`
+
 ### More detailed code examples
 [Echobot](/examples/echobot/main.go)
 
+[Keyboards](/examples/keyboard/main.go)
+
+[CallbackQuery](/examples/callback/main.go)
+
 [Webhook](/examples/webhook/main.go)
 
-[Webhook for bot or mini app builders](/examples/webhook_many/main.go)
+[Webhook for many bots in one API or mini app builders](/examples/webhook_many/main.go)
 
 
 ### Example bots

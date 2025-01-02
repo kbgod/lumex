@@ -154,8 +154,20 @@ func (r *Router) OnCommandWithAt(command string, handlers ...Handler) *Route {
 	return r.On(CommandWithAt(command), handlers...)
 }
 
+func (r *Router) OnCallbackQuery(handlers ...Handler) *Route {
+	return r.On(CallbackQuery(), handlers...)
+}
+
 func (r *Router) OnCallbackPrefix(prefix string, handlers ...Handler) *Route {
 	return r.On(CallbackPrefix(prefix), handlers...)
+}
+
+func (r *Router) OnInlineQuery(handlers ...Handler) *Route {
+	return r.On(InlineQuery(), handlers...)
+}
+
+func (r *Router) OnInlinePrefix(prefix string, handlers ...Handler) *Route {
+	return r.On(InlineQueryPrefix(prefix), handlers...)
 }
 
 func (r *Router) OnMyChatMember(handlers ...Handler) *Route {
@@ -212,6 +224,14 @@ func (r *Router) OnAnimation(handlers ...Handler) *Route {
 
 func (r *Router) OnPurchasedPaidMedia(handlers ...Handler) *Route {
 	return r.On(PurchasedPaidMedia(), handlers...)
+}
+
+func (r *Router) OnChatShared(handlers ...Handler) *Route {
+	return r.On(ChatShared(), handlers...)
+}
+
+func (r *Router) OnUsersShared(handlers ...Handler) *Route {
+	return r.On(UsersShared(), handlers...)
 }
 
 func (r *Router) acquireContext(ctx context.Context, update *lumex.Update) *Context {

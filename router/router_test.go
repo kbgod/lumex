@@ -541,6 +541,74 @@ func TestRouter_Events(t *testing.T) {
 		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
 	})
 
+	t.Run("OnCallbackQuery", func(t *testing.T) {
+		router := New(nil)
+		router.OnCallbackQuery(func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+		assert.Equal(
+			t, "test", router.GetRoutes()[0].GetName(),
+			"router.GetRoutes()[0].GetName() = %s; want test", router.GetRoutes()[0].GetName(),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			CallbackQuery: &lumex.CallbackQuery{},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
+	t.Run("OnInlinePrefix", func(t *testing.T) {
+		router := New(nil)
+		router.OnInlinePrefix("test", func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+		assert.Equal(
+			t, "test", router.GetRoutes()[0].GetName(),
+			"router.GetRoutes()[0].GetName() = %s; want test", router.GetRoutes()[0].GetName(),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			InlineQuery: &lumex.InlineQuery{
+				Query: "test",
+			},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
+	t.Run("OnInlineQuery", func(t *testing.T) {
+		router := New(nil)
+		router.OnInlineQuery(func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+		assert.Equal(
+			t, "test", router.GetRoutes()[0].GetName(),
+			"router.GetRoutes()[0].GetName() = %s; want test", router.GetRoutes()[0].GetName(),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			InlineQuery: &lumex.InlineQuery{},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
 	t.Run("OnMyChatMember", func(t *testing.T) {
 		router := New(nil)
 		router.OnMyChatMember(func(ctx *Context) error {
@@ -866,6 +934,54 @@ func TestRouter_Events(t *testing.T) {
 
 		err := router.HandleUpdate(context.Background(), &lumex.Update{
 			PurchasedPaidMedia: &lumex.PaidMediaPurchased{},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
+	t.Run("OnChatShared", func(t *testing.T) {
+		router := New(nil)
+		router.OnChatShared(func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+		assert.Equal(
+			t, "test", router.GetRoutes()[0].GetName(),
+			"router.GetRoutes()[0].GetName() = %s; want test", router.GetRoutes()[0].GetName(),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				ChatShared: &lumex.ChatShared{},
+			},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
+	t.Run("OnUsersShared", func(t *testing.T) {
+		router := New(nil)
+		router.OnUsersShared(func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+		assert.Equal(
+			t, "test", router.GetRoutes()[0].GetName(),
+			"router.GetRoutes()[0].GetName() = %s; want test", router.GetRoutes()[0].GetName(),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				UsersShared: &lumex.UsersShared{},
+			},
 		})
 
 		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)

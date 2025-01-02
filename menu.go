@@ -34,6 +34,36 @@ func (m *Menu) Unwrap() ReplyMarkup {
 	return m.ReplyKeyboardMarkup
 }
 
+func (m *Menu) SetPersistent(isPersistent bool) *Menu {
+	m.IsPersistent = isPersistent
+
+	return m
+}
+
+func (m *Menu) SetResize(resize bool) *Menu {
+	m.ResizeKeyboard = resize
+
+	return m
+}
+
+func (m *Menu) SetOneTime(isOneTime bool) *Menu {
+	m.OneTimeKeyboard = isOneTime
+
+	return m
+}
+
+func (m *Menu) SetPlaceholder(text string) *Menu {
+	m.InputFieldPlaceholder = text
+
+	return m
+}
+
+func (m *Menu) SetSelective(selective bool) *Menu {
+	m.Selective = selective
+
+	return m
+}
+
 func (m *Menu) Row(buttons ...KeyboardButton) *Menu {
 	if len(m.Keyboard[m.rowIndex]) == 0 {
 		m.Keyboard[m.rowIndex] = buttons
@@ -65,6 +95,7 @@ func (m *Menu) Fill(perLine int, buttons ...KeyboardButton) *Menu {
 		}
 		m.Row(buttons[i:end]...)
 	}
+
 	return m
 }
 
@@ -76,11 +107,13 @@ func (m *Menu) TextFill(perLine int, buttons ...string) *Menu {
 		})
 	}
 	m.Fill(perLine, keyboardButtons...)
+
 	return m
 }
 
 func (m *Menu) Btn(btn KeyboardButton) *Menu {
 	m.Keyboard[m.rowIndex] = append(m.Keyboard[m.rowIndex], btn)
+
 	return m
 }
 
@@ -88,6 +121,28 @@ func (m *Menu) TextBtn(text string) *Menu {
 	m.Keyboard[m.rowIndex] = append(m.Keyboard[m.rowIndex], KeyboardButton{
 		Text: text,
 	})
+
+	return m
+}
+
+func (m *Menu) RequestQuizBtn(text string) *Menu {
+	m.Keyboard[m.rowIndex] = append(m.Keyboard[m.rowIndex], KeyboardButton{
+		Text: text,
+		RequestPoll: &KeyboardButtonPollType{
+			Type: "quiz",
+		},
+	})
+	return m
+}
+
+func (m *Menu) RequestPollBtn(text string) *Menu {
+	m.Keyboard[m.rowIndex] = append(m.Keyboard[m.rowIndex], KeyboardButton{
+		Text: text,
+		RequestPoll: &KeyboardButtonPollType{
+			Type: "regular",
+		},
+	})
+
 	return m
 }
 
@@ -96,6 +151,7 @@ func (m *Menu) ContactBtn(text string) *Menu {
 		Text:           text,
 		RequestContact: true,
 	})
+
 	return m
 }
 
@@ -104,6 +160,7 @@ func (m *Menu) LocationBtn(text string) *Menu {
 		Text:            text,
 		RequestLocation: true,
 	})
+
 	return m
 }
 
@@ -114,6 +171,7 @@ func (m *Menu) WebAppBtn(text, url string) *Menu {
 			Url: url,
 		},
 	})
+
 	return m
 }
 
@@ -122,6 +180,7 @@ func (m *Menu) RequestChatBtn(text string, req *KeyboardButtonRequestChat) *Menu
 		Text:        text,
 		RequestChat: req,
 	})
+
 	return m
 }
 
@@ -130,6 +189,7 @@ func (m *Menu) RequestUserBtn(text string, req *KeyboardButtonRequestUsers) *Men
 		Text:         text,
 		RequestUsers: req,
 	})
+
 	return m
 }
 
@@ -171,11 +231,13 @@ func (m *InlineMenu) Fill(perLine int, buttons ...InlineKeyboardButton) *InlineM
 		}
 		m.Row(buttons[i:end]...)
 	}
+
 	return m
 }
 
 func (m *InlineMenu) Btn(btn InlineKeyboardButton) *InlineMenu {
 	m.InlineKeyboard[m.rowIndex] = append(m.InlineKeyboard[m.rowIndex], btn)
+
 	return m
 }
 
@@ -184,6 +246,7 @@ func (m *InlineMenu) CallbackBtn(text, data string) *InlineMenu {
 		Text:         text,
 		CallbackData: data,
 	})
+
 	return m
 }
 
@@ -192,6 +255,7 @@ func (m *InlineMenu) URLBtn(text, url string) *InlineMenu {
 		Text: text,
 		Url:  url,
 	})
+
 	return m
 }
 
@@ -202,6 +266,7 @@ func (m *InlineMenu) LoginBtn(text, loginURL string) *InlineMenu {
 			Url: loginURL,
 		},
 	})
+
 	return m
 }
 
@@ -210,6 +275,7 @@ func (m *InlineMenu) SwitchInlineQueryBtn(text, query string) *InlineMenu {
 		Text:              text,
 		SwitchInlineQuery: &query,
 	})
+
 	return m
 }
 
@@ -218,6 +284,7 @@ func (m *InlineMenu) SwitchInlineCurrentChatBtn(text, query string) *InlineMenu 
 		Text:                         text,
 		SwitchInlineQueryCurrentChat: &query,
 	})
+
 	return m
 }
 
@@ -228,6 +295,7 @@ func (m *InlineMenu) SwitchInlineChosenChatBtn(
 		Text:                        text,
 		SwitchInlineQueryChosenChat: query,
 	})
+
 	return m
 }
 
@@ -236,6 +304,7 @@ func (m *InlineMenu) GameBtn(text string) *InlineMenu {
 		Text:         text,
 		CallbackGame: &CallbackGame{},
 	})
+
 	return m
 }
 
@@ -244,6 +313,7 @@ func (m *InlineMenu) PayBtn(text string) *InlineMenu {
 		Text: text,
 		Pay:  true,
 	})
+
 	return m
 }
 
@@ -254,6 +324,18 @@ func (m *InlineMenu) WebAppBtn(text, url string) *InlineMenu {
 			Url: url,
 		},
 	})
+
+	return m
+}
+
+func (m *InlineMenu) CopyBtn(text, copyText string) *InlineMenu {
+	m.InlineKeyboard[m.rowIndex] = append(m.InlineKeyboard[m.rowIndex], InlineKeyboardButton{
+		Text: text,
+		CopyText: &CopyTextButton{
+			Text: copyText,
+		},
+	})
+
 	return m
 }
 
@@ -262,4 +344,34 @@ func CallbackBtn(text, data string) InlineKeyboardButton {
 		Text:         text,
 		CallbackData: data,
 	}
+}
+
+func NewForceReply() *ForceReply {
+	return &ForceReply{
+		ForceReply: true,
+	}
+}
+
+func (v *ForceReply) Unwrap() ReplyMarkup {
+	return v
+}
+
+func (v *ForceReply) SetSelective(selective bool) *ForceReply {
+	v.Selective = selective
+	return v
+}
+
+func (v *ForceReply) SetPlaceholder(text string) *ForceReply {
+	v.InputFieldPlaceholder = text
+	return v
+}
+
+func NewRemoveKeyboard() *ReplyKeyboardRemove {
+	return &ReplyKeyboardRemove{
+		RemoveKeyboard: true,
+	}
+}
+
+func (v *ReplyKeyboardRemove) Unwrap() ReplyMarkup {
+	return v
 }
