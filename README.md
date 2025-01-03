@@ -9,8 +9,6 @@ Based on [paulsonoflars/gotgbot](https://github.com/paulsonoflars/gotgbot) types
 All the telegram types and methods are generated from
 [a bot api spec](https://github.com/PaulSonOfLars/telegram-bot-api-spec). These are generated in the `gen_*.go` files.
 
-## Bot API 8.1
-
 ## Features:
 
 - All telegram API types and methods are generated from the bot api docs, which makes this library:
