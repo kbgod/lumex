@@ -1,3 +1,4 @@
 ignore:
   - "examples/**/*"
   - "mocks/*"
+  - "gen_*.go"
