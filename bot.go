@@ -106,14 +106,6 @@ func NewBot(token string, opts *BotOpts) (*Bot, error) {
 	return &b, nil
 }
 
-// UseMiddleware allows you to wrap the existing bot client to enhance functionality
-//
-// Deprecated: Instead of using middlewares, consider implementing the BotClient interface.
-func (bot *Bot) UseMiddleware(mw func(client BotClient) BotClient) *Bot {
-	bot.BotClient = mw(bot.BotClient)
-	return bot
-}
-
 func (bot *Bot) Request(method string, params map[string]string, data map[string]FileReader, opts *RequestOpts) (json.RawMessage, error) {
 	return bot.RequestWithContext(context.Background(), method, params, data, opts)
 }
