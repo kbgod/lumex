@@ -13,15 +13,6 @@ func WithErrorHandler(handler ErrorHandler) Option {
 	}
 }
 
-// WithCancelHandler
-//
-// is an option for the router that sets the cancel handler.
-func WithCancelHandler(handler Handler) Option {
-	return func(r *Router) {
-		r.cancelHandler = handler
-	}
-}
-
 // WithLogger
 //
 // is an option for the router that sets the logger.

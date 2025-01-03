@@ -1,5 +1,6 @@
 package log
 
+//go:generate go run github.com/vektra/mockery/v2@latest --name=Logger --filename=logger.go --output=../mocks
 type Logger interface {
 	Error(err error, message string, fields map[string]any)
 	Warn(message string, fields map[string]any)

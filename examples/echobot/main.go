@@ -34,7 +34,6 @@ func main() {
 	r := router.New(
 		bot,
 		router.WithLogger(routerLogger),
-		router.WithCancelHandler(router.CancelHandler),
 		router.WithErrorHandler(func(ctx *router.Context, err error) {
 			if errors.Is(err, router.ErrRouteNotFound) {
 				return

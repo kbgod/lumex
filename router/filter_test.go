@@ -8,36 +8,89 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCommandWithAt(t *testing.T) {
-	r := New(&lumex.Bot{
-		User: lumex.User{
-			Username: "testbot",
-		},
+func TestCommand(t *testing.T) {
+	t.Run("command matched", func(t *testing.T) {
+		r := New(&lumex.Bot{})
+		if !Command("test")(r.acquireContext(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				Text: "/test",
+			},
+		})) {
+			t.Error("Command failed")
+		}
 	})
-	if !CommandWithAt("test")(r.acquireContext(context.Background(), &lumex.Update{
-		Message: &lumex.Message{
-			Text: "/test@testbot",
-		},
-	})) {
-		t.Error("CommandWithAt failed")
-	}
-	if CommandWithAt("test")(r.acquireContext(context.Background(), &lumex.Update{
-		Message: &lumex.Message{
-			Text: "/invalid@testbot",
-		},
-	})) {
-		t.Error("CommandWithAt (invalid command) failed")
-	}
-	if CommandWithAt("test")(r.acquireContext(context.Background(), &lumex.Update{
-		Message: &lumex.Message{
-			Text: "/test@invalid",
-		},
-	})) {
-		t.Error("CommandWithAt (invalid bot) failed")
-	}
-	if CommandWithAt("test")(r.acquireContext(context.Background(), &lumex.Update{})) {
-		t.Error("CommandWithAt (empty message) failed")
-	}
+
+	t.Run("command not matched", func(t *testing.T) {
+		r := New(&lumex.Bot{})
+		if Command("test")(r.acquireContext(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				Text: "/invalid",
+			},
+		})) {
+			t.Error("Command (invalid command) failed")
+		}
+	})
+
+	t.Run("update type is not message", func(t *testing.T) {
+		r := New(&lumex.Bot{})
+		if Command("test")(r.acquireContext(context.Background(), &lumex.Update{})) {
+			t.Error("Command (empty update) failed")
+		}
+	})
+}
+func TestCommandWithAt(t *testing.T) {
+	t.Run("router without bot", func(t *testing.T) {
+		r := New(nil)
+		if CommandWithAt("test")(r.acquireContext(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				Text: "/test@testbot",
+			},
+		})) {
+			t.Error("CommandWithAt (empty bot) failed")
+		}
+		if CommandWithAt("test")(r.acquireContext(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				Text: "/test@invalid",
+			},
+		})) {
+			t.Error("CommandWithAt (empty bot) failed")
+		}
+		if CommandWithAt("test")(r.acquireContext(context.Background(), &lumex.Update{})) {
+			t.Error("CommandWithAt (empty message) failed")
+		}
+	})
+
+	t.Run("router with defined bot", func(t *testing.T) {
+		r := New(&lumex.Bot{
+			User: lumex.User{
+				Username: "testbot",
+			},
+		})
+		if !CommandWithAt("test")(r.acquireContext(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				Text: "/test@testbot",
+			},
+		})) {
+			t.Error("CommandWithAt failed")
+		}
+		if CommandWithAt("test")(r.acquireContext(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				Text: "/invalid@testbot",
+			},
+		})) {
+			t.Error("CommandWithAt (invalid command) failed")
+		}
+		if CommandWithAt("test")(r.acquireContext(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				Text: "/test@invalid",
+			},
+		})) {
+			t.Error("CommandWithAt (invalid bot) failed")
+		}
+		if CommandWithAt("test")(r.acquireContext(context.Background(), &lumex.Update{})) {
+			t.Error("CommandWithAt (empty message) failed")
+		}
+	})
 }
 
 func TestTextContains(t *testing.T) {
@@ -138,6 +191,18 @@ func TestTextPrefix(t *testing.T) {
 	}
 }
 
+func TestCallbackQuery(t *testing.T) {
+	r := New(&lumex.Bot{})
+	if !CallbackQuery()(r.acquireContext(context.Background(), &lumex.Update{
+		CallbackQuery: &lumex.CallbackQuery{},
+	})) {
+		t.Error("CallbackQuery failed")
+	}
+	if CallbackQuery()(r.acquireContext(context.Background(), &lumex.Update{})) {
+		t.Error("CallbackQuery (empty update) failed")
+	}
+}
+
 func TestCallbackPrefix(t *testing.T) {
 	r := New(&lumex.Bot{})
 	if !CallbackPrefix("test")(r.acquireContext(context.Background(), &lumex.Update{
@@ -156,6 +221,39 @@ func TestCallbackPrefix(t *testing.T) {
 	}
 	if CallbackPrefix("test")(r.acquireContext(context.Background(), &lumex.Update{})) {
 		t.Error("CallbackPrefix (empty update) failed")
+	}
+}
+
+func TestInlineQuery(t *testing.T) {
+	r := New(&lumex.Bot{})
+	if !InlineQuery()(r.acquireContext(context.Background(), &lumex.Update{
+		InlineQuery: &lumex.InlineQuery{},
+	})) {
+		t.Error("InlineQuery failed")
+	}
+	if InlineQuery()(r.acquireContext(context.Background(), &lumex.Update{})) {
+		t.Error("InlineQuery (empty update) failed")
+	}
+}
+
+func TestInlineQueryPrefix(t *testing.T) {
+	r := New(&lumex.Bot{})
+	if !InlineQueryPrefix("test")(r.acquireContext(context.Background(), &lumex.Update{
+		InlineQuery: &lumex.InlineQuery{
+			Query: "test",
+		},
+	})) {
+		t.Error("InlineQueryPrefix failed")
+	}
+	if InlineQueryPrefix("test")(r.acquireContext(context.Background(), &lumex.Update{
+		InlineQuery: &lumex.InlineQuery{
+			Query: "123test",
+		},
+	})) {
+		t.Error("InlineQueryPrefix (invalid text) failed")
+	}
+	if InlineQueryPrefix("test")(r.acquireContext(context.Background(), &lumex.Update{})) {
+		t.Error("InlineQueryPrefix (empty update) failed")
 	}
 }
 
@@ -346,5 +444,33 @@ func TestPurchasedPaidMedia(t *testing.T) {
 	}
 	if PurchasedPaidMedia()(r.acquireContext(context.Background(), &lumex.Update{})) {
 		t.Error("PurchasedPaidMedia (empty update) failed")
+	}
+}
+
+func TestChatShared(t *testing.T) {
+	r := New(&lumex.Bot{})
+	if !ChatShared()(r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			ChatShared: &lumex.ChatShared{},
+		},
+	})) {
+		t.Error("ChatShared failed")
+	}
+	if ChatShared()(r.acquireContext(context.Background(), &lumex.Update{})) {
+		t.Error("ChatShared (empty update) failed")
+	}
+}
+
+func TestUsersShared(t *testing.T) {
+	r := New(&lumex.Bot{})
+	if !UsersShared()(r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			UsersShared: &lumex.UsersShared{},
+		},
+	})) {
+		t.Error("UsersShared failed")
+	}
+	if UsersShared()(r.acquireContext(context.Background(), &lumex.Update{})) {
+		t.Error("UsersShared (empty update) failed")
 	}
 }

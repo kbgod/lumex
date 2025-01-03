@@ -25,8 +25,7 @@ type Router struct {
 
 	contextPool sync.Pool
 
-	cancelHandler Handler
-	errorHandler  ErrorHandler
+	errorHandler ErrorHandler
 
 	log log.Logger
 }
@@ -269,12 +268,8 @@ func (r *Router) HandleUpdate(ctx context.Context, update *lumex.Update) error {
 	}
 	eventCtx := r.acquireContext(ctx, update)
 	defer r.releaseContext(eventCtx)
-	var err error
-	if r.cancelHandler != nil {
-		err = r.cancelHandler(eventCtx)
-	} else {
-		err = eventCtx.Next()
-	}
+
+	err := eventCtx.Next()
 
 	if err != nil && r.errorHandler != nil {
 		r.errorHandler(eventCtx, err)
@@ -288,7 +283,6 @@ func (r *Router) HandleUpdate(ctx context.Context, update *lumex.Update) error {
 // Listen starts getting updates using bot.GetUpdatesChanWithContext method
 // this is preferred way to get updates in production
 // Attention: this method blocks until interrupt signal received and all workers finished or timeout reached
-// Attention: you must add router.WithCancelHandler handler for safe work
 func (r *Router) Listen(
 	ctx context.Context,
 	interrupt chan os.Signal,
@@ -296,9 +290,6 @@ func (r *Router) Listen(
 	poolSize int,
 	updatesOpts *lumex.GetUpdatesChanOpts,
 ) {
-	if r.cancelHandler == nil {
-		r.log.Warn("router doesn't have cancel handler, use router.WithCancelHandler option", nil)
-	}
 	updatesCtx, updatesCancel := context.WithCancel(ctx)
 	updates := r.bot.GetUpdatesChanWithContext(updatesCtx, updatesOpts)
 
@@ -315,7 +306,20 @@ func (r *Router) Listen(
 						r.log.Debug("worker shutting down", map[string]any{"id": id})
 						return
 					}
-					_ = r.HandleUpdate(poolCtx, &update)
+					err := func() <-chan error {
+						errChan := make(chan error)
+						go func() {
+							errChan <- r.HandleUpdate(poolCtx, &update)
+						}()
+						return errChan
+					}()
+
+					select {
+					case <-poolCtx.Done():
+						return
+					case <-err:
+						// do nothing
+					}
 				}
 			}
 		}(i)

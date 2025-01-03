@@ -1,7 +1,7 @@
 # Golang Telegram Bot Framework
 [![Test](https://github.com/kbgod/lumex/actions/workflows/test.yml/badge.svg)](https://github.com/kbgod/lumex/actions/workflows/test.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kbgod/lumex)](https://goreportcard.com/report/github.com/kbgod/lumex)
-[![Telegram Bot API Version](https://img.shields.io/static/v1?label=Supported%20Telegram%20Bot%20API&color=29a1d4&logo=telegram&message=v8.1)](https://core.telegram.org/bots/api#december-4-2024)
+[![Telegram Bot API Version](https://img.shields.io/static/v1?label=Supported%20Telegram%20Bot%20API&color=29a1d4&logo=telegram&message=v8.2)](https://core.telegram.org/bots/api#december-4-2024)
 [![codecov](https://codecov.io/gh/kbgod/lumex/branch/main/graph/badge.svg)](https://codecov.io/gh/kbgod/lumex)
 
 Based on [paulsonoflars/gotgbot](https://github.com/paulsonoflars/gotgbot) types generation and inspired by [mr-linch/go-tg](https://github.com/mr-linch/go-tg)
@@ -95,7 +95,6 @@ func main() {
   r := router.New(
     bot,
     router.WithLogger(routerLogger),
-    router.WithCancelHandler(router.CancelHandler),
     router.WithErrorHandler(func(ctx *router.Context, err error) {
       if errors.Is(err, router.ErrRouteNotFound) {
         return

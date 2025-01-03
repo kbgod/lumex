@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/kbgod/lumex"
@@ -31,6 +32,109 @@ func TestContext_Context(t *testing.T) {
 	})
 
 }
+
+func TestContext_SetParseMode(t *testing.T) {
+	t.Run("empty send message opts", func(t *testing.T) {
+		cl := mocks.NewBotClient(t)
+		const fakeToken = "123:test"
+		cl.On(
+			"RequestWithContext",
+			mock.IsType(context.Background()),
+			mock.MatchedBy(
+				func(t string) bool {
+					return t == fakeToken
+				},
+			),
+			mock.MatchedBy(
+				func(method string) bool {
+					return method == "sendMessage"
+				},
+			),
+			mock.MatchedBy(
+				func(params map[string]string) bool {
+					return params["chat_id"] == "1" &&
+						params["text"] == "test" &&
+						params["parse_mode"] == "Markdown"
+				},
+			),
+			mock.Anything,
+			mock.Anything,
+		).Return(
+			json.RawMessage(`{"message_id":123,"chat":{"id":1},"text":"test"}`),
+			nil,
+		)
+		bot, err := lumex.NewBot(fakeToken, &lumex.BotOpts{
+			BotClient:         cl,
+			DisableTokenCheck: true,
+		})
+		assert.NoErrorf(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+		r := New(bot)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				Chat: lumex.Chat{
+					Id: 1,
+				},
+			},
+		})
+		ctx.SetParseMode(lumex.ParseModeMarkdown)
+		_, err = ctx.Reply("test")
+
+		assert.NoErrorf(t, err, "ctx.Reply() = %v; want <nil>", err)
+	})
+
+	t.Run("with send message opts", func(t *testing.T) {
+		cl := mocks.NewBotClient(t)
+		const fakeToken = "123:test"
+		cl.On(
+			"RequestWithContext",
+			mock.IsType(context.Background()),
+			mock.MatchedBy(
+				func(t string) bool {
+					return t == fakeToken
+				},
+			),
+			mock.MatchedBy(
+				func(method string) bool {
+					return method == "sendMessage"
+				},
+			),
+			mock.MatchedBy(
+				func(params map[string]string) bool {
+					return params["chat_id"] == "1" &&
+						params["text"] == "test" &&
+						params["parse_mode"] == "Markdown"
+				},
+			),
+			mock.Anything,
+			mock.Anything,
+		).Return(
+			json.RawMessage(`{"message_id":123,"chat":{"id":1},"text":"test"}`),
+			nil,
+		)
+		bot, err := lumex.NewBot(fakeToken, &lumex.BotOpts{
+			BotClient:         cl,
+			DisableTokenCheck: true,
+		})
+		assert.NoErrorf(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+		r := New(bot)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				Chat: lumex.Chat{
+					Id: 1,
+				},
+			},
+		})
+		ctx.SetParseMode(lumex.ParseModeMarkdown)
+		_, err = ctx.Reply("test", &lumex.SendMessageOpts{
+			ParseMode: lumex.ParseModeHTML,
+		})
+
+		assert.NoErrorf(t, err, "ctx.Reply() = %v; want <nil>", err)
+	})
+}
+
 func TestContext_GetState(t *testing.T) {
 	ctx := new(Context)
 	if ctx.GetState() != nil {
@@ -174,6 +278,53 @@ func TestContext_Message(t *testing.T) {
 	if ctx.Message() == nil || ctx.Message().MessageId != 1 {
 		t.Errorf("ctx.Message()[CallbackQuery] = %v; want 1", ctx.Message())
 	}
+
+	ctx = r.acquireContext(context.Background(),
+		&lumex.Update{
+			CallbackQuery: &lumex.CallbackQuery{
+				Message: lumex.Message{
+					MessageId: 1,
+				},
+			},
+		},
+	)
+	if ctx.Message() == nil || ctx.Message().MessageId != 1 {
+		t.Errorf("ctx.Message()[CallbackQuery] = %v; want 1", ctx.Message())
+	}
+
+	ctx = r.acquireContext(context.Background(),
+		&lumex.Update{
+			CallbackQuery: &lumex.CallbackQuery{
+				Message: lumex.InaccessibleMessage{
+					MessageId: 1,
+				},
+			},
+		},
+	)
+	if ctx.Message() == nil || ctx.Message().MessageId != 1 {
+		t.Errorf("ctx.Message()[CallbackQuery] = %v; want 1", ctx.Message())
+	}
+
+	ctx = r.acquireContext(context.Background(),
+		&lumex.Update{
+			CallbackQuery: &lumex.CallbackQuery{
+				Message: &lumex.InaccessibleMessage{
+					MessageId: 1,
+				},
+			},
+		},
+	)
+	if ctx.Message() == nil || ctx.Message().MessageId != 1 {
+		t.Errorf("ctx.Message()[CallbackQuery] = %v; want 1", ctx.Message())
+	}
+
+	ctx = r.acquireContext(context.Background(),
+		&lumex.Update{
+			CallbackQuery: &lumex.CallbackQuery{},
+		},
+	)
+	assert.Nil(t, ctx.Message(), "ctx.Message() = %v; want <nil>", ctx.Message())
+
 	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		EditedMessage: &lumex.Message{
 			MessageId: 1,
@@ -615,6 +766,210 @@ func TestContext_Reply(t *testing.T) {
 	}
 }
 
+func TestContext_ReplyVoid(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		cl := mocks.NewBotClient(t)
+		const fakeToken = "123:test"
+		cl.On(
+			"RequestWithContext",
+			mock.IsType(context.Background()),
+			mock.MatchedBy(
+				func(t string) bool {
+					return t == fakeToken
+				},
+			),
+			mock.MatchedBy(
+				func(method string) bool {
+					return method == "sendMessage"
+				},
+			),
+			mock.MatchedBy(
+				func(params map[string]string) bool {
+					return params["chat_id"] == "1" &&
+						params["text"] == "test" &&
+						params["parse_mode"] == "Markdown"
+				},
+			),
+			mock.Anything,
+			mock.Anything,
+		).Return(
+			json.RawMessage(`{"message_id":123,"chat":{"id":1},"text":"test"}`),
+			nil,
+		)
+		bot, err := lumex.NewBot(fakeToken, &lumex.BotOpts{
+			BotClient:         cl,
+			DisableTokenCheck: true,
+		})
+		assert.NoErrorf(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+		r := New(bot)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				Chat: lumex.Chat{
+					Id: 1,
+				},
+			},
+		})
+		ctx.SetParseMode(lumex.ParseModeMarkdown)
+		err = ctx.ReplyVoid("test")
+
+		assert.NoErrorf(t, err, "ctx.Reply() = %v; want <nil>", err)
+	})
+
+	t.Run("invalid token", func(t *testing.T) {
+		cl := mocks.NewBotClient(t)
+		const invalidToken = "123:test"
+		cl.On(
+			"RequestWithContext",
+			mock.IsType(context.Background()),
+			mock.MatchedBy(
+				func(t string) bool {
+					return t == invalidToken
+				},
+			),
+			mock.MatchedBy(
+				func(method string) bool {
+					return method == "sendMessage"
+				},
+			),
+			mock.MatchedBy(
+				func(params map[string]string) bool {
+					return params["chat_id"] == "1" &&
+						params["text"] == "test" &&
+						params["parse_mode"] == "Markdown"
+				},
+			),
+			mock.Anything,
+			mock.Anything,
+		).Return(
+			nil,
+			errors.New("invalid token"),
+		)
+		bot, err := lumex.NewBot(invalidToken, &lumex.BotOpts{
+			BotClient:         cl,
+			DisableTokenCheck: true,
+		})
+		assert.NoErrorf(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+		r := New(bot)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				Chat: lumex.Chat{
+					Id: 1,
+				},
+			},
+		})
+		ctx.SetParseMode(lumex.ParseModeMarkdown)
+		err = ctx.ReplyVoid("test")
+
+		assert.Error(t, err, "ctx.Reply() = %v; want <nil>", err)
+	})
+}
+
+func TestContext_ReplyWithMenu(t *testing.T) {
+	t.Run("keyboard", func(t *testing.T) {
+		cl := mocks.NewBotClient(t)
+		const fakeToken = "123:test"
+		cl.On(
+			"RequestWithContext",
+			mock.IsType(context.Background()),
+			mock.MatchedBy(
+				func(t string) bool {
+					return t == fakeToken
+				},
+			),
+			mock.MatchedBy(
+				func(method string) bool {
+					return method == "sendMessage"
+				},
+			),
+			mock.MatchedBy(
+				func(params map[string]string) bool {
+					return params["chat_id"] == "1" &&
+						params["text"] == "test" &&
+						params["reply_markup"] == `{"keyboard":[[{"text":"test"}]],"resize_keyboard":true}`
+				},
+			),
+			mock.Anything,
+			mock.Anything,
+		).Return(
+			json.RawMessage(`{"message_id":123,"chat":{"id":1},"text":"test"}`),
+			nil,
+		)
+		bot, err := lumex.NewBot(fakeToken, &lumex.BotOpts{
+			BotClient:         cl,
+			DisableTokenCheck: true,
+		})
+		assert.NoErrorf(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+		r := New(bot)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				Chat: lumex.Chat{
+					Id: 1,
+				},
+			},
+		})
+		ctx.SetParseMode(lumex.ParseModeMarkdown)
+		m, err := ctx.ReplyWithMenu("test", lumex.NewMenu().TextBtn("test"))
+
+		assert.NoErrorf(t, err, "ctx.Reply() = %v; want <nil>", err)
+		assert.NotNil(t, m, "ctx.Reply() = %v; want not <nil>", m)
+		assert.Equal(t, int64(123), m.MessageId, "m.MessageId = %v; want 123", m.MessageId)
+	})
+
+	t.Run("inline keyboard", func(t *testing.T) {
+		cl := mocks.NewBotClient(t)
+		const fakeToken = "123:test"
+		cl.On(
+			"RequestWithContext",
+			mock.IsType(context.Background()),
+			mock.MatchedBy(
+				func(t string) bool {
+					return t == fakeToken
+				},
+			),
+			mock.MatchedBy(
+				func(method string) bool {
+					return method == "sendMessage"
+				},
+			),
+			mock.MatchedBy(
+				func(params map[string]string) bool {
+					return params["chat_id"] == "1" &&
+						params["text"] == "test" &&
+						params["reply_markup"] == `{"inline_keyboard":[[{"text":"test","callback_data":"data"}]]}`
+				},
+			),
+			mock.Anything,
+			mock.Anything,
+		).Return(
+			json.RawMessage(`{"message_id":123,"chat":{"id":1},"text":"test"}`),
+			nil,
+		)
+		bot, err := lumex.NewBot(fakeToken, &lumex.BotOpts{
+			BotClient:         cl,
+			DisableTokenCheck: true,
+		})
+		assert.NoErrorf(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+		r := New(bot)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				Chat: lumex.Chat{
+					Id: 1,
+				},
+			},
+		})
+		ctx.SetParseMode(lumex.ParseModeMarkdown)
+		m, err := ctx.ReplyWithMenu("test", lumex.NewInlineMenu().CallbackBtn("test", "data"))
+
+		assert.NoErrorf(t, err, "ctx.Reply() = %v; want <nil>", err)
+		assert.NotNil(t, m, "ctx.Reply() = %v; want not <nil>", m)
+		assert.Equal(t, int64(123), m.MessageId, "m.MessageId = %v; want 123", m.MessageId)
+	})
+}
+
 func TestContext_CallbackData(t *testing.T) {
 	t.Run("empty if update is not callbackQuery", func(t *testing.T) {
 		r := New(nil)
@@ -718,6 +1073,18 @@ func TestContext_ShiftCallbackData(t *testing.T) {
 		data := ctx.ShiftCallbackData(":", 2)
 		assert.Equal(
 			t, "part3", data, "ctx.ShiftCallbackData() = %v; want 'part3'", data)
+	})
+
+	t.Run("shift count more than parts count", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			CallbackQuery: &lumex.CallbackQuery{
+				Data: "test:part1",
+			},
+		})
+		data := ctx.ShiftCallbackData(":", 4)
+		assert.Equal(
+			t, "", data, "ctx.ShiftCallbackData() = %v; want ''", data)
 	})
 }
 
@@ -869,6 +1236,19 @@ func TestContext_ShiftInlineQuery(t *testing.T) {
 		data := ctx.ShiftInlineQuery(":")
 		assert.Equal(
 			t, "part2:part3", data, "ctx.ShiftInlineQuery() = %v; want 'part2:part3'", data,
+		)
+	})
+
+	t.Run("shift count more than parts count", func(t *testing.T) {
+		r := New(nil)
+		ctx := r.acquireContext(context.Background(), &lumex.Update{
+			InlineQuery: &lumex.InlineQuery{
+				Query: "test:part1",
+			},
+		})
+		data := ctx.ShiftInlineQuery(":", 4)
+		assert.Equal(
+			t, "", data, "ctx.ShiftInlineQuery() = %v; want ''", data,
 		)
 	})
 }

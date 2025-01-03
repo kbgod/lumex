@@ -108,7 +108,6 @@ func (ctx *Context) Message() *lumex.Message {
 				Date:      m.Date,
 			}
 		}
-		return nil
 	}
 
 	return nil
@@ -328,7 +327,6 @@ func (ctx *Context) ReplyWithMenu(
 ) (*lumex.Message, error) {
 	if len(opts) == 0 {
 		opts = append(opts, &lumex.SendMessageOpts{
-
 			ReplyMarkup: menu.Unwrap(),
 		})
 	}

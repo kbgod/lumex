@@ -3,9 +3,7 @@ package router
 import (
 	"context"
 	"errors"
-	"sync"
 	"testing"
-	"time"
 
 	"github.com/kbgod/lumex"
 	"github.com/stretchr/testify/assert"
@@ -1007,63 +1005,5 @@ func TestRouter_ErrorHandler(t *testing.T) {
 
 		err := router.HandleUpdate(context.Background(), &lumex.Update{})
 		assert.Equal(t, ErrRouteNotFound, err, "router.HandleUpdate() = %v; want ErrRouteNotFound")
-	})
-}
-
-func TestRouter_CancelHandler(t *testing.T) {
-	t.Run("router has cancel handler", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		router := New(nil, WithCancelHandler(CancelHandler))
-
-		var (
-			handlerCalled    bool
-			handlerCompleted bool
-		)
-		mu := new(sync.Mutex)
-		router.On(AnyUpdate(), func(ctx *Context) error {
-			mu.Lock()
-			handlerCalled = true
-			mu.Unlock()
-			time.Sleep(1 * time.Second)
-
-			mu.Lock()
-			handlerCompleted = true
-			mu.Unlock()
-			return nil
-		})
-
-		go func() {
-			time.Sleep(100 * time.Millisecond)
-			cancel()
-		}()
-		err := router.HandleUpdate(ctx, &lumex.Update{})
-
-		mu.Lock()
-		assert.True(t, handlerCalled, "handlerCalled = %v; want true", handlerCalled)
-		assert.False(t, handlerCompleted, "handlerCompleted = %v; want false", handlerCompleted)
-		mu.Unlock()
-		assert.Equal(t, context.Canceled, err, "router.HandleUpdate() = %v; want context.Canceled", err)
-	})
-
-	t.Run("router has no cancel handler", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		router := New(nil)
-
-		handlerCalled := false
-		router.On(AnyUpdate(), func(ctx *Context) error {
-			handlerCalled = true
-			time.Sleep(100 * time.Millisecond)
-			assert.True(t, true, "handler should not be canceled")
-			return nil
-		})
-
-		go func() {
-			time.Sleep(50 * time.Millisecond)
-			cancel()
-		}()
-		err := router.HandleUpdate(ctx, &lumex.Update{})
-
-		assert.True(t, handlerCalled, "handlerCalled = %v; want true", handlerCalled)
-		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
 	})
 }
