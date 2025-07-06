@@ -455,6 +455,30 @@ func TestRouter_Events(t *testing.T) {
 		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
 	})
 
+	t.Run("OnTextEquals", func(t *testing.T) {
+		router := New(nil)
+		router.OnTextEquals("test", func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+		assert.Equal(
+			t, "test", router.GetRoutes()[0].GetName(),
+			"router.GetRoutes()[0].GetName() = %s; want test", router.GetRoutes()[0].GetName(),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				Text: "test",
+			},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
 	t.Run("OnCommandWithAt authorized bot", func(t *testing.T) {
 		router := New(&lumex.Bot{
 			User: lumex.User{

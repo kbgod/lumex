@@ -145,6 +145,10 @@ func (r *Router) OnTextPrefix(prefix string, handlers ...Handler) *Route {
 	return r.On(TextPrefix(prefix), handlers...)
 }
 
+func (r *Router) OnTextEquals(text string, handlers ...Handler) *Route {
+	return r.On(TextEquals(text), handlers...)
+}
+
 func (r *Router) OnTextContains(text string, handlers ...Handler) *Route {
 	return r.On(TextContains(text), handlers...)
 }

@@ -54,6 +54,15 @@ func TextContains(text string) RouteFilter {
 	}
 }
 
+func TextEquals(text string) RouteFilter {
+	return func(ctx *Context) bool {
+		if ctx.Update.Message == nil {
+			return false
+		}
+		return ctx.Update.Message.Text == text
+	}
+}
+
 // TextPrefix returns a filter that checks if the message text starts with the given text.
 func TextPrefix(text string) RouteFilter {
 	return func(ctx *Context) bool {

@@ -128,6 +128,41 @@ func TestTextContains(t *testing.T) {
 	}
 }
 
+func TestTextEquals(t *testing.T) {
+	r := New(&lumex.Bot{})
+	if !TextEquals("test")(r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Text: "test",
+		},
+	})) {
+		t.Error("TextEquals failed")
+	}
+	if TextEquals("test")(r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Text: "test123",
+		},
+	})) {
+		t.Error("TextEquals (invalid text) failed")
+	}
+	if TextEquals("test")(r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Text: "123test",
+		},
+	})) {
+		t.Error("TextEquals (invalid text) failed")
+	}
+	if !TextEquals("test")(r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Text: "test",
+		},
+	})) {
+		t.Error("TextEquals failed")
+	}
+	if TextEquals("test")(r.acquireContext(context.Background(), &lumex.Update{})) {
+		t.Error("TextEquals (empty message) failed")
+	}
+}
+
 func TestAnyUpdate(t *testing.T) {
 	t.Run("AnyUpdate last handler", func(t *testing.T) {
 		r := New(&lumex.Bot{})
