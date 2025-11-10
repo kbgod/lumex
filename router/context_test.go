@@ -103,7 +103,7 @@ func TestContext_SetParseMode(t *testing.T) {
 				func(params map[string]string) bool {
 					return params["chat_id"] == "1" &&
 						params["text"] == "test" &&
-						params["parse_mode"] == "Markdown"
+						params["parse_mode"] == lumex.ParseModeHTML
 				},
 			),
 			mock.Anything,

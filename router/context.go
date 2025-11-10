@@ -297,18 +297,20 @@ func (ctx *Context) ShiftInlineQuery(separator string, count ...int) string {
 
 // Reply sends message to the chat from update
 func (ctx *Context) Reply(text string, opts ...*lumex.SendMessageOpts) (*lumex.Message, error) {
-	if ctx.parseMode != nil {
-		if len(opts) == 0 {
-			opts = append(opts, &lumex.SendMessageOpts{
-				ParseMode: *ctx.parseMode,
-			})
-		} else {
-			opts[0].ParseMode = *ctx.parseMode
-		}
-	}
 	var opt *lumex.SendMessageOpts
-	if len(opts) > 0 {
+
+	if len(opts) > 0 && opts[0] != nil {
 		opt = opts[0]
+	}
+
+	if ctx.parseMode != nil {
+		if opt == nil {
+			opt = &lumex.SendMessageOpts{
+				ParseMode: *ctx.parseMode,
+			}
+		} else if opt.ParseMode == "" {
+			opt.ParseMode = *ctx.parseMode
+		}
 	}
 
 	return ctx.Bot.SendMessageWithContext(ctx.Context(), ctx.ChatID(), text, opt)
@@ -325,13 +327,17 @@ func (ctx *Context) ReplyVoid(text string, opts ...*lumex.SendMessageOpts) error
 func (ctx *Context) ReplyWithMenu(
 	text string, menu lumex.IMenu, opts ...*lumex.SendMessageOpts,
 ) (*lumex.Message, error) {
-	if len(opts) == 0 {
-		opts = append(opts, &lumex.SendMessageOpts{
-			ReplyMarkup: menu.Unwrap(),
-		})
+	var opt *lumex.SendMessageOpts
+
+	if len(opts) > 0 && opts[0] != nil {
+		opt = opts[0]
+	} else {
+		opt = &lumex.SendMessageOpts{}
 	}
 
-	return ctx.Reply(text, opts...)
+	opt.ReplyMarkup = menu.Unwrap()
+
+	return ctx.Reply(text, opt)
 }
 
 // ReplyWithMenuVoid sends message with menu without returning result
@@ -487,7 +493,8 @@ func (ctx *Context) ReplyEmojiBigReaction(emoji ...string) (bool, error) {
 	return ctx.Bot.SetMessageReactionWithContext(
 		ctx.Context(),
 		ctx.ChatID(),
-		ctx.Message().MessageId, &lumex.SetMessageReactionOpts{
+		ctx.Message().MessageId,
+		&lumex.SetMessageReactionOpts{
 			Reaction: reactions,
 			IsBig:    true,
 		})
@@ -496,6 +503,56 @@ func (ctx *Context) ReplyEmojiBigReaction(emoji ...string) (bool, error) {
 // ReplyEmojiBigReactionVoid sends big emoji reaction to message which is in update without returning result
 func (ctx *Context) ReplyEmojiBigReactionVoid(emoji ...string) error {
 	_, err := ctx.ReplyEmojiBigReaction(emoji...)
+
+	return err
+}
+
+func (ctx *Context) ReplyPhoto(photo lumex.InputFile, opts ...*lumex.SendPhotoOpts) (*lumex.Message, error) {
+	var opt *lumex.SendPhotoOpts
+
+	if len(opts) > 0 && opts[0] != nil {
+		opt = opts[0]
+	}
+
+	if ctx.parseMode != nil {
+		if opt == nil {
+			opt = &lumex.SendPhotoOpts{
+				ParseMode: *ctx.parseMode,
+			}
+		} else if opt.ParseMode == "" {
+			opt.ParseMode = *ctx.parseMode
+		}
+	}
+
+	return ctx.Bot.SendPhotoWithContext(ctx.Context(), ctx.ChatID(), photo, opt)
+}
+
+func (ctx *Context) ReplyPhotoVoid(photo lumex.InputFile, opts ...*lumex.SendPhotoOpts) error {
+	_, err := ctx.ReplyPhoto(photo, opts...)
+
+	return err
+}
+
+func (ctx *Context) ReplyPhotoWithMenu(
+	photo lumex.InputFile, menu lumex.IMenu, opts ...*lumex.SendPhotoOpts,
+) (*lumex.Message, error) {
+	var opt *lumex.SendPhotoOpts
+
+	if len(opts) > 0 && opts[0] != nil {
+		opt = opts[0]
+	} else {
+		opt = &lumex.SendPhotoOpts{}
+	}
+
+	opt.ReplyMarkup = menu.Unwrap()
+
+	return ctx.ReplyPhoto(photo, opt)
+}
+
+func (ctx *Context) ReplyPhotoWithMenuVoid(
+	photo lumex.InputFile, menu lumex.IMenu, opts ...*lumex.SendPhotoOpts,
+) error {
+	_, err := ctx.ReplyPhotoWithMenu(photo, menu, opts...)
 
 	return err
 }

@@ -97,8 +97,16 @@ func (r *Router) Group(handlers ...Handler) *Router {
 		state:    r.state,
 		bot:      r.bot,
 		routes:   nil,
-		handlers: handlers,
+		handlers: append(r.getAllSubRouterHandlers(), handlers...),
 	}
+}
+
+func (r *Router) getAllSubRouterHandlers() []Handler {
+	if r.parent != nil {
+		return append(r.parent.getAllSubRouterHandlers(), r.handlers...)
+	}
+
+	return nil
 }
 
 func (r *Router) GetRoutes() []*Route {
@@ -331,10 +339,10 @@ func (r *Router) Listen(
 
 	<-interrupt
 	updatesCancel()
-	//log.Println("updates channel closed")
+
 	r.log.Debug("updates channel closed", nil)
-	//log.Printf("waiting for %v to finish workers\n", timeout)
 	r.log.Debug("waiting for workers to finish", map[string]any{"timeout": timeout})
+
 	go func() {
 		<-time.After(timeout)
 		poolCancel()

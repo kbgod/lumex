@@ -106,6 +106,63 @@ func TestRouter_Group(t *testing.T) {
 		}
 	})
 
+	t.Run("sub group", func(t *testing.T) {
+		router := New(nil)
+		var (
+			globalMiddlewareCalled bool
+			calledFirstGroup       bool
+			calledSecondGroup      bool
+			calledHandler          bool
+		)
+
+		router.Use(func(ctx *Context) error {
+			if globalMiddlewareCalled {
+				t.Error("global middleware called more than once")
+			}
+
+			globalMiddlewareCalled = true
+
+			return ctx.Next()
+		})
+
+		firstGroup := router.Group(func(ctx *Context) error {
+			if calledFirstGroup {
+				t.Error("first group handler called more than once")
+			}
+			calledFirstGroup = true
+
+			return ctx.Next()
+		})
+
+		secondGroup := firstGroup.Group(func(ctx *Context) error {
+			if calledSecondGroup {
+				t.Error("second group handler called more than once")
+			}
+
+			calledSecondGroup = true
+
+			return ctx.Next()
+		})
+
+		secondGroup.OnCommand("test", func(ctx *Context) error {
+			calledHandler = true
+
+			return nil
+		})
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				Text: "/test",
+			},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+		assert.True(t, globalMiddlewareCalled, "globalMiddlewareCalled = %v; want true", globalMiddlewareCalled)
+		assert.True(t, calledFirstGroup, "calledFirstGroup = %v; want true", calledFirstGroup)
+		assert.True(t, calledSecondGroup, "calledSecondGroup = %v; want true", calledSecondGroup)
+		assert.True(t, calledHandler, "calledHandler = %v; want true", calledHandler)
+	})
+
 	t.Run("check if group handlers is called", func(t *testing.T) {
 		router := New(nil)
 		var (
