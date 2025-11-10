@@ -7,7 +7,7 @@ import (
 	"github.com/kbgod/lumex"
 )
 
-const BotContextKey = "lumex-bot"
+type BotContextKey = struct{}
 
 type Context struct {
 	state        *string

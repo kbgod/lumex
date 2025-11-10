@@ -11,7 +11,7 @@ import (
 
 	"github.com/kbgod/lumex"
 	zerologAdapter "github.com/kbgod/lumex/log/adapter/zerolog"
-	"github.com/kbgod/lumex/plugin"
+	"github.com/kbgod/lumex/middleware"
 	"github.com/kbgod/lumex/router"
 	"github.com/rs/zerolog"
 )
@@ -42,7 +42,7 @@ func main() {
 		}),
 	)
 	r.Use(
-		plugin.RecoveryMiddleware(routerLogger),
+		middleware.RecoveryMiddleware(routerLogger),
 	)
 	r.OnStart(func(ctx *router.Context) error {
 		txt := "/task - test long time handler cancellation\n" +

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"time"
 )
 
@@ -11,39 +12,78 @@ type GetUpdatesChanOpts struct {
 	*GetUpdatesOpts
 	Buffer          int
 	ErrorHandler    func(error)
+	RetryDelay      time.Duration
 	ShutdownTimeout time.Duration
 }
 
 func (bot *Bot) GetUpdatesChanWithContext(ctx context.Context, opts *GetUpdatesChanOpts) <-chan Update {
-	defaultOpts := &GetUpdatesChanOpts{
+	cfg := GetUpdatesChanOpts{
 		Buffer: 100,
 		GetUpdatesOpts: &GetUpdatesOpts{
 			Timeout: 600,
+			Offset:  0,
+			RequestOpts: &RequestOpts{
+				Timeout: 605 * time.Second,
+			},
+		},
+		ErrorHandler: func(err error) {
+			log.Println("GetUpdatesChanWithContext error:", err)
 		},
 	}
-	if opts == nil {
-		opts = defaultOpts
+
+	if opts != nil {
+		if opts.Buffer > 0 {
+			cfg.Buffer = opts.Buffer
+		}
+		cfg.ErrorHandler = opts.ErrorHandler
+		if opts.GetUpdatesOpts != nil {
+			cfg.GetUpdatesOpts.Timeout = opts.GetUpdatesOpts.Timeout
+			cfg.GetUpdatesOpts.Offset = opts.GetUpdatesOpts.Offset
+			cfg.GetUpdatesOpts.Limit = opts.GetUpdatesOpts.Limit
+			cfg.GetUpdatesOpts.AllowedUpdates = opts.GetUpdatesOpts.AllowedUpdates
+			if opts.GetUpdatesOpts.RequestOpts != nil {
+				cfg.GetUpdatesOpts.RequestOpts.Timeout = opts.GetUpdatesOpts.RequestOpts.Timeout
+			}
+		}
 	}
-	ch := make(chan Update, opts.Buffer)
+
+	ch := make(chan Update, cfg.Buffer)
 	go func() {
 		defer close(ch)
+
+		getUpdatesOpts := *cfg.GetUpdatesOpts
+
 		for {
-			updates, err := bot.GetUpdatesWithContext(ctx, opts.GetUpdatesOpts)
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
+			updates, err := bot.GetUpdatesWithContext(ctx, &getUpdatesOpts)
 			if err != nil {
 				if errors.Is(err, context.Canceled) {
 					return
 				}
-				if opts.ErrorHandler != nil {
-					opts.ErrorHandler(err)
+
+				if cfg.ErrorHandler != nil {
+					cfg.ErrorHandler(err)
 				}
-				time.Sleep(time.Second * 3)
+
+				time.Sleep(cfg.RetryDelay)
+
 				continue
 			}
 
 			for _, update := range updates {
-				if update.UpdateId >= opts.GetUpdatesOpts.Offset {
-					opts.GetUpdatesOpts.Offset = update.UpdateId + 1
-					ch <- update
+				if update.UpdateId >= getUpdatesOpts.Offset {
+					getUpdatesOpts.Offset = update.UpdateId + 1
+
+					select {
+					case ch <- update:
+					case <-ctx.Done():
+						return
+					}
 				}
 			}
 		}

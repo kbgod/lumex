@@ -1,4 +1,4 @@
-package plugin
+package middleware
 
 import (
 	"runtime/debug"

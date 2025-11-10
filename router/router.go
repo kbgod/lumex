@@ -250,7 +250,7 @@ func (r *Router) acquireContext(ctx context.Context, update *lumex.Update) *Cont
 	eventCtx.ctx = ctx
 	eventCtx.Update = update
 	eventCtx.router = r
-	bot, ok := ctx.Value(BotContextKey).(*lumex.Bot)
+	bot, ok := ctx.Value(BotContextKey{}).(*lumex.Bot)
 	if ok {
 		eventCtx.Bot = bot
 	} else {
