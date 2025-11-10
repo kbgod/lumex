@@ -1,6 +1,7 @@
 package lumex
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -11,7 +12,7 @@ import (
 
 func TestTelegramError_Error(t *testing.T) {
 	method := "sendMessage"
-	params := map[string]string{"chat_id": "12345", "text": "Hello"}
+	params := map[string]any{"chat_id": "12345", "text": "Hello"}
 	code := 400
 	description := "Bad Request: chat not found"
 	responseParams := &ResponseParameters{MigrateToChatId: 67890, RetryAfter: 5}
@@ -61,7 +62,7 @@ func TestBaseBotClient_RequestWithContext(t *testing.T) {
 	assert.NoError(t, err, "NewBot() failed")
 
 	t.Run("without parameters", func(t *testing.T) {
-		resp, err := client.RequestWithContext(nil, "getMe", nil, nil, nil)
+		resp, err := client.RequestWithContext(nil, "getMe", nil, nil)
 		assert.NoError(t, err, "RequestWithContext() failed")
 		assert.NotNil(t, resp, "Response is nil")
 
@@ -73,46 +74,39 @@ func TestBaseBotClient_RequestWithContext(t *testing.T) {
 	})
 
 	t.Run("file by url", func(t *testing.T) {
-		v := map[string]string{
-			"chat_id": "1681111384",
+		v := map[string]any{
+			"chat_id": 1681111384,
 		}
-		data := map[string]FileReader{}
-		photo := InputFileByURL("https://telegram.org/img/t_logo.png")
-		v["photo"] = photo.getValue()
-		err := photo.Attach("photo.png", data)
-		assert.NoError(t, err, "Attach() failed")
 
-		resp, err := client.RequestWithContext(nil, "sendPhoto", v, data, nil)
+		v["photo"] = InputFileByURL("https://telegram.org/img/t_logo.png")
+
+		resp, err := client.RequestWithContext(context.Background(), "sendPhoto", v, nil)
 		assert.NoError(t, err, "RequestWithContext() failed")
 		assert.NotNil(t, resp, "Response is nil")
 	})
 
 	t.Run("file by reader", func(t *testing.T) {
-		v := map[string]string{
+		v := map[string]any{
 			"chat_id": "1681111384",
 		}
-		data := map[string]FileReader{}
 
 		photo, err := http.Get("https://telegram.org/img/t_logo.png")
 		assert.NoError(t, err, "http.Get() failed")
 
-		photoReader := InputFileByReader("photo", photo.Body)
-		v["photo"] = photoReader.getValue()
-		err = photoReader.Attach("photo", data)
-		assert.NoError(t, err, "Attach() failed")
+		v["photo"] = InputFileByReader("photo", photo.Body)
 
-		resp, err := client.RequestWithContext(nil, "sendPhoto", v, data, nil)
+		resp, err := client.RequestWithContext(context.Background(), "sendPhoto", v, nil)
 		assert.NoError(t, err, "RequestWithContext() failed")
 		assert.NotNil(t, resp, "Response is nil")
 	})
 
 	t.Run("telegram error", func(t *testing.T) {
-		v := map[string]string{
+		v := map[string]any{
 			"chat_id": "1",
 			"text":    "Hello",
 		}
 
-		_, err := client.RequestWithContext(nil, "sendMessage", v, nil, nil)
+		_, err := client.RequestWithContext(context.Background(), "sendMessage", v, nil)
 		assert.Error(t, err, "RequestWithContext() should fail")
 		assert.IsType(t, &TelegramError{}, err, "unexpected error type")
 	})

@@ -51,10 +51,10 @@ func TestContext_SetParseMode(t *testing.T) {
 				},
 			),
 			mock.MatchedBy(
-				func(params map[string]string) bool {
-					return params["chat_id"] == "1" &&
-						params["text"] == "test" &&
-						params["parse_mode"] == "Markdown"
+				func(params map[string]any) bool {
+					return params["chat_id"].(int64) == 1 &&
+						params["text"].(string) == "test" &&
+						params["parse_mode"].(string) == "Markdown"
 				},
 			),
 			mock.Anything,
@@ -100,10 +100,10 @@ func TestContext_SetParseMode(t *testing.T) {
 				},
 			),
 			mock.MatchedBy(
-				func(params map[string]string) bool {
-					return params["chat_id"] == "1" &&
-						params["text"] == "test" &&
-						params["parse_mode"] == lumex.ParseModeHTML
+				func(params map[string]any) bool {
+					return params["chat_id"].(int64) == 1 &&
+						params["text"].(string) == "test" &&
+						params["parse_mode"].(string) == lumex.ParseModeHTML
 				},
 			),
 			mock.Anything,
@@ -693,9 +693,8 @@ func TestContext_Reply(t *testing.T) {
 				return method == "getMe"
 			},
 		),
-		mock.Anything,
-		mock.Anything,
-		mock.Anything,
+		mock.IsType(map[string]any{}),
+		mock.IsType(&lumex.RequestOpts{}),
 	).Return(
 		json.RawMessage(`{"id":555555,"is_bot":true,"first_name":"test bot","username":"test_bot","can_join_groups":true,"can_read_all_group_messages":false,"supports_inline_queries":false,"can_connect_to_business":false,"has_main_web_app":false}`),
 		nil,
@@ -714,14 +713,13 @@ func TestContext_Reply(t *testing.T) {
 			},
 		),
 		mock.MatchedBy(
-			func(params map[string]string) bool {
-				return params["chat_id"] == "1" &&
-					params["text"] == "test" &&
-					params["reply_parameters"] == `{"message_id":225}`
+			func(params map[string]any) bool {
+				return params["chat_id"].(int64) == 1 &&
+					params["text"].(string) == "test" &&
+					params["reply_parameters"].(*lumex.ReplyParameters).MessageId == 225
 			},
 		),
-		mock.Anything,
-		mock.Anything,
+		mock.IsType(&lumex.RequestOpts{}),
 	).Return(
 		json.RawMessage(`{"message_id":123,"chat":{"id":1},"text":"test","reply_to_message":{"message_id":225}}`),
 		nil,
@@ -784,14 +782,13 @@ func TestContext_ReplyVoid(t *testing.T) {
 				},
 			),
 			mock.MatchedBy(
-				func(params map[string]string) bool {
-					return params["chat_id"] == "1" &&
-						params["text"] == "test" &&
-						params["parse_mode"] == "Markdown"
+				func(params map[string]any) bool {
+					return params["chat_id"].(int64) == 1 &&
+						params["text"].(string) == "test" &&
+						params["parse_mode"].(string) == lumex.ParseModeMarkdown
 				},
 			),
-			mock.Anything,
-			mock.Anything,
+			mock.IsType(&lumex.RequestOpts{}),
 		).Return(
 			json.RawMessage(`{"message_id":123,"chat":{"id":1},"text":"test"}`),
 			nil,
@@ -833,14 +830,13 @@ func TestContext_ReplyVoid(t *testing.T) {
 				},
 			),
 			mock.MatchedBy(
-				func(params map[string]string) bool {
-					return params["chat_id"] == "1" &&
-						params["text"] == "test" &&
-						params["parse_mode"] == "Markdown"
+				func(params map[string]any) bool {
+					return params["chat_id"].(int64) == 1 &&
+						params["text"].(string) == "test" &&
+						params["parse_mode"].(string) == lumex.ParseModeMarkdown
 				},
 			),
-			mock.Anything,
-			mock.Anything,
+			mock.IsType(&lumex.RequestOpts{}),
 		).Return(
 			nil,
 			errors.New("invalid token"),
@@ -884,14 +880,18 @@ func TestContext_ReplyWithMenu(t *testing.T) {
 				},
 			),
 			mock.MatchedBy(
-				func(params map[string]string) bool {
-					return params["chat_id"] == "1" &&
-						params["text"] == "test" &&
-						params["reply_markup"] == `{"keyboard":[[{"text":"test"}]],"resize_keyboard":true}`
+				func(params map[string]any) bool {
+					keyboard, ok := params["reply_markup"].(lumex.ReplyKeyboardMarkup)
+					return params["chat_id"].(int64) == 1 &&
+						params["text"].(string) == "test" &&
+						ok &&
+						len(keyboard.Keyboard) == 1 &&
+						len(keyboard.Keyboard[0]) == 1 &&
+						keyboard.Keyboard[0][0].Text == "test" &&
+						keyboard.ResizeKeyboard == true
 				},
 			),
-			mock.Anything,
-			mock.Anything,
+			mock.IsType(&lumex.RequestOpts{}),
 		).Return(
 			json.RawMessage(`{"message_id":123,"chat":{"id":1},"text":"test"}`),
 			nil,
@@ -935,14 +935,18 @@ func TestContext_ReplyWithMenu(t *testing.T) {
 				},
 			),
 			mock.MatchedBy(
-				func(params map[string]string) bool {
-					return params["chat_id"] == "1" &&
-						params["text"] == "test" &&
-						params["reply_markup"] == `{"inline_keyboard":[[{"text":"test","callback_data":"data"}]]}`
+				func(params map[string]any) bool {
+					keyboard, ok := params["reply_markup"].(lumex.InlineKeyboardMarkup)
+					return params["chat_id"].(int64) == 1 &&
+						params["text"].(string) == "test" &&
+						ok &&
+						len(keyboard.InlineKeyboard) == 1 &&
+						len(keyboard.InlineKeyboard[0]) == 1 &&
+						keyboard.InlineKeyboard[0][0].Text == "test" &&
+						keyboard.InlineKeyboard[0][0].CallbackData == "data"
 				},
 			),
-			mock.Anything,
-			mock.Anything,
+			mock.IsType(&lumex.RequestOpts{}),
 		).Return(
 			json.RawMessage(`{"message_id":123,"chat":{"id":1},"text":"test"}`),
 			nil,

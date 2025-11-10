@@ -6,8 +6,6 @@ package lumex
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"strconv"
 )
 
 // AddStickerToSetOpts is the set of optional fields for Bot.AddStickerToSet and Bot.AddStickerToSetWithContext.
@@ -29,21 +27,17 @@ func (bot *Bot) AddStickerToSet(userId int64, name string, sticker InputSticker,
 
 // AddStickerToSetWithContext is the same as Bot.AddStickerToSet, but with a context.Context parameter
 func (bot *Bot) AddStickerToSetWithContext(ctx context.Context, userId int64, name string, sticker InputSticker, opts *AddStickerToSetOpts) (bool, error) {
-	v := map[string]string{}
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["user_id"] = userId
 	v["name"] = name
-	bs, err := json.Marshal(sticker)
-	if err != nil {
-		return false, fmt.Errorf("failed to marshal field sticker: %w", err)
-	}
-	v["sticker"] = string(bs)
+	v["sticker"] = sticker
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "addStickerToSet", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "addStickerToSet", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -77,15 +71,13 @@ func (bot *Bot) AnswerCallbackQuery(callbackQueryId string, opts *AnswerCallback
 
 // AnswerCallbackQueryWithContext is the same as Bot.AnswerCallbackQuery, but with a context.Context parameter
 func (bot *Bot) AnswerCallbackQueryWithContext(ctx context.Context, callbackQueryId string, opts *AnswerCallbackQueryOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["callback_query_id"] = callbackQueryId
 	if opts != nil {
 		v["text"] = opts.Text
-		v["show_alert"] = strconv.FormatBool(opts.ShowAlert)
+		v["show_alert"] = opts.ShowAlert
 		v["url"] = opts.Url
-		if opts.CacheTime != 0 {
-			v["cache_time"] = strconv.FormatInt(opts.CacheTime, 10)
-		}
+		v["cache_time"] = opts.CacheTime
 	}
 
 	var reqOpts *RequestOpts
@@ -93,7 +85,7 @@ func (bot *Bot) AnswerCallbackQueryWithContext(ctx context.Context, callbackQuer
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "answerCallbackQuery", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "answerCallbackQuery", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -129,27 +121,17 @@ func (bot *Bot) AnswerInlineQuery(inlineQueryId string, results []InlineQueryRes
 
 // AnswerInlineQueryWithContext is the same as Bot.AnswerInlineQuery, but with a context.Context parameter
 func (bot *Bot) AnswerInlineQueryWithContext(ctx context.Context, inlineQueryId string, results []InlineQueryResult, opts *AnswerInlineQueryOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["inline_query_id"] = inlineQueryId
 	if results != nil {
-		bs, err := json.Marshal(results)
-		if err != nil {
-			return false, fmt.Errorf("failed to marshal field results: %w", err)
-		}
-		v["results"] = string(bs)
+		v["results"] = results
 	}
 	if opts != nil {
-		if opts.CacheTime != 0 {
-			v["cache_time"] = strconv.FormatInt(opts.CacheTime, 10)
-		}
-		v["is_personal"] = strconv.FormatBool(opts.IsPersonal)
+		v["cache_time"] = opts.CacheTime
+		v["is_personal"] = opts.IsPersonal
 		v["next_offset"] = opts.NextOffset
 		if opts.Button != nil {
-			bs, err := json.Marshal(opts.Button)
-			if err != nil {
-				return false, fmt.Errorf("failed to marshal field button: %w", err)
-			}
-			v["button"] = string(bs)
+			v["button"] = opts.Button
 		}
 	}
 
@@ -158,7 +140,7 @@ func (bot *Bot) AnswerInlineQueryWithContext(ctx context.Context, inlineQueryId 
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "answerInlineQuery", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "answerInlineQuery", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -187,9 +169,9 @@ func (bot *Bot) AnswerPreCheckoutQuery(preCheckoutQueryId string, ok bool, opts 
 
 // AnswerPreCheckoutQueryWithContext is the same as Bot.AnswerPreCheckoutQuery, but with a context.Context parameter
 func (bot *Bot) AnswerPreCheckoutQueryWithContext(ctx context.Context, preCheckoutQueryId string, ok bool, opts *AnswerPreCheckoutQueryOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["pre_checkout_query_id"] = preCheckoutQueryId
-	v["ok"] = strconv.FormatBool(ok)
+	v["ok"] = ok
 	if opts != nil {
 		v["error_message"] = opts.ErrorMessage
 	}
@@ -199,7 +181,7 @@ func (bot *Bot) AnswerPreCheckoutQueryWithContext(ctx context.Context, preChecko
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "answerPreCheckoutQuery", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "answerPreCheckoutQuery", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -230,16 +212,12 @@ func (bot *Bot) AnswerShippingQuery(shippingQueryId string, ok bool, opts *Answe
 
 // AnswerShippingQueryWithContext is the same as Bot.AnswerShippingQuery, but with a context.Context parameter
 func (bot *Bot) AnswerShippingQueryWithContext(ctx context.Context, shippingQueryId string, ok bool, opts *AnswerShippingQueryOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["shipping_query_id"] = shippingQueryId
-	v["ok"] = strconv.FormatBool(ok)
+	v["ok"] = ok
 	if opts != nil {
 		if opts.ShippingOptions != nil {
-			bs, err := json.Marshal(opts.ShippingOptions)
-			if err != nil {
-				return false, fmt.Errorf("failed to marshal field shipping_options: %w", err)
-			}
-			v["shipping_options"] = string(bs)
+			v["shipping_options"] = opts.ShippingOptions
 		}
 		v["error_message"] = opts.ErrorMessage
 	}
@@ -249,7 +227,7 @@ func (bot *Bot) AnswerShippingQueryWithContext(ctx context.Context, shippingQuer
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "answerShippingQuery", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "answerShippingQuery", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -276,20 +254,16 @@ func (bot *Bot) AnswerWebAppQuery(webAppQueryId string, result InlineQueryResult
 
 // AnswerWebAppQueryWithContext is the same as Bot.AnswerWebAppQuery, but with a context.Context parameter
 func (bot *Bot) AnswerWebAppQueryWithContext(ctx context.Context, webAppQueryId string, result InlineQueryResult, opts *AnswerWebAppQueryOpts) (*SentWebAppMessage, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["web_app_query_id"] = webAppQueryId
-	bs, err := json.Marshal(result)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal field result: %w", err)
-	}
-	v["result"] = string(bs)
+	v["result"] = result
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "answerWebAppQuery", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "answerWebAppQuery", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -316,16 +290,57 @@ func (bot *Bot) ApproveChatJoinRequest(chatId int64, userId int64, opts *Approve
 
 // ApproveChatJoinRequestWithContext is the same as Bot.ApproveChatJoinRequest, but with a context.Context parameter
 func (bot *Bot) ApproveChatJoinRequestWithContext(ctx context.Context, chatId int64, userId int64, opts *ApproveChatJoinRequestOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["user_id"] = userId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "approveChatJoinRequest", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "approveChatJoinRequest", v, reqOpts)
+	if err != nil {
+		return false, err
+	}
+
+	var b bool
+	return b, json.Unmarshal(r, &b)
+}
+
+// ApproveSuggestedPostOpts is the set of optional fields for Bot.ApproveSuggestedPost and Bot.ApproveSuggestedPostWithContext.
+type ApproveSuggestedPostOpts struct {
+	// Point in time (Unix timestamp) when the post is expected to be published; omit if the date has already been specified when the suggested post was created. If specified, then the date must be not more than 2678400 seconds (30 days) in the future
+	SendDate int64
+	// RequestOpts are an additional optional field to configure timeouts for individual requests
+	RequestOpts *RequestOpts
+}
+
+// ApproveSuggestedPost (https://core.telegram.org/bots/api#approvesuggestedpost)
+//
+// Use this method to approve a suggested post in a direct messages chat. The bot must have the 'can_post_messages' administrator right in the corresponding channel chat. Returns True on success.
+//   - chatId (type int64): Unique identifier for the target direct messages chat
+//   - messageId (type int64): Identifier of a suggested post message to approve
+//   - opts (type ApproveSuggestedPostOpts): All optional parameters.
+func (bot *Bot) ApproveSuggestedPost(chatId int64, messageId int64, opts *ApproveSuggestedPostOpts) (bool, error) {
+	return bot.ApproveSuggestedPostWithContext(context.Background(), chatId, messageId, opts)
+}
+
+// ApproveSuggestedPostWithContext is the same as Bot.ApproveSuggestedPost, but with a context.Context parameter
+func (bot *Bot) ApproveSuggestedPostWithContext(ctx context.Context, chatId int64, messageId int64, opts *ApproveSuggestedPostOpts) (bool, error) {
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["message_id"] = messageId
+	if opts != nil {
+		v["send_date"] = opts.SendDate
+	}
+
+	var reqOpts *RequestOpts
+	if opts != nil {
+		reqOpts = opts.RequestOpts
+	}
+
+	r, err := bot.RequestWithContext(ctx, "approveSuggestedPost", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -356,14 +371,12 @@ func (bot *Bot) BanChatMember(chatId int64, userId int64, opts *BanChatMemberOpt
 
 // BanChatMemberWithContext is the same as Bot.BanChatMember, but with a context.Context parameter
 func (bot *Bot) BanChatMemberWithContext(ctx context.Context, chatId int64, userId int64, opts *BanChatMemberOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["user_id"] = userId
 	if opts != nil {
-		if opts.UntilDate != 0 {
-			v["until_date"] = strconv.FormatInt(opts.UntilDate, 10)
-		}
-		v["revoke_messages"] = strconv.FormatBool(opts.RevokeMessages)
+		v["until_date"] = opts.UntilDate
+		v["revoke_messages"] = opts.RevokeMessages
 	}
 
 	var reqOpts *RequestOpts
@@ -371,7 +384,7 @@ func (bot *Bot) BanChatMemberWithContext(ctx context.Context, chatId int64, user
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "banChatMember", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "banChatMember", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -398,16 +411,16 @@ func (bot *Bot) BanChatSenderChat(chatId int64, senderChatId int64, opts *BanCha
 
 // BanChatSenderChatWithContext is the same as Bot.BanChatSenderChat, but with a context.Context parameter
 func (bot *Bot) BanChatSenderChatWithContext(ctx context.Context, chatId int64, senderChatId int64, opts *BanChatSenderChatOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["sender_chat_id"] = strconv.FormatInt(senderChatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["sender_chat_id"] = senderChatId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "banChatSenderChat", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "banChatSenderChat", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -432,14 +445,14 @@ func (bot *Bot) Close(opts *CloseOpts) (bool, error) {
 
 // CloseWithContext is the same as Bot.Close, but with a context.Context parameter
 func (bot *Bot) CloseWithContext(ctx context.Context, opts *CloseOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "close", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "close", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -466,16 +479,16 @@ func (bot *Bot) CloseForumTopic(chatId int64, messageThreadId int64, opts *Close
 
 // CloseForumTopicWithContext is the same as Bot.CloseForumTopic, but with a context.Context parameter
 func (bot *Bot) CloseForumTopicWithContext(ctx context.Context, chatId int64, messageThreadId int64, opts *CloseForumTopicOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["message_thread_id"] = strconv.FormatInt(messageThreadId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["message_thread_id"] = messageThreadId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "closeForumTopic", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "closeForumTopic", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -501,15 +514,15 @@ func (bot *Bot) CloseGeneralForumTopic(chatId int64, opts *CloseGeneralForumTopi
 
 // CloseGeneralForumTopicWithContext is the same as Bot.CloseGeneralForumTopic, but with a context.Context parameter
 func (bot *Bot) CloseGeneralForumTopicWithContext(ctx context.Context, chatId int64, opts *CloseGeneralForumTopicOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "closeGeneralForumTopic", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "closeGeneralForumTopic", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -536,7 +549,7 @@ func (bot *Bot) ConvertGiftToStars(businessConnectionId string, ownedGiftId stri
 
 // ConvertGiftToStarsWithContext is the same as Bot.ConvertGiftToStars, but with a context.Context parameter
 func (bot *Bot) ConvertGiftToStarsWithContext(ctx context.Context, businessConnectionId string, ownedGiftId string, opts *ConvertGiftToStarsOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
 	v["owned_gift_id"] = ownedGiftId
 
@@ -545,7 +558,7 @@ func (bot *Bot) ConvertGiftToStarsWithContext(ctx context.Context, businessConne
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "convertGiftToStars", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "convertGiftToStars", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -558,6 +571,8 @@ func (bot *Bot) ConvertGiftToStarsWithContext(ctx context.Context, businessConne
 type CopyMessageOpts struct {
 	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
 	MessageThreadId int64
+	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
+	DirectMessagesTopicId int64
 	// New start timestamp for the copied video in the message
 	VideoStartTimestamp int64
 	// New caption for media, 0-1024 characters after entities parsing. If not specified, the original caption is kept
@@ -574,6 +589,8 @@ type CopyMessageOpts struct {
 	ProtectContent bool
 	// Pass True to allow up to 1000 messages per second, ignoring broadcasting limits for a fee of 0.1 Telegram Stars per message. The relevant Stars will be withdrawn from the bot's balance
 	AllowPaidBroadcast bool
+	// A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only. If the message is sent as a reply to another suggested post, then that suggested post is automatically declined.
+	SuggestedPostParameters *SuggestedPostParameters
 	// Description of the message to reply to
 	ReplyParameters *ReplyParameters
 	// Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard, instructions to remove a reply keyboard or to force a reply from the user
@@ -595,45 +612,33 @@ func (bot *Bot) CopyMessage(chatId int64, fromChatId int64, messageId int64, opt
 
 // CopyMessageWithContext is the same as Bot.CopyMessage, but with a context.Context parameter
 func (bot *Bot) CopyMessageWithContext(ctx context.Context, chatId int64, fromChatId int64, messageId int64, opts *CopyMessageOpts) (*MessageId, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["from_chat_id"] = strconv.FormatInt(fromChatId, 10)
-	v["message_id"] = strconv.FormatInt(messageId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["from_chat_id"] = fromChatId
+	v["message_id"] = messageId
 	if opts != nil {
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
-		if opts.VideoStartTimestamp != 0 {
-			v["video_start_timestamp"] = strconv.FormatInt(opts.VideoStartTimestamp, 10)
-		}
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
+		v["video_start_timestamp"] = opts.VideoStartTimestamp
 		if opts.Caption != nil {
-			v["caption"] = *opts.Caption
+			v["caption"] = opts.Caption
 		}
 		v["parse_mode"] = opts.ParseMode
 		if opts.CaptionEntities != nil {
-			bs, err := json.Marshal(opts.CaptionEntities)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field caption_entities: %w", err)
-			}
-			v["caption_entities"] = string(bs)
+			v["caption_entities"] = opts.CaptionEntities
 		}
-		v["show_caption_above_media"] = strconv.FormatBool(opts.ShowCaptionAboveMedia)
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["allow_paid_broadcast"] = strconv.FormatBool(opts.AllowPaidBroadcast)
+		v["show_caption_above_media"] = opts.ShowCaptionAboveMedia
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
+		if opts.SuggestedPostParameters != nil {
+			v["suggested_post_parameters"] = opts.SuggestedPostParameters
+		}
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
 		if opts.ReplyMarkup != nil {
-			bs, err := json.Marshal(opts.ReplyMarkup)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-			}
-			v["reply_markup"] = string(bs)
+			v["reply_markup"] = opts.ReplyMarkup
 		}
 	}
 
@@ -642,7 +647,7 @@ func (bot *Bot) CopyMessageWithContext(ctx context.Context, chatId int64, fromCh
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "copyMessage", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "copyMessage", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -655,6 +660,8 @@ func (bot *Bot) CopyMessageWithContext(ctx context.Context, chatId int64, fromCh
 type CopyMessagesOpts struct {
 	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
 	MessageThreadId int64
+	// Identifier of the direct messages topic to which the messages will be sent; required if the messages are sent to a direct messages chat
+	DirectMessagesTopicId int64
 	// Sends the messages silently. Users will receive a notification with no sound.
 	DisableNotification bool
 	// Protects the contents of the sent messages from forwarding and saving
@@ -678,23 +685,18 @@ func (bot *Bot) CopyMessages(chatId int64, fromChatId int64, messageIds []int64,
 
 // CopyMessagesWithContext is the same as Bot.CopyMessages, but with a context.Context parameter
 func (bot *Bot) CopyMessagesWithContext(ctx context.Context, chatId int64, fromChatId int64, messageIds []int64, opts *CopyMessagesOpts) ([]MessageId, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["from_chat_id"] = strconv.FormatInt(fromChatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["from_chat_id"] = fromChatId
 	if messageIds != nil {
-		bs, err := json.Marshal(messageIds)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal field message_ids: %w", err)
-		}
-		v["message_ids"] = string(bs)
+		v["message_ids"] = messageIds
 	}
 	if opts != nil {
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["remove_caption"] = strconv.FormatBool(opts.RemoveCaption)
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["remove_caption"] = opts.RemoveCaption
 	}
 
 	var reqOpts *RequestOpts
@@ -702,7 +704,7 @@ func (bot *Bot) CopyMessagesWithContext(ctx context.Context, chatId int64, fromC
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "copyMessages", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "copyMessages", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -736,17 +738,13 @@ func (bot *Bot) CreateChatInviteLink(chatId int64, opts *CreateChatInviteLinkOpt
 
 // CreateChatInviteLinkWithContext is the same as Bot.CreateChatInviteLink, but with a context.Context parameter
 func (bot *Bot) CreateChatInviteLinkWithContext(ctx context.Context, chatId int64, opts *CreateChatInviteLinkOpts) (*ChatInviteLink, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	if opts != nil {
 		v["name"] = opts.Name
-		if opts.ExpireDate != 0 {
-			v["expire_date"] = strconv.FormatInt(opts.ExpireDate, 10)
-		}
-		if opts.MemberLimit != 0 {
-			v["member_limit"] = strconv.FormatInt(opts.MemberLimit, 10)
-		}
-		v["creates_join_request"] = strconv.FormatBool(opts.CreatesJoinRequest)
+		v["expire_date"] = opts.ExpireDate
+		v["member_limit"] = opts.MemberLimit
+		v["creates_join_request"] = opts.CreatesJoinRequest
 	}
 
 	var reqOpts *RequestOpts
@@ -754,7 +752,7 @@ func (bot *Bot) CreateChatInviteLinkWithContext(ctx context.Context, chatId int6
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "createChatInviteLink", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "createChatInviteLink", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -784,10 +782,10 @@ func (bot *Bot) CreateChatSubscriptionInviteLink(chatId int64, subscriptionPerio
 
 // CreateChatSubscriptionInviteLinkWithContext is the same as Bot.CreateChatSubscriptionInviteLink, but with a context.Context parameter
 func (bot *Bot) CreateChatSubscriptionInviteLinkWithContext(ctx context.Context, chatId int64, subscriptionPeriod int64, subscriptionPrice int64, opts *CreateChatSubscriptionInviteLinkOpts) (*ChatInviteLink, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["subscription_period"] = strconv.FormatInt(subscriptionPeriod, 10)
-	v["subscription_price"] = strconv.FormatInt(subscriptionPrice, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["subscription_period"] = subscriptionPeriod
+	v["subscription_price"] = subscriptionPrice
 	if opts != nil {
 		v["name"] = opts.Name
 	}
@@ -797,7 +795,7 @@ func (bot *Bot) CreateChatSubscriptionInviteLinkWithContext(ctx context.Context,
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "createChatSubscriptionInviteLink", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "createChatSubscriptionInviteLink", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -828,13 +826,11 @@ func (bot *Bot) CreateForumTopic(chatId int64, name string, opts *CreateForumTop
 
 // CreateForumTopicWithContext is the same as Bot.CreateForumTopic, but with a context.Context parameter
 func (bot *Bot) CreateForumTopicWithContext(ctx context.Context, chatId int64, name string, opts *CreateForumTopicOpts) (*ForumTopic, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	v["name"] = name
 	if opts != nil {
-		if opts.IconColor != 0 {
-			v["icon_color"] = strconv.FormatInt(opts.IconColor, 10)
-		}
+		v["icon_color"] = opts.IconColor
 		v["icon_custom_emoji_id"] = opts.IconCustomEmojiId
 	}
 
@@ -843,7 +839,7 @@ func (bot *Bot) CreateForumTopicWithContext(ctx context.Context, chatId int64, n
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "createForumTopic", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "createForumTopic", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -907,52 +903,34 @@ func (bot *Bot) CreateInvoiceLink(title string, description string, payload stri
 
 // CreateInvoiceLinkWithContext is the same as Bot.CreateInvoiceLink, but with a context.Context parameter
 func (bot *Bot) CreateInvoiceLinkWithContext(ctx context.Context, title string, description string, payload string, currency string, prices []LabeledPrice, opts *CreateInvoiceLinkOpts) (string, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["title"] = title
 	v["description"] = description
 	v["payload"] = payload
 	v["currency"] = currency
 	if prices != nil {
-		bs, err := json.Marshal(prices)
-		if err != nil {
-			return "", fmt.Errorf("failed to marshal field prices: %w", err)
-		}
-		v["prices"] = string(bs)
+		v["prices"] = prices
 	}
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
 		v["provider_token"] = opts.ProviderToken
-		if opts.SubscriptionPeriod != 0 {
-			v["subscription_period"] = strconv.FormatInt(opts.SubscriptionPeriod, 10)
-		}
-		if opts.MaxTipAmount != 0 {
-			v["max_tip_amount"] = strconv.FormatInt(opts.MaxTipAmount, 10)
-		}
+		v["subscription_period"] = opts.SubscriptionPeriod
+		v["max_tip_amount"] = opts.MaxTipAmount
 		if opts.SuggestedTipAmounts != nil {
-			bs, err := json.Marshal(opts.SuggestedTipAmounts)
-			if err != nil {
-				return "", fmt.Errorf("failed to marshal field suggested_tip_amounts: %w", err)
-			}
-			v["suggested_tip_amounts"] = string(bs)
+			v["suggested_tip_amounts"] = opts.SuggestedTipAmounts
 		}
 		v["provider_data"] = opts.ProviderData
 		v["photo_url"] = opts.PhotoUrl
-		if opts.PhotoSize != 0 {
-			v["photo_size"] = strconv.FormatInt(opts.PhotoSize, 10)
-		}
-		if opts.PhotoWidth != 0 {
-			v["photo_width"] = strconv.FormatInt(opts.PhotoWidth, 10)
-		}
-		if opts.PhotoHeight != 0 {
-			v["photo_height"] = strconv.FormatInt(opts.PhotoHeight, 10)
-		}
-		v["need_name"] = strconv.FormatBool(opts.NeedName)
-		v["need_phone_number"] = strconv.FormatBool(opts.NeedPhoneNumber)
-		v["need_email"] = strconv.FormatBool(opts.NeedEmail)
-		v["need_shipping_address"] = strconv.FormatBool(opts.NeedShippingAddress)
-		v["send_phone_number_to_provider"] = strconv.FormatBool(opts.SendPhoneNumberToProvider)
-		v["send_email_to_provider"] = strconv.FormatBool(opts.SendEmailToProvider)
-		v["is_flexible"] = strconv.FormatBool(opts.IsFlexible)
+		v["photo_size"] = opts.PhotoSize
+		v["photo_width"] = opts.PhotoWidth
+		v["photo_height"] = opts.PhotoHeight
+		v["need_name"] = opts.NeedName
+		v["need_phone_number"] = opts.NeedPhoneNumber
+		v["need_email"] = opts.NeedEmail
+		v["need_shipping_address"] = opts.NeedShippingAddress
+		v["send_phone_number_to_provider"] = opts.SendPhoneNumberToProvider
+		v["send_email_to_provider"] = opts.SendEmailToProvider
+		v["is_flexible"] = opts.IsFlexible
 	}
 
 	var reqOpts *RequestOpts
@@ -960,7 +938,7 @@ func (bot *Bot) CreateInvoiceLinkWithContext(ctx context.Context, title string, 
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "createInvoiceLink", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "createInvoiceLink", v, reqOpts)
 	if err != nil {
 		return "", err
 	}
@@ -993,20 +971,16 @@ func (bot *Bot) CreateNewStickerSet(userId int64, name string, title string, sti
 
 // CreateNewStickerSetWithContext is the same as Bot.CreateNewStickerSet, but with a context.Context parameter
 func (bot *Bot) CreateNewStickerSetWithContext(ctx context.Context, userId int64, name string, title string, stickers []InputSticker, opts *CreateNewStickerSetOpts) (bool, error) {
-	v := map[string]string{}
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["user_id"] = userId
 	v["name"] = name
 	v["title"] = title
 	if stickers != nil {
-		bs, err := json.Marshal(stickers)
-		if err != nil {
-			return false, fmt.Errorf("failed to marshal field stickers: %w", err)
-		}
-		v["stickers"] = string(bs)
+		v["stickers"] = stickers
 	}
 	if opts != nil {
 		v["sticker_type"] = opts.StickerType
-		v["needs_repainting"] = strconv.FormatBool(opts.NeedsRepainting)
+		v["needs_repainting"] = opts.NeedsRepainting
 	}
 
 	var reqOpts *RequestOpts
@@ -1014,7 +988,7 @@ func (bot *Bot) CreateNewStickerSetWithContext(ctx context.Context, userId int64
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "createNewStickerSet", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "createNewStickerSet", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -1041,16 +1015,57 @@ func (bot *Bot) DeclineChatJoinRequest(chatId int64, userId int64, opts *Decline
 
 // DeclineChatJoinRequestWithContext is the same as Bot.DeclineChatJoinRequest, but with a context.Context parameter
 func (bot *Bot) DeclineChatJoinRequestWithContext(ctx context.Context, chatId int64, userId int64, opts *DeclineChatJoinRequestOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["user_id"] = userId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "declineChatJoinRequest", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "declineChatJoinRequest", v, reqOpts)
+	if err != nil {
+		return false, err
+	}
+
+	var b bool
+	return b, json.Unmarshal(r, &b)
+}
+
+// DeclineSuggestedPostOpts is the set of optional fields for Bot.DeclineSuggestedPost and Bot.DeclineSuggestedPostWithContext.
+type DeclineSuggestedPostOpts struct {
+	// Comment for the creator of the suggested post; 0-128 characters
+	Comment string
+	// RequestOpts are an additional optional field to configure timeouts for individual requests
+	RequestOpts *RequestOpts
+}
+
+// DeclineSuggestedPost (https://core.telegram.org/bots/api#declinesuggestedpost)
+//
+// Use this method to decline a suggested post in a direct messages chat. The bot must have the 'can_manage_direct_messages' administrator right in the corresponding channel chat. Returns True on success.
+//   - chatId (type int64): Unique identifier for the target direct messages chat
+//   - messageId (type int64): Identifier of a suggested post message to decline
+//   - opts (type DeclineSuggestedPostOpts): All optional parameters.
+func (bot *Bot) DeclineSuggestedPost(chatId int64, messageId int64, opts *DeclineSuggestedPostOpts) (bool, error) {
+	return bot.DeclineSuggestedPostWithContext(context.Background(), chatId, messageId, opts)
+}
+
+// DeclineSuggestedPostWithContext is the same as Bot.DeclineSuggestedPost, but with a context.Context parameter
+func (bot *Bot) DeclineSuggestedPostWithContext(ctx context.Context, chatId int64, messageId int64, opts *DeclineSuggestedPostOpts) (bool, error) {
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["message_id"] = messageId
+	if opts != nil {
+		v["comment"] = opts.Comment
+	}
+
+	var reqOpts *RequestOpts
+	if opts != nil {
+		reqOpts = opts.RequestOpts
+	}
+
+	r, err := bot.RequestWithContext(ctx, "declineSuggestedPost", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -1077,14 +1092,10 @@ func (bot *Bot) DeleteBusinessMessages(businessConnectionId string, messageIds [
 
 // DeleteBusinessMessagesWithContext is the same as Bot.DeleteBusinessMessages, but with a context.Context parameter
 func (bot *Bot) DeleteBusinessMessagesWithContext(ctx context.Context, businessConnectionId string, messageIds []int64, opts *DeleteBusinessMessagesOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
 	if messageIds != nil {
-		bs, err := json.Marshal(messageIds)
-		if err != nil {
-			return false, fmt.Errorf("failed to marshal field message_ids: %w", err)
-		}
-		v["message_ids"] = string(bs)
+		v["message_ids"] = messageIds
 	}
 
 	var reqOpts *RequestOpts
@@ -1092,7 +1103,7 @@ func (bot *Bot) DeleteBusinessMessagesWithContext(ctx context.Context, businessC
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "deleteBusinessMessages", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "deleteBusinessMessages", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -1118,15 +1129,15 @@ func (bot *Bot) DeleteChatPhoto(chatId int64, opts *DeleteChatPhotoOpts) (bool, 
 
 // DeleteChatPhotoWithContext is the same as Bot.DeleteChatPhoto, but with a context.Context parameter
 func (bot *Bot) DeleteChatPhotoWithContext(ctx context.Context, chatId int64, opts *DeleteChatPhotoOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "deleteChatPhoto", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "deleteChatPhoto", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -1152,15 +1163,15 @@ func (bot *Bot) DeleteChatStickerSet(chatId int64, opts *DeleteChatStickerSetOpt
 
 // DeleteChatStickerSetWithContext is the same as Bot.DeleteChatStickerSet, but with a context.Context parameter
 func (bot *Bot) DeleteChatStickerSetWithContext(ctx context.Context, chatId int64, opts *DeleteChatStickerSetOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "deleteChatStickerSet", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "deleteChatStickerSet", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -1187,16 +1198,16 @@ func (bot *Bot) DeleteForumTopic(chatId int64, messageThreadId int64, opts *Dele
 
 // DeleteForumTopicWithContext is the same as Bot.DeleteForumTopic, but with a context.Context parameter
 func (bot *Bot) DeleteForumTopicWithContext(ctx context.Context, chatId int64, messageThreadId int64, opts *DeleteForumTopicOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["message_thread_id"] = strconv.FormatInt(messageThreadId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["message_thread_id"] = messageThreadId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "deleteForumTopic", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "deleteForumTopic", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -1221,7 +1232,8 @@ type DeleteMessageOpts struct {
 //   - Bots can delete incoming messages in private chats.
 //   - Bots granted can_post_messages permissions can delete outgoing messages in channels.
 //   - If the bot is an administrator of a group, it can delete any message there.
-//   - If the bot has can_delete_messages permission in a supergroup or a channel, it can delete any message there.
+//   - If the bot has can_delete_messages administrator right in a supergroup or a channel, it can delete any message there.
+//   - If the bot has can_manage_direct_messages administrator right in a channel, it can delete any message in the corresponding direct messages chat.
 //
 // Returns True on success.
 //   - chatId (type int64): Unique identifier for the target chat
@@ -1233,16 +1245,16 @@ func (bot *Bot) DeleteMessage(chatId int64, messageId int64, opts *DeleteMessage
 
 // DeleteMessageWithContext is the same as Bot.DeleteMessage, but with a context.Context parameter
 func (bot *Bot) DeleteMessageWithContext(ctx context.Context, chatId int64, messageId int64, opts *DeleteMessageOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["message_id"] = strconv.FormatInt(messageId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["message_id"] = messageId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "deleteMessage", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "deleteMessage", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -1269,14 +1281,10 @@ func (bot *Bot) DeleteMessages(chatId int64, messageIds []int64, opts *DeleteMes
 
 // DeleteMessagesWithContext is the same as Bot.DeleteMessages, but with a context.Context parameter
 func (bot *Bot) DeleteMessagesWithContext(ctx context.Context, chatId int64, messageIds []int64, opts *DeleteMessagesOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	if messageIds != nil {
-		bs, err := json.Marshal(messageIds)
-		if err != nil {
-			return false, fmt.Errorf("failed to marshal field message_ids: %w", err)
-		}
-		v["message_ids"] = string(bs)
+		v["message_ids"] = messageIds
 	}
 
 	var reqOpts *RequestOpts
@@ -1284,7 +1292,7 @@ func (bot *Bot) DeleteMessagesWithContext(ctx context.Context, chatId int64, mes
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "deleteMessages", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "deleteMessages", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -1313,13 +1321,9 @@ func (bot *Bot) DeleteMyCommands(opts *DeleteMyCommandsOpts) (bool, error) {
 
 // DeleteMyCommandsWithContext is the same as Bot.DeleteMyCommands, but with a context.Context parameter
 func (bot *Bot) DeleteMyCommandsWithContext(ctx context.Context, opts *DeleteMyCommandsOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if opts != nil {
-		bs, err := json.Marshal(opts.Scope)
-		if err != nil {
-			return false, fmt.Errorf("failed to marshal field scope: %w", err)
-		}
-		v["scope"] = string(bs)
+		v["scope"] = opts.Scope
 		v["language_code"] = opts.LanguageCode
 	}
 
@@ -1328,7 +1332,7 @@ func (bot *Bot) DeleteMyCommandsWithContext(ctx context.Context, opts *DeleteMyC
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "deleteMyCommands", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "deleteMyCommands", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -1346,23 +1350,25 @@ type DeleteStickerFromSetOpts struct {
 // DeleteStickerFromSet (https://core.telegram.org/bots/api#deletestickerfromset)
 //
 // Use this method to delete a sticker from a set created by the bot. Returns True on success.
-//   - sticker (type string): File identifier of the sticker
+//   - sticker (type InputFileOrString): File identifier of the sticker
 //   - opts (type DeleteStickerFromSetOpts): All optional parameters.
-func (bot *Bot) DeleteStickerFromSet(sticker string, opts *DeleteStickerFromSetOpts) (bool, error) {
+func (bot *Bot) DeleteStickerFromSet(sticker InputFileOrString, opts *DeleteStickerFromSetOpts) (bool, error) {
 	return bot.DeleteStickerFromSetWithContext(context.Background(), sticker, opts)
 }
 
 // DeleteStickerFromSetWithContext is the same as Bot.DeleteStickerFromSet, but with a context.Context parameter
-func (bot *Bot) DeleteStickerFromSetWithContext(ctx context.Context, sticker string, opts *DeleteStickerFromSetOpts) (bool, error) {
-	v := map[string]string{}
-	v["sticker"] = sticker
+func (bot *Bot) DeleteStickerFromSetWithContext(ctx context.Context, sticker InputFileOrString, opts *DeleteStickerFromSetOpts) (bool, error) {
+	v := map[string]any{}
+	if sticker != nil {
+		v["sticker"] = sticker
+	}
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "deleteStickerFromSet", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "deleteStickerFromSet", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -1388,7 +1394,7 @@ func (bot *Bot) DeleteStickerSet(name string, opts *DeleteStickerSetOpts) (bool,
 
 // DeleteStickerSetWithContext is the same as Bot.DeleteStickerSet, but with a context.Context parameter
 func (bot *Bot) DeleteStickerSetWithContext(ctx context.Context, name string, opts *DeleteStickerSetOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["name"] = name
 
 	var reqOpts *RequestOpts
@@ -1396,7 +1402,7 @@ func (bot *Bot) DeleteStickerSetWithContext(ctx context.Context, name string, op
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "deleteStickerSet", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "deleteStickerSet", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -1423,16 +1429,16 @@ func (bot *Bot) DeleteStory(businessConnectionId string, storyId int64, opts *De
 
 // DeleteStoryWithContext is the same as Bot.DeleteStory, but with a context.Context parameter
 func (bot *Bot) DeleteStoryWithContext(ctx context.Context, businessConnectionId string, storyId int64, opts *DeleteStoryOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
-	v["story_id"] = strconv.FormatInt(storyId, 10)
+	v["story_id"] = storyId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "deleteStory", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "deleteStory", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -1459,9 +1465,9 @@ func (bot *Bot) DeleteWebhook(opts *DeleteWebhookOpts) (bool, error) {
 
 // DeleteWebhookWithContext is the same as Bot.DeleteWebhook, but with a context.Context parameter
 func (bot *Bot) DeleteWebhookWithContext(ctx context.Context, opts *DeleteWebhookOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if opts != nil {
-		v["drop_pending_updates"] = strconv.FormatBool(opts.DropPendingUpdates)
+		v["drop_pending_updates"] = opts.DropPendingUpdates
 	}
 
 	var reqOpts *RequestOpts
@@ -1469,7 +1475,7 @@ func (bot *Bot) DeleteWebhookWithContext(ctx context.Context, opts *DeleteWebhoo
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "deleteWebhook", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "deleteWebhook", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -1504,18 +1510,14 @@ func (bot *Bot) EditChatInviteLink(chatId int64, inviteLink string, opts *EditCh
 
 // EditChatInviteLinkWithContext is the same as Bot.EditChatInviteLink, but with a context.Context parameter
 func (bot *Bot) EditChatInviteLinkWithContext(ctx context.Context, chatId int64, inviteLink string, opts *EditChatInviteLinkOpts) (*ChatInviteLink, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	v["invite_link"] = inviteLink
 	if opts != nil {
 		v["name"] = opts.Name
-		if opts.ExpireDate != 0 {
-			v["expire_date"] = strconv.FormatInt(opts.ExpireDate, 10)
-		}
-		if opts.MemberLimit != 0 {
-			v["member_limit"] = strconv.FormatInt(opts.MemberLimit, 10)
-		}
-		v["creates_join_request"] = strconv.FormatBool(opts.CreatesJoinRequest)
+		v["expire_date"] = opts.ExpireDate
+		v["member_limit"] = opts.MemberLimit
+		v["creates_join_request"] = opts.CreatesJoinRequest
 	}
 
 	var reqOpts *RequestOpts
@@ -1523,7 +1525,7 @@ func (bot *Bot) EditChatInviteLinkWithContext(ctx context.Context, chatId int64,
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "editChatInviteLink", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "editChatInviteLink", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -1552,8 +1554,8 @@ func (bot *Bot) EditChatSubscriptionInviteLink(chatId int64, inviteLink string, 
 
 // EditChatSubscriptionInviteLinkWithContext is the same as Bot.EditChatSubscriptionInviteLink, but with a context.Context parameter
 func (bot *Bot) EditChatSubscriptionInviteLinkWithContext(ctx context.Context, chatId int64, inviteLink string, opts *EditChatSubscriptionInviteLinkOpts) (*ChatInviteLink, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	v["invite_link"] = inviteLink
 	if opts != nil {
 		v["name"] = opts.Name
@@ -1564,7 +1566,7 @@ func (bot *Bot) EditChatSubscriptionInviteLinkWithContext(ctx context.Context, c
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "editChatSubscriptionInviteLink", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "editChatSubscriptionInviteLink", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -1595,13 +1597,13 @@ func (bot *Bot) EditForumTopic(chatId int64, messageThreadId int64, opts *EditFo
 
 // EditForumTopicWithContext is the same as Bot.EditForumTopic, but with a context.Context parameter
 func (bot *Bot) EditForumTopicWithContext(ctx context.Context, chatId int64, messageThreadId int64, opts *EditForumTopicOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["message_thread_id"] = strconv.FormatInt(messageThreadId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["message_thread_id"] = messageThreadId
 	if opts != nil {
 		v["name"] = opts.Name
 		if opts.IconCustomEmojiId != nil {
-			v["icon_custom_emoji_id"] = *opts.IconCustomEmojiId
+			v["icon_custom_emoji_id"] = opts.IconCustomEmojiId
 		}
 	}
 
@@ -1610,7 +1612,7 @@ func (bot *Bot) EditForumTopicWithContext(ctx context.Context, chatId int64, mes
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "editForumTopic", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "editForumTopic", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -1637,8 +1639,8 @@ func (bot *Bot) EditGeneralForumTopic(chatId int64, name string, opts *EditGener
 
 // EditGeneralForumTopicWithContext is the same as Bot.EditGeneralForumTopic, but with a context.Context parameter
 func (bot *Bot) EditGeneralForumTopicWithContext(ctx context.Context, chatId int64, name string, opts *EditGeneralForumTopicOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	v["name"] = name
 
 	var reqOpts *RequestOpts
@@ -1646,7 +1648,7 @@ func (bot *Bot) EditGeneralForumTopicWithContext(ctx context.Context, chatId int
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "editGeneralForumTopic", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "editGeneralForumTopic", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -1689,31 +1691,19 @@ func (bot *Bot) EditMessageCaption(opts *EditMessageCaptionOpts) (*Message, bool
 
 // EditMessageCaptionWithContext is the same as Bot.EditMessageCaption, but with a context.Context parameter
 func (bot *Bot) EditMessageCaptionWithContext(ctx context.Context, opts *EditMessageCaptionOpts) (*Message, bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.ChatId != 0 {
-			v["chat_id"] = strconv.FormatInt(opts.ChatId, 10)
-		}
-		if opts.MessageId != 0 {
-			v["message_id"] = strconv.FormatInt(opts.MessageId, 10)
-		}
+		v["chat_id"] = opts.ChatId
+		v["message_id"] = opts.MessageId
 		v["inline_message_id"] = opts.InlineMessageId
 		v["caption"] = opts.Caption
 		v["parse_mode"] = opts.ParseMode
 		if opts.CaptionEntities != nil {
-			bs, err := json.Marshal(opts.CaptionEntities)
-			if err != nil {
-				return nil, false, fmt.Errorf("failed to marshal field caption_entities: %w", err)
-			}
-			v["caption_entities"] = string(bs)
+			v["caption_entities"] = opts.CaptionEntities
 		}
-		v["show_caption_above_media"] = strconv.FormatBool(opts.ShowCaptionAboveMedia)
-		bs, err := json.Marshal(opts.ReplyMarkup)
-		if err != nil {
-			return nil, false, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-		}
-		v["reply_markup"] = string(bs)
+		v["show_caption_above_media"] = opts.ShowCaptionAboveMedia
+		v["reply_markup"] = opts.ReplyMarkup
 	}
 
 	var reqOpts *RequestOpts
@@ -1721,7 +1711,7 @@ func (bot *Bot) EditMessageCaptionWithContext(ctx context.Context, opts *EditMes
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "editMessageCaption", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "editMessageCaption", v, reqOpts)
 	if err != nil {
 		return nil, false, err
 	}
@@ -1760,21 +1750,13 @@ func (bot *Bot) EditMessageChecklist(businessConnectionId string, chatId int64, 
 
 // EditMessageChecklistWithContext is the same as Bot.EditMessageChecklist, but with a context.Context parameter
 func (bot *Bot) EditMessageChecklistWithContext(ctx context.Context, businessConnectionId string, chatId int64, messageId int64, checklist InputChecklist, opts *EditMessageChecklistOpts) (*Message, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["message_id"] = strconv.FormatInt(messageId, 10)
-	bs, err := json.Marshal(checklist)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal field checklist: %w", err)
-	}
-	v["checklist"] = string(bs)
+	v["chat_id"] = chatId
+	v["message_id"] = messageId
+	v["checklist"] = checklist
 	if opts != nil {
-		bs, err := json.Marshal(opts.ReplyMarkup)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-		}
-		v["reply_markup"] = string(bs)
+		v["reply_markup"] = opts.ReplyMarkup
 	}
 
 	var reqOpts *RequestOpts
@@ -1782,7 +1764,7 @@ func (bot *Bot) EditMessageChecklistWithContext(ctx context.Context, businessCon
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "editMessageChecklist", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "editMessageChecklist", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -1827,35 +1809,21 @@ func (bot *Bot) EditMessageLiveLocation(latitude float64, longitude float64, opt
 
 // EditMessageLiveLocationWithContext is the same as Bot.EditMessageLiveLocation, but with a context.Context parameter
 func (bot *Bot) EditMessageLiveLocationWithContext(ctx context.Context, latitude float64, longitude float64, opts *EditMessageLiveLocationOpts) (*Message, bool, error) {
-	v := map[string]string{}
-	v["latitude"] = strconv.FormatFloat(latitude, 'f', -1, 64)
-	v["longitude"] = strconv.FormatFloat(longitude, 'f', -1, 64)
+	v := map[string]any{}
+	v["latitude"] = latitude
+	v["longitude"] = longitude
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.ChatId != 0 {
-			v["chat_id"] = strconv.FormatInt(opts.ChatId, 10)
-		}
-		if opts.MessageId != 0 {
-			v["message_id"] = strconv.FormatInt(opts.MessageId, 10)
-		}
+		v["chat_id"] = opts.ChatId
+		v["message_id"] = opts.MessageId
 		v["inline_message_id"] = opts.InlineMessageId
 		if opts.LivePeriod != nil {
-			v["live_period"] = strconv.FormatInt(*opts.LivePeriod, 10)
+			v["live_period"] = opts.LivePeriod
 		}
-		if opts.HorizontalAccuracy != 0.0 {
-			v["horizontal_accuracy"] = strconv.FormatFloat(opts.HorizontalAccuracy, 'f', -1, 64)
-		}
-		if opts.Heading != 0 {
-			v["heading"] = strconv.FormatInt(opts.Heading, 10)
-		}
-		if opts.ProximityAlertRadius != 0 {
-			v["proximity_alert_radius"] = strconv.FormatInt(opts.ProximityAlertRadius, 10)
-		}
-		bs, err := json.Marshal(opts.ReplyMarkup)
-		if err != nil {
-			return nil, false, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-		}
-		v["reply_markup"] = string(bs)
+		v["horizontal_accuracy"] = opts.HorizontalAccuracy
+		v["heading"] = opts.Heading
+		v["proximity_alert_radius"] = opts.ProximityAlertRadius
+		v["reply_markup"] = opts.ReplyMarkup
 	}
 
 	var reqOpts *RequestOpts
@@ -1863,7 +1831,7 @@ func (bot *Bot) EditMessageLiveLocationWithContext(ctx context.Context, latitude
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "editMessageLiveLocation", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "editMessageLiveLocation", v, reqOpts)
 	if err != nil {
 		return nil, false, err
 	}
@@ -1907,27 +1875,16 @@ func (bot *Bot) EditMessageMedia(media InputMedia, opts *EditMessageMediaOpts) (
 
 // EditMessageMediaWithContext is the same as Bot.EditMessageMedia, but with a context.Context parameter
 func (bot *Bot) EditMessageMediaWithContext(ctx context.Context, media InputMedia, opts *EditMessageMediaOpts) (*Message, bool, error) {
-	v := map[string]string{}
-	data := map[string]FileReader{}
-	inputBs, err := media.InputParams("media", data)
-	if err != nil {
-		return nil, false, fmt.Errorf("failed to marshal field media: %w", err)
+	v := map[string]any{}
+	if media != nil {
+		v["media"] = media
 	}
-	v["media"] = string(inputBs)
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.ChatId != 0 {
-			v["chat_id"] = strconv.FormatInt(opts.ChatId, 10)
-		}
-		if opts.MessageId != 0 {
-			v["message_id"] = strconv.FormatInt(opts.MessageId, 10)
-		}
+		v["chat_id"] = opts.ChatId
+		v["message_id"] = opts.MessageId
 		v["inline_message_id"] = opts.InlineMessageId
-		bs, err := json.Marshal(opts.ReplyMarkup)
-		if err != nil {
-			return nil, false, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-		}
-		v["reply_markup"] = string(bs)
+		v["reply_markup"] = opts.ReplyMarkup
 	}
 
 	var reqOpts *RequestOpts
@@ -1935,7 +1892,7 @@ func (bot *Bot) EditMessageMediaWithContext(ctx context.Context, media InputMedi
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "editMessageMedia", v, data, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "editMessageMedia", v, reqOpts)
 	if err != nil {
 		return nil, false, err
 	}
@@ -1978,21 +1935,13 @@ func (bot *Bot) EditMessageReplyMarkup(opts *EditMessageReplyMarkupOpts) (*Messa
 
 // EditMessageReplyMarkupWithContext is the same as Bot.EditMessageReplyMarkup, but with a context.Context parameter
 func (bot *Bot) EditMessageReplyMarkupWithContext(ctx context.Context, opts *EditMessageReplyMarkupOpts) (*Message, bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.ChatId != 0 {
-			v["chat_id"] = strconv.FormatInt(opts.ChatId, 10)
-		}
-		if opts.MessageId != 0 {
-			v["message_id"] = strconv.FormatInt(opts.MessageId, 10)
-		}
+		v["chat_id"] = opts.ChatId
+		v["message_id"] = opts.MessageId
 		v["inline_message_id"] = opts.InlineMessageId
-		bs, err := json.Marshal(opts.ReplyMarkup)
-		if err != nil {
-			return nil, false, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-		}
-		v["reply_markup"] = string(bs)
+		v["reply_markup"] = opts.ReplyMarkup
 	}
 
 	var reqOpts *RequestOpts
@@ -2000,7 +1949,7 @@ func (bot *Bot) EditMessageReplyMarkupWithContext(ctx context.Context, opts *Edi
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "editMessageReplyMarkup", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "editMessageReplyMarkup", v, reqOpts)
 	if err != nil {
 		return nil, false, err
 	}
@@ -2050,37 +1999,21 @@ func (bot *Bot) EditMessageText(text string, opts *EditMessageTextOpts) (*Messag
 
 // EditMessageTextWithContext is the same as Bot.EditMessageText, but with a context.Context parameter
 func (bot *Bot) EditMessageTextWithContext(ctx context.Context, text string, opts *EditMessageTextOpts) (*Message, bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["text"] = text
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.ChatId != 0 {
-			v["chat_id"] = strconv.FormatInt(opts.ChatId, 10)
-		}
-		if opts.MessageId != 0 {
-			v["message_id"] = strconv.FormatInt(opts.MessageId, 10)
-		}
+		v["chat_id"] = opts.ChatId
+		v["message_id"] = opts.MessageId
 		v["inline_message_id"] = opts.InlineMessageId
 		v["parse_mode"] = opts.ParseMode
 		if opts.Entities != nil {
-			bs, err := json.Marshal(opts.Entities)
-			if err != nil {
-				return nil, false, fmt.Errorf("failed to marshal field entities: %w", err)
-			}
-			v["entities"] = string(bs)
+			v["entities"] = opts.Entities
 		}
 		if opts.LinkPreviewOptions != nil {
-			bs, err := json.Marshal(opts.LinkPreviewOptions)
-			if err != nil {
-				return nil, false, fmt.Errorf("failed to marshal field link_preview_options: %w", err)
-			}
-			v["link_preview_options"] = string(bs)
+			v["link_preview_options"] = opts.LinkPreviewOptions
 		}
-		bs, err := json.Marshal(opts.ReplyMarkup)
-		if err != nil {
-			return nil, false, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-		}
-		v["reply_markup"] = string(bs)
+		v["reply_markup"] = opts.ReplyMarkup
 	}
 
 	var reqOpts *RequestOpts
@@ -2088,7 +2021,7 @@ func (bot *Bot) EditMessageTextWithContext(ctx context.Context, text string, opt
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "editMessageText", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "editMessageText", v, reqOpts)
 	if err != nil {
 		return nil, false, err
 	}
@@ -2132,30 +2065,18 @@ func (bot *Bot) EditStory(businessConnectionId string, storyId int64, content In
 
 // EditStoryWithContext is the same as Bot.EditStory, but with a context.Context parameter
 func (bot *Bot) EditStoryWithContext(ctx context.Context, businessConnectionId string, storyId int64, content InputStoryContent, opts *EditStoryOpts) (*Story, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
-	v["story_id"] = strconv.FormatInt(storyId, 10)
-	bs, err := json.Marshal(content)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal field content: %w", err)
-	}
-	v["content"] = string(bs)
+	v["story_id"] = storyId
+	v["content"] = content
 	if opts != nil {
 		v["caption"] = opts.Caption
 		v["parse_mode"] = opts.ParseMode
 		if opts.CaptionEntities != nil {
-			bs, err := json.Marshal(opts.CaptionEntities)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field caption_entities: %w", err)
-			}
-			v["caption_entities"] = string(bs)
+			v["caption_entities"] = opts.CaptionEntities
 		}
 		if opts.Areas != nil {
-			bs, err := json.Marshal(opts.Areas)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field areas: %w", err)
-			}
-			v["areas"] = string(bs)
+			v["areas"] = opts.Areas
 		}
 	}
 
@@ -2164,7 +2085,7 @@ func (bot *Bot) EditStoryWithContext(ctx context.Context, businessConnectionId s
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "editStory", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "editStory", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -2192,17 +2113,17 @@ func (bot *Bot) EditUserStarSubscription(userId int64, telegramPaymentChargeId s
 
 // EditUserStarSubscriptionWithContext is the same as Bot.EditUserStarSubscription, but with a context.Context parameter
 func (bot *Bot) EditUserStarSubscriptionWithContext(ctx context.Context, userId int64, telegramPaymentChargeId string, isCanceled bool, opts *EditUserStarSubscriptionOpts) (bool, error) {
-	v := map[string]string{}
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["user_id"] = userId
 	v["telegram_payment_charge_id"] = telegramPaymentChargeId
-	v["is_canceled"] = strconv.FormatBool(isCanceled)
+	v["is_canceled"] = isCanceled
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "editUserStarSubscription", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "editUserStarSubscription", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -2228,15 +2149,15 @@ func (bot *Bot) ExportChatInviteLink(chatId int64, opts *ExportChatInviteLinkOpt
 
 // ExportChatInviteLinkWithContext is the same as Bot.ExportChatInviteLink, but with a context.Context parameter
 func (bot *Bot) ExportChatInviteLinkWithContext(ctx context.Context, chatId int64, opts *ExportChatInviteLinkOpts) (string, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "exportChatInviteLink", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "exportChatInviteLink", v, reqOpts)
 	if err != nil {
 		return "", err
 	}
@@ -2249,12 +2170,16 @@ func (bot *Bot) ExportChatInviteLinkWithContext(ctx context.Context, chatId int6
 type ForwardMessageOpts struct {
 	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
 	MessageThreadId int64
+	// Identifier of the direct messages topic to which the message will be forwarded; required if the message is forwarded to a direct messages chat
+	DirectMessagesTopicId int64
 	// New start timestamp for the forwarded video in the message
 	VideoStartTimestamp int64
 	// Sends the message silently. Users will receive a notification with no sound.
 	DisableNotification bool
 	// Protects the contents of the forwarded message from forwarding and saving
 	ProtectContent bool
+	// A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only
+	SuggestedPostParameters *SuggestedPostParameters
 	// RequestOpts are an additional optional field to configure timeouts for individual requests
 	RequestOpts *RequestOpts
 }
@@ -2272,19 +2197,19 @@ func (bot *Bot) ForwardMessage(chatId int64, fromChatId int64, messageId int64, 
 
 // ForwardMessageWithContext is the same as Bot.ForwardMessage, but with a context.Context parameter
 func (bot *Bot) ForwardMessageWithContext(ctx context.Context, chatId int64, fromChatId int64, messageId int64, opts *ForwardMessageOpts) (*Message, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["from_chat_id"] = strconv.FormatInt(fromChatId, 10)
-	v["message_id"] = strconv.FormatInt(messageId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["from_chat_id"] = fromChatId
+	v["message_id"] = messageId
 	if opts != nil {
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
+		v["video_start_timestamp"] = opts.VideoStartTimestamp
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		if opts.SuggestedPostParameters != nil {
+			v["suggested_post_parameters"] = opts.SuggestedPostParameters
 		}
-		if opts.VideoStartTimestamp != 0 {
-			v["video_start_timestamp"] = strconv.FormatInt(opts.VideoStartTimestamp, 10)
-		}
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
 	}
 
 	var reqOpts *RequestOpts
@@ -2292,7 +2217,7 @@ func (bot *Bot) ForwardMessageWithContext(ctx context.Context, chatId int64, fro
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "forwardMessage", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "forwardMessage", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -2305,6 +2230,8 @@ func (bot *Bot) ForwardMessageWithContext(ctx context.Context, chatId int64, fro
 type ForwardMessagesOpts struct {
 	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
 	MessageThreadId int64
+	// Identifier of the direct messages topic to which the messages will be forwarded; required if the messages are forwarded to a direct messages chat
+	DirectMessagesTopicId int64
 	// Sends the messages silently. Users will receive a notification with no sound.
 	DisableNotification bool
 	// Protects the contents of the forwarded messages from forwarding and saving
@@ -2326,22 +2253,17 @@ func (bot *Bot) ForwardMessages(chatId int64, fromChatId int64, messageIds []int
 
 // ForwardMessagesWithContext is the same as Bot.ForwardMessages, but with a context.Context parameter
 func (bot *Bot) ForwardMessagesWithContext(ctx context.Context, chatId int64, fromChatId int64, messageIds []int64, opts *ForwardMessagesOpts) ([]MessageId, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["from_chat_id"] = strconv.FormatInt(fromChatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["from_chat_id"] = fromChatId
 	if messageIds != nil {
-		bs, err := json.Marshal(messageIds)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal field message_ids: %w", err)
-		}
-		v["message_ids"] = string(bs)
+		v["message_ids"] = messageIds
 	}
 	if opts != nil {
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
 	}
 
 	var reqOpts *RequestOpts
@@ -2349,7 +2271,7 @@ func (bot *Bot) ForwardMessagesWithContext(ctx context.Context, chatId int64, fr
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "forwardMessages", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "forwardMessages", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -2374,14 +2296,14 @@ func (bot *Bot) GetAvailableGifts(opts *GetAvailableGiftsOpts) (*Gifts, error) {
 
 // GetAvailableGiftsWithContext is the same as Bot.GetAvailableGifts, but with a context.Context parameter
 func (bot *Bot) GetAvailableGiftsWithContext(ctx context.Context, opts *GetAvailableGiftsOpts) (*Gifts, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getAvailableGifts", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getAvailableGifts", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -2423,19 +2345,17 @@ func (bot *Bot) GetBusinessAccountGifts(businessConnectionId string, opts *GetBu
 
 // GetBusinessAccountGiftsWithContext is the same as Bot.GetBusinessAccountGifts, but with a context.Context parameter
 func (bot *Bot) GetBusinessAccountGiftsWithContext(ctx context.Context, businessConnectionId string, opts *GetBusinessAccountGiftsOpts) (*OwnedGifts, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
 	if opts != nil {
-		v["exclude_unsaved"] = strconv.FormatBool(opts.ExcludeUnsaved)
-		v["exclude_saved"] = strconv.FormatBool(opts.ExcludeSaved)
-		v["exclude_unlimited"] = strconv.FormatBool(opts.ExcludeUnlimited)
-		v["exclude_limited"] = strconv.FormatBool(opts.ExcludeLimited)
-		v["exclude_unique"] = strconv.FormatBool(opts.ExcludeUnique)
-		v["sort_by_price"] = strconv.FormatBool(opts.SortByPrice)
+		v["exclude_unsaved"] = opts.ExcludeUnsaved
+		v["exclude_saved"] = opts.ExcludeSaved
+		v["exclude_unlimited"] = opts.ExcludeUnlimited
+		v["exclude_limited"] = opts.ExcludeLimited
+		v["exclude_unique"] = opts.ExcludeUnique
+		v["sort_by_price"] = opts.SortByPrice
 		v["offset"] = opts.Offset
-		if opts.Limit != 0 {
-			v["limit"] = strconv.FormatInt(opts.Limit, 10)
-		}
+		v["limit"] = opts.Limit
 	}
 
 	var reqOpts *RequestOpts
@@ -2443,7 +2363,7 @@ func (bot *Bot) GetBusinessAccountGiftsWithContext(ctx context.Context, business
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getBusinessAccountGifts", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getBusinessAccountGifts", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -2469,7 +2389,7 @@ func (bot *Bot) GetBusinessAccountStarBalance(businessConnectionId string, opts 
 
 // GetBusinessAccountStarBalanceWithContext is the same as Bot.GetBusinessAccountStarBalance, but with a context.Context parameter
 func (bot *Bot) GetBusinessAccountStarBalanceWithContext(ctx context.Context, businessConnectionId string, opts *GetBusinessAccountStarBalanceOpts) (*StarAmount, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
 
 	var reqOpts *RequestOpts
@@ -2477,7 +2397,7 @@ func (bot *Bot) GetBusinessAccountStarBalanceWithContext(ctx context.Context, bu
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getBusinessAccountStarBalance", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getBusinessAccountStarBalance", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -2503,7 +2423,7 @@ func (bot *Bot) GetBusinessConnection(businessConnectionId string, opts *GetBusi
 
 // GetBusinessConnectionWithContext is the same as Bot.GetBusinessConnection, but with a context.Context parameter
 func (bot *Bot) GetBusinessConnectionWithContext(ctx context.Context, businessConnectionId string, opts *GetBusinessConnectionOpts) (*BusinessConnection, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
 
 	var reqOpts *RequestOpts
@@ -2511,7 +2431,7 @@ func (bot *Bot) GetBusinessConnectionWithContext(ctx context.Context, businessCo
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getBusinessConnection", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getBusinessConnection", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -2537,15 +2457,15 @@ func (bot *Bot) GetChat(chatId int64, opts *GetChatOpts) (*ChatFullInfo, error) 
 
 // GetChatWithContext is the same as Bot.GetChat, but with a context.Context parameter
 func (bot *Bot) GetChatWithContext(ctx context.Context, chatId int64, opts *GetChatOpts) (*ChatFullInfo, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getChat", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getChat", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -2571,15 +2491,15 @@ func (bot *Bot) GetChatAdministrators(chatId int64, opts *GetChatAdministratorsO
 
 // GetChatAdministratorsWithContext is the same as Bot.GetChatAdministrators, but with a context.Context parameter
 func (bot *Bot) GetChatAdministratorsWithContext(ctx context.Context, chatId int64, opts *GetChatAdministratorsOpts) ([]ChatMember, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getChatAdministrators", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getChatAdministrators", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -2605,16 +2525,16 @@ func (bot *Bot) GetChatMember(chatId int64, userId int64, opts *GetChatMemberOpt
 
 // GetChatMemberWithContext is the same as Bot.GetChatMember, but with a context.Context parameter
 func (bot *Bot) GetChatMemberWithContext(ctx context.Context, chatId int64, userId int64, opts *GetChatMemberOpts) (ChatMember, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["user_id"] = userId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getChatMember", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getChatMember", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -2639,15 +2559,15 @@ func (bot *Bot) GetChatMemberCount(chatId int64, opts *GetChatMemberCountOpts) (
 
 // GetChatMemberCountWithContext is the same as Bot.GetChatMemberCount, but with a context.Context parameter
 func (bot *Bot) GetChatMemberCountWithContext(ctx context.Context, chatId int64, opts *GetChatMemberCountOpts) (int64, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getChatMemberCount", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getChatMemberCount", v, reqOpts)
 	if err != nil {
 		return 0, err
 	}
@@ -2674,10 +2594,10 @@ func (bot *Bot) GetChatMenuButton(opts *GetChatMenuButtonOpts) (MenuButton, erro
 
 // GetChatMenuButtonWithContext is the same as Bot.GetChatMenuButton, but with a context.Context parameter
 func (bot *Bot) GetChatMenuButtonWithContext(ctx context.Context, opts *GetChatMenuButtonOpts) (MenuButton, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if opts != nil {
 		if opts.ChatId != nil {
-			v["chat_id"] = strconv.FormatInt(*opts.ChatId, 10)
+			v["chat_id"] = opts.ChatId
 		}
 	}
 
@@ -2686,7 +2606,7 @@ func (bot *Bot) GetChatMenuButtonWithContext(ctx context.Context, opts *GetChatM
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getChatMenuButton", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getChatMenuButton", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -2711,13 +2631,9 @@ func (bot *Bot) GetCustomEmojiStickers(customEmojiIds []string, opts *GetCustomE
 
 // GetCustomEmojiStickersWithContext is the same as Bot.GetCustomEmojiStickers, but with a context.Context parameter
 func (bot *Bot) GetCustomEmojiStickersWithContext(ctx context.Context, customEmojiIds []string, opts *GetCustomEmojiStickersOpts) ([]Sticker, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if customEmojiIds != nil {
-		bs, err := json.Marshal(customEmojiIds)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal field custom_emoji_ids: %w", err)
-		}
-		v["custom_emoji_ids"] = string(bs)
+		v["custom_emoji_ids"] = customEmojiIds
 	}
 
 	var reqOpts *RequestOpts
@@ -2725,7 +2641,7 @@ func (bot *Bot) GetCustomEmojiStickersWithContext(ctx context.Context, customEmo
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getCustomEmojiStickers", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getCustomEmojiStickers", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -2752,7 +2668,7 @@ func (bot *Bot) GetFile(fileId string, opts *GetFileOpts) (*File, error) {
 
 // GetFileWithContext is the same as Bot.GetFile, but with a context.Context parameter
 func (bot *Bot) GetFileWithContext(ctx context.Context, fileId string, opts *GetFileOpts) (*File, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["file_id"] = fileId
 
 	var reqOpts *RequestOpts
@@ -2760,7 +2676,7 @@ func (bot *Bot) GetFileWithContext(ctx context.Context, fileId string, opts *Get
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getFile", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getFile", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -2785,14 +2701,14 @@ func (bot *Bot) GetForumTopicIconStickers(opts *GetForumTopicIconStickersOpts) (
 
 // GetForumTopicIconStickersWithContext is the same as Bot.GetForumTopicIconStickers, but with a context.Context parameter
 func (bot *Bot) GetForumTopicIconStickersWithContext(ctx context.Context, opts *GetForumTopicIconStickersOpts) ([]Sticker, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getForumTopicIconStickers", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getForumTopicIconStickers", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -2824,15 +2740,11 @@ func (bot *Bot) GetGameHighScores(userId int64, opts *GetGameHighScoresOpts) ([]
 
 // GetGameHighScoresWithContext is the same as Bot.GetGameHighScores, but with a context.Context parameter
 func (bot *Bot) GetGameHighScoresWithContext(ctx context.Context, userId int64, opts *GetGameHighScoresOpts) ([]GameHighScore, error) {
-	v := map[string]string{}
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["user_id"] = userId
 	if opts != nil {
-		if opts.ChatId != 0 {
-			v["chat_id"] = strconv.FormatInt(opts.ChatId, 10)
-		}
-		if opts.MessageId != 0 {
-			v["message_id"] = strconv.FormatInt(opts.MessageId, 10)
-		}
+		v["chat_id"] = opts.ChatId
+		v["message_id"] = opts.MessageId
 		v["inline_message_id"] = opts.InlineMessageId
 	}
 
@@ -2841,7 +2753,7 @@ func (bot *Bot) GetGameHighScoresWithContext(ctx context.Context, userId int64, 
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getGameHighScores", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getGameHighScores", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -2866,14 +2778,14 @@ func (bot *Bot) GetMe(opts *GetMeOpts) (*User, error) {
 
 // GetMeWithContext is the same as Bot.GetMe, but with a context.Context parameter
 func (bot *Bot) GetMeWithContext(ctx context.Context, opts *GetMeOpts) (*User, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getMe", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getMe", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -2902,13 +2814,9 @@ func (bot *Bot) GetMyCommands(opts *GetMyCommandsOpts) ([]BotCommand, error) {
 
 // GetMyCommandsWithContext is the same as Bot.GetMyCommands, but with a context.Context parameter
 func (bot *Bot) GetMyCommandsWithContext(ctx context.Context, opts *GetMyCommandsOpts) ([]BotCommand, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if opts != nil {
-		bs, err := json.Marshal(opts.Scope)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal field scope: %w", err)
-		}
-		v["scope"] = string(bs)
+		v["scope"] = opts.Scope
 		v["language_code"] = opts.LanguageCode
 	}
 
@@ -2917,7 +2825,7 @@ func (bot *Bot) GetMyCommandsWithContext(ctx context.Context, opts *GetMyCommand
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getMyCommands", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getMyCommands", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -2944,9 +2852,9 @@ func (bot *Bot) GetMyDefaultAdministratorRights(opts *GetMyDefaultAdministratorR
 
 // GetMyDefaultAdministratorRightsWithContext is the same as Bot.GetMyDefaultAdministratorRights, but with a context.Context parameter
 func (bot *Bot) GetMyDefaultAdministratorRightsWithContext(ctx context.Context, opts *GetMyDefaultAdministratorRightsOpts) (*ChatAdministratorRights, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if opts != nil {
-		v["for_channels"] = strconv.FormatBool(opts.ForChannels)
+		v["for_channels"] = opts.ForChannels
 	}
 
 	var reqOpts *RequestOpts
@@ -2954,7 +2862,7 @@ func (bot *Bot) GetMyDefaultAdministratorRightsWithContext(ctx context.Context, 
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getMyDefaultAdministratorRights", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getMyDefaultAdministratorRights", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -2981,7 +2889,7 @@ func (bot *Bot) GetMyDescription(opts *GetMyDescriptionOpts) (*BotDescription, e
 
 // GetMyDescriptionWithContext is the same as Bot.GetMyDescription, but with a context.Context parameter
 func (bot *Bot) GetMyDescriptionWithContext(ctx context.Context, opts *GetMyDescriptionOpts) (*BotDescription, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if opts != nil {
 		v["language_code"] = opts.LanguageCode
 	}
@@ -2991,7 +2899,7 @@ func (bot *Bot) GetMyDescriptionWithContext(ctx context.Context, opts *GetMyDesc
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getMyDescription", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getMyDescription", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -3018,7 +2926,7 @@ func (bot *Bot) GetMyName(opts *GetMyNameOpts) (*BotName, error) {
 
 // GetMyNameWithContext is the same as Bot.GetMyName, but with a context.Context parameter
 func (bot *Bot) GetMyNameWithContext(ctx context.Context, opts *GetMyNameOpts) (*BotName, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if opts != nil {
 		v["language_code"] = opts.LanguageCode
 	}
@@ -3028,7 +2936,7 @@ func (bot *Bot) GetMyNameWithContext(ctx context.Context, opts *GetMyNameOpts) (
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getMyName", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getMyName", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -3055,7 +2963,7 @@ func (bot *Bot) GetMyShortDescription(opts *GetMyShortDescriptionOpts) (*BotShor
 
 // GetMyShortDescriptionWithContext is the same as Bot.GetMyShortDescription, but with a context.Context parameter
 func (bot *Bot) GetMyShortDescriptionWithContext(ctx context.Context, opts *GetMyShortDescriptionOpts) (*BotShortDescription, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if opts != nil {
 		v["language_code"] = opts.LanguageCode
 	}
@@ -3065,7 +2973,7 @@ func (bot *Bot) GetMyShortDescriptionWithContext(ctx context.Context, opts *GetM
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getMyShortDescription", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getMyShortDescription", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -3090,14 +2998,14 @@ func (bot *Bot) GetMyStarBalance(opts *GetMyStarBalanceOpts) (*StarAmount, error
 
 // GetMyStarBalanceWithContext is the same as Bot.GetMyStarBalance, but with a context.Context parameter
 func (bot *Bot) GetMyStarBalanceWithContext(ctx context.Context, opts *GetMyStarBalanceOpts) (*StarAmount, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getMyStarBalance", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getMyStarBalance", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -3126,14 +3034,10 @@ func (bot *Bot) GetStarTransactions(opts *GetStarTransactionsOpts) (*StarTransac
 
 // GetStarTransactionsWithContext is the same as Bot.GetStarTransactions, but with a context.Context parameter
 func (bot *Bot) GetStarTransactionsWithContext(ctx context.Context, opts *GetStarTransactionsOpts) (*StarTransactions, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if opts != nil {
-		if opts.Offset != 0 {
-			v["offset"] = strconv.FormatInt(opts.Offset, 10)
-		}
-		if opts.Limit != 0 {
-			v["limit"] = strconv.FormatInt(opts.Limit, 10)
-		}
+		v["offset"] = opts.Offset
+		v["limit"] = opts.Limit
 	}
 
 	var reqOpts *RequestOpts
@@ -3141,7 +3045,7 @@ func (bot *Bot) GetStarTransactionsWithContext(ctx context.Context, opts *GetSta
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getStarTransactions", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getStarTransactions", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -3167,7 +3071,7 @@ func (bot *Bot) GetStickerSet(name string, opts *GetStickerSetOpts) (*StickerSet
 
 // GetStickerSetWithContext is the same as Bot.GetStickerSet, but with a context.Context parameter
 func (bot *Bot) GetStickerSetWithContext(ctx context.Context, name string, opts *GetStickerSetOpts) (*StickerSet, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["name"] = name
 
 	var reqOpts *RequestOpts
@@ -3175,7 +3079,7 @@ func (bot *Bot) GetStickerSetWithContext(ctx context.Context, name string, opts 
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getStickerSet", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getStickerSet", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -3208,23 +3112,13 @@ func (bot *Bot) GetUpdates(opts *GetUpdatesOpts) ([]Update, error) {
 
 // GetUpdatesWithContext is the same as Bot.GetUpdates, but with a context.Context parameter
 func (bot *Bot) GetUpdatesWithContext(ctx context.Context, opts *GetUpdatesOpts) ([]Update, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if opts != nil {
-		if opts.Offset != 0 {
-			v["offset"] = strconv.FormatInt(opts.Offset, 10)
-		}
-		if opts.Limit != 0 {
-			v["limit"] = strconv.FormatInt(opts.Limit, 10)
-		}
-		if opts.Timeout != 0 {
-			v["timeout"] = strconv.FormatInt(opts.Timeout, 10)
-		}
+		v["offset"] = opts.Offset
+		v["limit"] = opts.Limit
+		v["timeout"] = opts.Timeout
 		if opts.AllowedUpdates != nil {
-			bs, err := json.Marshal(opts.AllowedUpdates)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field allowed_updates: %w", err)
-			}
-			v["allowed_updates"] = string(bs)
+			v["allowed_updates"] = opts.AllowedUpdates
 		}
 	}
 
@@ -3233,7 +3127,7 @@ func (bot *Bot) GetUpdatesWithContext(ctx context.Context, opts *GetUpdatesOpts)
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getUpdates", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getUpdates", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -3260,16 +3154,16 @@ func (bot *Bot) GetUserChatBoosts(chatId int64, userId int64, opts *GetUserChatB
 
 // GetUserChatBoostsWithContext is the same as Bot.GetUserChatBoosts, but with a context.Context parameter
 func (bot *Bot) GetUserChatBoostsWithContext(ctx context.Context, chatId int64, userId int64, opts *GetUserChatBoostsOpts) (*UserChatBoosts, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["user_id"] = userId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getUserChatBoosts", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getUserChatBoosts", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -3299,15 +3193,11 @@ func (bot *Bot) GetUserProfilePhotos(userId int64, opts *GetUserProfilePhotosOpt
 
 // GetUserProfilePhotosWithContext is the same as Bot.GetUserProfilePhotos, but with a context.Context parameter
 func (bot *Bot) GetUserProfilePhotosWithContext(ctx context.Context, userId int64, opts *GetUserProfilePhotosOpts) (*UserProfilePhotos, error) {
-	v := map[string]string{}
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["user_id"] = userId
 	if opts != nil {
-		if opts.Offset != 0 {
-			v["offset"] = strconv.FormatInt(opts.Offset, 10)
-		}
-		if opts.Limit != 0 {
-			v["limit"] = strconv.FormatInt(opts.Limit, 10)
-		}
+		v["offset"] = opts.Offset
+		v["limit"] = opts.Limit
 	}
 
 	var reqOpts *RequestOpts
@@ -3315,7 +3205,7 @@ func (bot *Bot) GetUserProfilePhotosWithContext(ctx context.Context, userId int6
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getUserProfilePhotos", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getUserProfilePhotos", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -3340,14 +3230,14 @@ func (bot *Bot) GetWebhookInfo(opts *GetWebhookInfoOpts) (*WebhookInfo, error) {
 
 // GetWebhookInfoWithContext is the same as Bot.GetWebhookInfo, but with a context.Context parameter
 func (bot *Bot) GetWebhookInfoWithContext(ctx context.Context, opts *GetWebhookInfoOpts) (*WebhookInfo, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getWebhookInfo", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getWebhookInfo", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -3381,19 +3271,15 @@ func (bot *Bot) GiftPremiumSubscription(userId int64, monthCount int64, starCoun
 
 // GiftPremiumSubscriptionWithContext is the same as Bot.GiftPremiumSubscription, but with a context.Context parameter
 func (bot *Bot) GiftPremiumSubscriptionWithContext(ctx context.Context, userId int64, monthCount int64, starCount int64, opts *GiftPremiumSubscriptionOpts) (bool, error) {
-	v := map[string]string{}
-	v["user_id"] = strconv.FormatInt(userId, 10)
-	v["month_count"] = strconv.FormatInt(monthCount, 10)
-	v["star_count"] = strconv.FormatInt(starCount, 10)
+	v := map[string]any{}
+	v["user_id"] = userId
+	v["month_count"] = monthCount
+	v["star_count"] = starCount
 	if opts != nil {
 		v["text"] = opts.Text
 		v["text_parse_mode"] = opts.TextParseMode
 		if opts.TextEntities != nil {
-			bs, err := json.Marshal(opts.TextEntities)
-			if err != nil {
-				return false, fmt.Errorf("failed to marshal field text_entities: %w", err)
-			}
-			v["text_entities"] = string(bs)
+			v["text_entities"] = opts.TextEntities
 		}
 	}
 
@@ -3402,7 +3288,7 @@ func (bot *Bot) GiftPremiumSubscriptionWithContext(ctx context.Context, userId i
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "giftPremiumSubscription", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "giftPremiumSubscription", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -3428,15 +3314,15 @@ func (bot *Bot) HideGeneralForumTopic(chatId int64, opts *HideGeneralForumTopicO
 
 // HideGeneralForumTopicWithContext is the same as Bot.HideGeneralForumTopic, but with a context.Context parameter
 func (bot *Bot) HideGeneralForumTopicWithContext(ctx context.Context, chatId int64, opts *HideGeneralForumTopicOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "hideGeneralForumTopic", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "hideGeneralForumTopic", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -3454,7 +3340,7 @@ type LeaveChatOpts struct {
 // LeaveChat (https://core.telegram.org/bots/api#leavechat)
 //
 // Use this method for your bot to leave a group, supergroup or channel. Returns True on success.
-//   - chatId (type int64): Unique identifier for the target chat
+//   - chatId (type int64): Unique identifier for the target chat. Channel direct messages chats aren't supported; leave the corresponding channel instead.
 //   - opts (type LeaveChatOpts): All optional parameters.
 func (bot *Bot) LeaveChat(chatId int64, opts *LeaveChatOpts) (bool, error) {
 	return bot.LeaveChatWithContext(context.Background(), chatId, opts)
@@ -3462,15 +3348,15 @@ func (bot *Bot) LeaveChat(chatId int64, opts *LeaveChatOpts) (bool, error) {
 
 // LeaveChatWithContext is the same as Bot.LeaveChat, but with a context.Context parameter
 func (bot *Bot) LeaveChatWithContext(ctx context.Context, chatId int64, opts *LeaveChatOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "leaveChat", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "leaveChat", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -3495,14 +3381,14 @@ func (bot *Bot) LogOut(opts *LogOutOpts) (bool, error) {
 
 // LogOutWithContext is the same as Bot.LogOut, but with a context.Context parameter
 func (bot *Bot) LogOutWithContext(ctx context.Context, opts *LogOutOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "logOut", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "logOut", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -3523,7 +3409,7 @@ type PinChatMessageOpts struct {
 
 // PinChatMessage (https://core.telegram.org/bots/api#pinchatmessage)
 //
-// Use this method to add a message to the list of pinned messages in a chat. If the chat is not a private chat, the bot must be an administrator in the chat for this to work and must have the 'can_pin_messages' administrator right in a supergroup or 'can_edit_messages' administrator right in a channel. Returns True on success.
+// Use this method to add a message to the list of pinned messages in a chat. In private chats and channel direct messages chats, all non-service messages can be pinned. Conversely, the bot must be an administrator with the 'can_pin_messages' right or the 'can_edit_messages' right to pin messages in groups and channels respectively. Returns True on success.
 //   - chatId (type int64): Unique identifier for the target chat
 //   - messageId (type int64): Identifier of a message to pin
 //   - opts (type PinChatMessageOpts): All optional parameters.
@@ -3533,12 +3419,12 @@ func (bot *Bot) PinChatMessage(chatId int64, messageId int64, opts *PinChatMessa
 
 // PinChatMessageWithContext is the same as Bot.PinChatMessage, but with a context.Context parameter
 func (bot *Bot) PinChatMessageWithContext(ctx context.Context, chatId int64, messageId int64, opts *PinChatMessageOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["message_id"] = strconv.FormatInt(messageId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["message_id"] = messageId
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
+		v["disable_notification"] = opts.DisableNotification
 	}
 
 	var reqOpts *RequestOpts
@@ -3546,7 +3432,7 @@ func (bot *Bot) PinChatMessageWithContext(ctx context.Context, chatId int64, mes
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "pinChatMessage", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "pinChatMessage", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -3586,33 +3472,21 @@ func (bot *Bot) PostStory(businessConnectionId string, content InputStoryContent
 
 // PostStoryWithContext is the same as Bot.PostStory, but with a context.Context parameter
 func (bot *Bot) PostStoryWithContext(ctx context.Context, businessConnectionId string, content InputStoryContent, activePeriod int64, opts *PostStoryOpts) (*Story, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
-	bs, err := json.Marshal(content)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal field content: %w", err)
-	}
-	v["content"] = string(bs)
-	v["active_period"] = strconv.FormatInt(activePeriod, 10)
+	v["content"] = content
+	v["active_period"] = activePeriod
 	if opts != nil {
 		v["caption"] = opts.Caption
 		v["parse_mode"] = opts.ParseMode
 		if opts.CaptionEntities != nil {
-			bs, err := json.Marshal(opts.CaptionEntities)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field caption_entities: %w", err)
-			}
-			v["caption_entities"] = string(bs)
+			v["caption_entities"] = opts.CaptionEntities
 		}
 		if opts.Areas != nil {
-			bs, err := json.Marshal(opts.Areas)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field areas: %w", err)
-			}
-			v["areas"] = string(bs)
+			v["areas"] = opts.Areas
 		}
-		v["post_to_chat_page"] = strconv.FormatBool(opts.PostToChatPage)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
+		v["post_to_chat_page"] = opts.PostToChatPage
+		v["protect_content"] = opts.ProtectContent
 	}
 
 	var reqOpts *RequestOpts
@@ -3620,7 +3494,7 @@ func (bot *Bot) PostStoryWithContext(ctx context.Context, businessConnectionId s
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "postStory", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "postStory", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -3661,6 +3535,8 @@ type PromoteChatMemberOpts struct {
 	CanPinMessages bool
 	// Pass True if the user is allowed to create, rename, close, and reopen forum topics; for supergroups only
 	CanManageTopics bool
+	// Pass True if the administrator can manage direct messages within the channel and decline suggested posts; for channels only
+	CanManageDirectMessages bool
 	// RequestOpts are an additional optional field to configure timeouts for individual requests
 	RequestOpts *RequestOpts
 }
@@ -3677,25 +3553,26 @@ func (bot *Bot) PromoteChatMember(chatId int64, userId int64, opts *PromoteChatM
 
 // PromoteChatMemberWithContext is the same as Bot.PromoteChatMember, but with a context.Context parameter
 func (bot *Bot) PromoteChatMemberWithContext(ctx context.Context, chatId int64, userId int64, opts *PromoteChatMemberOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["user_id"] = userId
 	if opts != nil {
-		v["is_anonymous"] = strconv.FormatBool(opts.IsAnonymous)
-		v["can_manage_chat"] = strconv.FormatBool(opts.CanManageChat)
-		v["can_delete_messages"] = strconv.FormatBool(opts.CanDeleteMessages)
-		v["can_manage_video_chats"] = strconv.FormatBool(opts.CanManageVideoChats)
-		v["can_restrict_members"] = strconv.FormatBool(opts.CanRestrictMembers)
-		v["can_promote_members"] = strconv.FormatBool(opts.CanPromoteMembers)
-		v["can_change_info"] = strconv.FormatBool(opts.CanChangeInfo)
-		v["can_invite_users"] = strconv.FormatBool(opts.CanInviteUsers)
-		v["can_post_stories"] = strconv.FormatBool(opts.CanPostStories)
-		v["can_edit_stories"] = strconv.FormatBool(opts.CanEditStories)
-		v["can_delete_stories"] = strconv.FormatBool(opts.CanDeleteStories)
-		v["can_post_messages"] = strconv.FormatBool(opts.CanPostMessages)
-		v["can_edit_messages"] = strconv.FormatBool(opts.CanEditMessages)
-		v["can_pin_messages"] = strconv.FormatBool(opts.CanPinMessages)
-		v["can_manage_topics"] = strconv.FormatBool(opts.CanManageTopics)
+		v["is_anonymous"] = opts.IsAnonymous
+		v["can_manage_chat"] = opts.CanManageChat
+		v["can_delete_messages"] = opts.CanDeleteMessages
+		v["can_manage_video_chats"] = opts.CanManageVideoChats
+		v["can_restrict_members"] = opts.CanRestrictMembers
+		v["can_promote_members"] = opts.CanPromoteMembers
+		v["can_change_info"] = opts.CanChangeInfo
+		v["can_invite_users"] = opts.CanInviteUsers
+		v["can_post_stories"] = opts.CanPostStories
+		v["can_edit_stories"] = opts.CanEditStories
+		v["can_delete_stories"] = opts.CanDeleteStories
+		v["can_post_messages"] = opts.CanPostMessages
+		v["can_edit_messages"] = opts.CanEditMessages
+		v["can_pin_messages"] = opts.CanPinMessages
+		v["can_manage_topics"] = opts.CanManageTopics
+		v["can_manage_direct_messages"] = opts.CanManageDirectMessages
 	}
 
 	var reqOpts *RequestOpts
@@ -3703,7 +3580,7 @@ func (bot *Bot) PromoteChatMemberWithContext(ctx context.Context, chatId int64, 
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "promoteChatMember", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "promoteChatMember", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -3731,17 +3608,17 @@ func (bot *Bot) ReadBusinessMessage(businessConnectionId string, chatId int64, m
 
 // ReadBusinessMessageWithContext is the same as Bot.ReadBusinessMessage, but with a context.Context parameter
 func (bot *Bot) ReadBusinessMessageWithContext(ctx context.Context, businessConnectionId string, chatId int64, messageId int64, opts *ReadBusinessMessageOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["message_id"] = strconv.FormatInt(messageId, 10)
+	v["chat_id"] = chatId
+	v["message_id"] = messageId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "readBusinessMessage", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "readBusinessMessage", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -3768,8 +3645,8 @@ func (bot *Bot) RefundStarPayment(userId int64, telegramPaymentChargeId string, 
 
 // RefundStarPaymentWithContext is the same as Bot.RefundStarPayment, but with a context.Context parameter
 func (bot *Bot) RefundStarPaymentWithContext(ctx context.Context, userId int64, telegramPaymentChargeId string, opts *RefundStarPaymentOpts) (bool, error) {
-	v := map[string]string{}
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["user_id"] = userId
 	v["telegram_payment_charge_id"] = telegramPaymentChargeId
 
 	var reqOpts *RequestOpts
@@ -3777,7 +3654,7 @@ func (bot *Bot) RefundStarPaymentWithContext(ctx context.Context, userId int64, 
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "refundStarPayment", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "refundStarPayment", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -3805,10 +3682,10 @@ func (bot *Bot) RemoveBusinessAccountProfilePhoto(businessConnectionId string, o
 
 // RemoveBusinessAccountProfilePhotoWithContext is the same as Bot.RemoveBusinessAccountProfilePhoto, but with a context.Context parameter
 func (bot *Bot) RemoveBusinessAccountProfilePhotoWithContext(ctx context.Context, businessConnectionId string, opts *RemoveBusinessAccountProfilePhotoOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
 	if opts != nil {
-		v["is_public"] = strconv.FormatBool(opts.IsPublic)
+		v["is_public"] = opts.IsPublic
 	}
 
 	var reqOpts *RequestOpts
@@ -3816,7 +3693,7 @@ func (bot *Bot) RemoveBusinessAccountProfilePhotoWithContext(ctx context.Context
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "removeBusinessAccountProfilePhoto", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "removeBusinessAccountProfilePhoto", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -3842,15 +3719,15 @@ func (bot *Bot) RemoveChatVerification(chatId int64, opts *RemoveChatVerificatio
 
 // RemoveChatVerificationWithContext is the same as Bot.RemoveChatVerification, but with a context.Context parameter
 func (bot *Bot) RemoveChatVerificationWithContext(ctx context.Context, chatId int64, opts *RemoveChatVerificationOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "removeChatVerification", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "removeChatVerification", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -3876,15 +3753,15 @@ func (bot *Bot) RemoveUserVerification(userId int64, opts *RemoveUserVerificatio
 
 // RemoveUserVerificationWithContext is the same as Bot.RemoveUserVerification, but with a context.Context parameter
 func (bot *Bot) RemoveUserVerificationWithContext(ctx context.Context, userId int64, opts *RemoveUserVerificationOpts) (bool, error) {
-	v := map[string]string{}
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["user_id"] = userId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "removeUserVerification", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "removeUserVerification", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -3911,16 +3788,16 @@ func (bot *Bot) ReopenForumTopic(chatId int64, messageThreadId int64, opts *Reop
 
 // ReopenForumTopicWithContext is the same as Bot.ReopenForumTopic, but with a context.Context parameter
 func (bot *Bot) ReopenForumTopicWithContext(ctx context.Context, chatId int64, messageThreadId int64, opts *ReopenForumTopicOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["message_thread_id"] = strconv.FormatInt(messageThreadId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["message_thread_id"] = messageThreadId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "reopenForumTopic", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "reopenForumTopic", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -3946,15 +3823,15 @@ func (bot *Bot) ReopenGeneralForumTopic(chatId int64, opts *ReopenGeneralForumTo
 
 // ReopenGeneralForumTopicWithContext is the same as Bot.ReopenGeneralForumTopic, but with a context.Context parameter
 func (bot *Bot) ReopenGeneralForumTopicWithContext(ctx context.Context, chatId int64, opts *ReopenGeneralForumTopicOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "reopenGeneralForumTopic", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "reopenGeneralForumTopic", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -3983,22 +3860,18 @@ func (bot *Bot) ReplaceStickerInSet(userId int64, name string, oldSticker string
 
 // ReplaceStickerInSetWithContext is the same as Bot.ReplaceStickerInSet, but with a context.Context parameter
 func (bot *Bot) ReplaceStickerInSetWithContext(ctx context.Context, userId int64, name string, oldSticker string, sticker InputSticker, opts *ReplaceStickerInSetOpts) (bool, error) {
-	v := map[string]string{}
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["user_id"] = userId
 	v["name"] = name
 	v["old_sticker"] = oldSticker
-	bs, err := json.Marshal(sticker)
-	if err != nil {
-		return false, fmt.Errorf("failed to marshal field sticker: %w", err)
-	}
-	v["sticker"] = string(bs)
+	v["sticker"] = sticker
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "replaceStickerInSet", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "replaceStickerInSet", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -4030,19 +3903,13 @@ func (bot *Bot) RestrictChatMember(chatId int64, userId int64, permissions ChatP
 
 // RestrictChatMemberWithContext is the same as Bot.RestrictChatMember, but with a context.Context parameter
 func (bot *Bot) RestrictChatMemberWithContext(ctx context.Context, chatId int64, userId int64, permissions ChatPermissions, opts *RestrictChatMemberOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["user_id"] = strconv.FormatInt(userId, 10)
-	bs, err := json.Marshal(permissions)
-	if err != nil {
-		return false, fmt.Errorf("failed to marshal field permissions: %w", err)
-	}
-	v["permissions"] = string(bs)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["user_id"] = userId
+	v["permissions"] = permissions
 	if opts != nil {
-		v["use_independent_chat_permissions"] = strconv.FormatBool(opts.UseIndependentChatPermissions)
-		if opts.UntilDate != 0 {
-			v["until_date"] = strconv.FormatInt(opts.UntilDate, 10)
-		}
+		v["use_independent_chat_permissions"] = opts.UseIndependentChatPermissions
+		v["until_date"] = opts.UntilDate
 	}
 
 	var reqOpts *RequestOpts
@@ -4050,7 +3917,7 @@ func (bot *Bot) RestrictChatMemberWithContext(ctx context.Context, chatId int64,
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "restrictChatMember", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "restrictChatMember", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -4077,8 +3944,8 @@ func (bot *Bot) RevokeChatInviteLink(chatId int64, inviteLink string, opts *Revo
 
 // RevokeChatInviteLinkWithContext is the same as Bot.RevokeChatInviteLink, but with a context.Context parameter
 func (bot *Bot) RevokeChatInviteLinkWithContext(ctx context.Context, chatId int64, inviteLink string, opts *RevokeChatInviteLinkOpts) (*ChatInviteLink, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	v["invite_link"] = inviteLink
 
 	var reqOpts *RequestOpts
@@ -4086,7 +3953,7 @@ func (bot *Bot) RevokeChatInviteLinkWithContext(ctx context.Context, chatId int6
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "revokeChatInviteLink", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "revokeChatInviteLink", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -4121,18 +3988,14 @@ func (bot *Bot) SavePreparedInlineMessage(userId int64, result InlineQueryResult
 
 // SavePreparedInlineMessageWithContext is the same as Bot.SavePreparedInlineMessage, but with a context.Context parameter
 func (bot *Bot) SavePreparedInlineMessageWithContext(ctx context.Context, userId int64, result InlineQueryResult, opts *SavePreparedInlineMessageOpts) (*PreparedInlineMessage, error) {
-	v := map[string]string{}
-	v["user_id"] = strconv.FormatInt(userId, 10)
-	bs, err := json.Marshal(result)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal field result: %w", err)
-	}
-	v["result"] = string(bs)
+	v := map[string]any{}
+	v["user_id"] = userId
+	v["result"] = result
 	if opts != nil {
-		v["allow_user_chats"] = strconv.FormatBool(opts.AllowUserChats)
-		v["allow_bot_chats"] = strconv.FormatBool(opts.AllowBotChats)
-		v["allow_group_chats"] = strconv.FormatBool(opts.AllowGroupChats)
-		v["allow_channel_chats"] = strconv.FormatBool(opts.AllowChannelChats)
+		v["allow_user_chats"] = opts.AllowUserChats
+		v["allow_bot_chats"] = opts.AllowBotChats
+		v["allow_group_chats"] = opts.AllowGroupChats
+		v["allow_channel_chats"] = opts.AllowChannelChats
 	}
 
 	var reqOpts *RequestOpts
@@ -4140,7 +4003,7 @@ func (bot *Bot) SavePreparedInlineMessageWithContext(ctx context.Context, userId
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "savePreparedInlineMessage", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "savePreparedInlineMessage", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -4155,6 +4018,8 @@ type SendAnimationOpts struct {
 	BusinessConnectionId string
 	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
 	MessageThreadId int64
+	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
+	DirectMessagesTopicId int64
 	// Duration of sent animation in seconds
 	Duration int64
 	// Animation width
@@ -4181,6 +4046,8 @@ type SendAnimationOpts struct {
 	AllowPaidBroadcast bool
 	// Unique identifier of the message effect to be added to the message; for private chats only
 	MessageEffectId string
+	// A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only. If the message is sent as a reply to another suggested post, then that suggested post is automatically declined.
+	SuggestedPostParameters *SuggestedPostParameters
 	// Description of the message to reply to
 	ReplyParameters *ReplyParameters
 	// Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard, instructions to remove a reply keyboard or to force a reply from the user
@@ -4201,65 +4068,40 @@ func (bot *Bot) SendAnimation(chatId int64, animation InputFileOrString, opts *S
 
 // SendAnimationWithContext is the same as Bot.SendAnimation, but with a context.Context parameter
 func (bot *Bot) SendAnimationWithContext(ctx context.Context, chatId int64, animation InputFileOrString, opts *SendAnimationOpts) (*Message, error) {
-	v := map[string]string{}
-	data := map[string]FileReader{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	if animation != nil {
-		err := animation.Attach("animation", data)
-		if err != nil {
-			return nil, fmt.Errorf("failed to attach 'animation' input file: %w", err)
-		}
-		v["animation"] = animation.getValue()
+		v["animation"] = animation
 	}
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
-		if opts.Duration != 0 {
-			v["duration"] = strconv.FormatInt(opts.Duration, 10)
-		}
-		if opts.Width != 0 {
-			v["width"] = strconv.FormatInt(opts.Width, 10)
-		}
-		if opts.Height != 0 {
-			v["height"] = strconv.FormatInt(opts.Height, 10)
-		}
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
+		v["duration"] = opts.Duration
+		v["width"] = opts.Width
+		v["height"] = opts.Height
 		if opts.Thumbnail != nil {
-			err := opts.Thumbnail.Attach("thumbnail", data)
-			if err != nil {
-				return nil, fmt.Errorf("failed to attach 'thumbnail' input file: %w", err)
-			}
-			v["thumbnail"] = opts.Thumbnail.getValue()
+			v["thumbnail"] = opts.Thumbnail
 		}
 		v["caption"] = opts.Caption
 		v["parse_mode"] = opts.ParseMode
 		if opts.CaptionEntities != nil {
-			bs, err := json.Marshal(opts.CaptionEntities)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field caption_entities: %w", err)
-			}
-			v["caption_entities"] = string(bs)
+			v["caption_entities"] = opts.CaptionEntities
 		}
-		v["show_caption_above_media"] = strconv.FormatBool(opts.ShowCaptionAboveMedia)
-		v["has_spoiler"] = strconv.FormatBool(opts.HasSpoiler)
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["allow_paid_broadcast"] = strconv.FormatBool(opts.AllowPaidBroadcast)
+		v["show_caption_above_media"] = opts.ShowCaptionAboveMedia
+		v["has_spoiler"] = opts.HasSpoiler
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
 		v["message_effect_id"] = opts.MessageEffectId
+		if opts.SuggestedPostParameters != nil {
+			v["suggested_post_parameters"] = opts.SuggestedPostParameters
+		}
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
 		if opts.ReplyMarkup != nil {
-			bs, err := json.Marshal(opts.ReplyMarkup)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-			}
-			v["reply_markup"] = string(bs)
+			v["reply_markup"] = opts.ReplyMarkup
 		}
 	}
 
@@ -4268,7 +4110,7 @@ func (bot *Bot) SendAnimationWithContext(ctx context.Context, chatId int64, anim
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendAnimation", v, data, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendAnimation", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -4283,6 +4125,8 @@ type SendAudioOpts struct {
 	BusinessConnectionId string
 	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
 	MessageThreadId int64
+	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
+	DirectMessagesTopicId int64
 	// Audio caption, 0-1024 characters after entities parsing
 	Caption string
 	// Mode for parsing entities in the audio caption. See formatting options for more details.
@@ -4305,6 +4149,8 @@ type SendAudioOpts struct {
 	AllowPaidBroadcast bool
 	// Unique identifier of the message effect to be added to the message; for private chats only
 	MessageEffectId string
+	// A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only. If the message is sent as a reply to another suggested post, then that suggested post is automatically declined.
+	SuggestedPostParameters *SuggestedPostParameters
 	// Description of the message to reply to
 	ReplyParameters *ReplyParameters
 	// Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard, instructions to remove a reply keyboard or to force a reply from the user
@@ -4326,59 +4172,38 @@ func (bot *Bot) SendAudio(chatId int64, audio InputFileOrString, opts *SendAudio
 
 // SendAudioWithContext is the same as Bot.SendAudio, but with a context.Context parameter
 func (bot *Bot) SendAudioWithContext(ctx context.Context, chatId int64, audio InputFileOrString, opts *SendAudioOpts) (*Message, error) {
-	v := map[string]string{}
-	data := map[string]FileReader{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	if audio != nil {
-		err := audio.Attach("audio", data)
-		if err != nil {
-			return nil, fmt.Errorf("failed to attach 'audio' input file: %w", err)
-		}
-		v["audio"] = audio.getValue()
+		v["audio"] = audio
 	}
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
 		v["caption"] = opts.Caption
 		v["parse_mode"] = opts.ParseMode
 		if opts.CaptionEntities != nil {
-			bs, err := json.Marshal(opts.CaptionEntities)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field caption_entities: %w", err)
-			}
-			v["caption_entities"] = string(bs)
+			v["caption_entities"] = opts.CaptionEntities
 		}
-		if opts.Duration != 0 {
-			v["duration"] = strconv.FormatInt(opts.Duration, 10)
-		}
+		v["duration"] = opts.Duration
 		v["performer"] = opts.Performer
 		v["title"] = opts.Title
 		if opts.Thumbnail != nil {
-			err := opts.Thumbnail.Attach("thumbnail", data)
-			if err != nil {
-				return nil, fmt.Errorf("failed to attach 'thumbnail' input file: %w", err)
-			}
-			v["thumbnail"] = opts.Thumbnail.getValue()
+			v["thumbnail"] = opts.Thumbnail
 		}
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["allow_paid_broadcast"] = strconv.FormatBool(opts.AllowPaidBroadcast)
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
 		v["message_effect_id"] = opts.MessageEffectId
+		if opts.SuggestedPostParameters != nil {
+			v["suggested_post_parameters"] = opts.SuggestedPostParameters
+		}
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
 		if opts.ReplyMarkup != nil {
-			bs, err := json.Marshal(opts.ReplyMarkup)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-			}
-			v["reply_markup"] = string(bs)
+			v["reply_markup"] = opts.ReplyMarkup
 		}
 	}
 
@@ -4387,7 +4212,7 @@ func (bot *Bot) SendAudioWithContext(ctx context.Context, chatId int64, audio In
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendAudio", v, data, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendAudio", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -4410,7 +4235,7 @@ type SendChatActionOpts struct {
 //
 // Use this method when you need to tell the user that something is happening on the bot's side. The status is set for 5 seconds or less (when a message arrives from your bot, Telegram clients clear its typing status). Returns True on success.
 // We only recommend using this method when a response from the bot will take a noticeable amount of time to arrive.
-//   - chatId (type int64): Unique identifier for the target chat
+//   - chatId (type int64): Unique identifier for the target chat. Channel chats and channel direct messages chats aren't supported.
 //   - action (type string): Type of action to broadcast. Choose one, depending on what the user is about to receive: typing for text messages, upload_photo for photos, record_video or upload_video for videos, record_voice or upload_voice for voice notes, upload_document for general files, choose_sticker for stickers, find_location for location data, record_video_note or upload_video_note for video notes.
 //   - opts (type SendChatActionOpts): All optional parameters.
 func (bot *Bot) SendChatAction(chatId int64, action string, opts *SendChatActionOpts) (bool, error) {
@@ -4419,14 +4244,12 @@ func (bot *Bot) SendChatAction(chatId int64, action string, opts *SendChatAction
 
 // SendChatActionWithContext is the same as Bot.SendChatAction, but with a context.Context parameter
 func (bot *Bot) SendChatActionWithContext(ctx context.Context, chatId int64, action string, opts *SendChatActionOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	v["action"] = action
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
+		v["message_thread_id"] = opts.MessageThreadId
 	}
 
 	var reqOpts *RequestOpts
@@ -4434,7 +4257,7 @@ func (bot *Bot) SendChatActionWithContext(ctx context.Context, chatId int64, act
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendChatAction", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendChatAction", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -4472,30 +4295,18 @@ func (bot *Bot) SendChecklist(businessConnectionId string, chatId int64, checkli
 
 // SendChecklistWithContext is the same as Bot.SendChecklist, but with a context.Context parameter
 func (bot *Bot) SendChecklistWithContext(ctx context.Context, businessConnectionId string, chatId int64, checklist InputChecklist, opts *SendChecklistOpts) (*Message, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	bs, err := json.Marshal(checklist)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal field checklist: %w", err)
-	}
-	v["checklist"] = string(bs)
+	v["chat_id"] = chatId
+	v["checklist"] = checklist
 	if opts != nil {
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
 		v["message_effect_id"] = opts.MessageEffectId
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
-		bs, err := json.Marshal(opts.ReplyMarkup)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-		}
-		v["reply_markup"] = string(bs)
+		v["reply_markup"] = opts.ReplyMarkup
 	}
 
 	var reqOpts *RequestOpts
@@ -4503,7 +4314,7 @@ func (bot *Bot) SendChecklistWithContext(ctx context.Context, businessConnection
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendChecklist", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendChecklist", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -4518,6 +4329,8 @@ type SendContactOpts struct {
 	BusinessConnectionId string
 	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
 	MessageThreadId int64
+	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
+	DirectMessagesTopicId int64
 	// Contact's last name
 	LastName string
 	// Additional data about the contact in the form of a vCard, 0-2048 bytes
@@ -4530,6 +4343,8 @@ type SendContactOpts struct {
 	AllowPaidBroadcast bool
 	// Unique identifier of the message effect to be added to the message; for private chats only
 	MessageEffectId string
+	// A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only. If the message is sent as a reply to another suggested post, then that suggested post is automatically declined.
+	SuggestedPostParameters *SuggestedPostParameters
 	// Description of the message to reply to
 	ReplyParameters *ReplyParameters
 	// Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard, instructions to remove a reply keyboard or to force a reply from the user
@@ -4551,34 +4366,28 @@ func (bot *Bot) SendContact(chatId int64, phoneNumber string, firstName string, 
 
 // SendContactWithContext is the same as Bot.SendContact, but with a context.Context parameter
 func (bot *Bot) SendContactWithContext(ctx context.Context, chatId int64, phoneNumber string, firstName string, opts *SendContactOpts) (*Message, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	v["phone_number"] = phoneNumber
 	v["first_name"] = firstName
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
 		v["last_name"] = opts.LastName
 		v["vcard"] = opts.Vcard
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["allow_paid_broadcast"] = strconv.FormatBool(opts.AllowPaidBroadcast)
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
 		v["message_effect_id"] = opts.MessageEffectId
+		if opts.SuggestedPostParameters != nil {
+			v["suggested_post_parameters"] = opts.SuggestedPostParameters
+		}
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
 		if opts.ReplyMarkup != nil {
-			bs, err := json.Marshal(opts.ReplyMarkup)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-			}
-			v["reply_markup"] = string(bs)
+			v["reply_markup"] = opts.ReplyMarkup
 		}
 	}
 
@@ -4587,7 +4396,7 @@ func (bot *Bot) SendContactWithContext(ctx context.Context, chatId int64, phoneN
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendContact", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendContact", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -4602,6 +4411,8 @@ type SendDiceOpts struct {
 	BusinessConnectionId string
 	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
 	MessageThreadId int64
+	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
+	DirectMessagesTopicId int64
 	// Emoji on which the dice throw animation is based. Currently, must be one of "🎲", "🎯", "🏀", "⚽", "🎳", or "🎰". Dice can have values 1-6 for "🎲", "🎯" and "🎳", values 1-5 for "🏀" and "⚽", and values 1-64 for "🎰". Defaults to "🎲"
 	Emoji string
 	// Sends the message silently. Users will receive a notification with no sound.
@@ -4612,6 +4423,8 @@ type SendDiceOpts struct {
 	AllowPaidBroadcast bool
 	// Unique identifier of the message effect to be added to the message; for private chats only
 	MessageEffectId string
+	// A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only. If the message is sent as a reply to another suggested post, then that suggested post is automatically declined.
+	SuggestedPostParameters *SuggestedPostParameters
 	// Description of the message to reply to
 	ReplyParameters *ReplyParameters
 	// Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard, instructions to remove a reply keyboard or to force a reply from the user
@@ -4631,31 +4444,25 @@ func (bot *Bot) SendDice(chatId int64, opts *SendDiceOpts) (*Message, error) {
 
 // SendDiceWithContext is the same as Bot.SendDice, but with a context.Context parameter
 func (bot *Bot) SendDiceWithContext(ctx context.Context, chatId int64, opts *SendDiceOpts) (*Message, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
 		v["emoji"] = opts.Emoji
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["allow_paid_broadcast"] = strconv.FormatBool(opts.AllowPaidBroadcast)
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
 		v["message_effect_id"] = opts.MessageEffectId
+		if opts.SuggestedPostParameters != nil {
+			v["suggested_post_parameters"] = opts.SuggestedPostParameters
+		}
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
 		if opts.ReplyMarkup != nil {
-			bs, err := json.Marshal(opts.ReplyMarkup)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-			}
-			v["reply_markup"] = string(bs)
+			v["reply_markup"] = opts.ReplyMarkup
 		}
 	}
 
@@ -4664,7 +4471,7 @@ func (bot *Bot) SendDiceWithContext(ctx context.Context, chatId int64, opts *Sen
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendDice", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendDice", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -4679,6 +4486,8 @@ type SendDocumentOpts struct {
 	BusinessConnectionId string
 	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
 	MessageThreadId int64
+	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
+	DirectMessagesTopicId int64
 	// Thumbnail of the file sent; can be ignored if thumbnail generation for the file is supported server-side. The thumbnail should be in JPEG format and less than 200 kB in size. A thumbnail's width and height should not exceed 320. Ignored if the file is not uploaded using multipart/form-data. Thumbnails can't be reused and can be only uploaded as a new file, so you can pass "attach://<file_attach_name>" if the thumbnail was uploaded using multipart/form-data under <file_attach_name>. More information on Sending Files: https://core.telegram.org/bots/api#sending-files
 	Thumbnail InputFile
 	// Document caption (may also be used when resending documents by file_id), 0-1024 characters after entities parsing
@@ -4697,6 +4506,8 @@ type SendDocumentOpts struct {
 	AllowPaidBroadcast bool
 	// Unique identifier of the message effect to be added to the message; for private chats only
 	MessageEffectId string
+	// A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only. If the message is sent as a reply to another suggested post, then that suggested post is automatically declined.
+	SuggestedPostParameters *SuggestedPostParameters
 	// Description of the message to reply to
 	ReplyParameters *ReplyParameters
 	// Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard, instructions to remove a reply keyboard or to force a reply from the user
@@ -4717,55 +4528,36 @@ func (bot *Bot) SendDocument(chatId int64, document InputFileOrString, opts *Sen
 
 // SendDocumentWithContext is the same as Bot.SendDocument, but with a context.Context parameter
 func (bot *Bot) SendDocumentWithContext(ctx context.Context, chatId int64, document InputFileOrString, opts *SendDocumentOpts) (*Message, error) {
-	v := map[string]string{}
-	data := map[string]FileReader{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	if document != nil {
-		err := document.Attach("document", data)
-		if err != nil {
-			return nil, fmt.Errorf("failed to attach 'document' input file: %w", err)
-		}
-		v["document"] = document.getValue()
+		v["document"] = document
 	}
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
 		if opts.Thumbnail != nil {
-			err := opts.Thumbnail.Attach("thumbnail", data)
-			if err != nil {
-				return nil, fmt.Errorf("failed to attach 'thumbnail' input file: %w", err)
-			}
-			v["thumbnail"] = opts.Thumbnail.getValue()
+			v["thumbnail"] = opts.Thumbnail
 		}
 		v["caption"] = opts.Caption
 		v["parse_mode"] = opts.ParseMode
 		if opts.CaptionEntities != nil {
-			bs, err := json.Marshal(opts.CaptionEntities)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field caption_entities: %w", err)
-			}
-			v["caption_entities"] = string(bs)
+			v["caption_entities"] = opts.CaptionEntities
 		}
-		v["disable_content_type_detection"] = strconv.FormatBool(opts.DisableContentTypeDetection)
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["allow_paid_broadcast"] = strconv.FormatBool(opts.AllowPaidBroadcast)
+		v["disable_content_type_detection"] = opts.DisableContentTypeDetection
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
 		v["message_effect_id"] = opts.MessageEffectId
+		if opts.SuggestedPostParameters != nil {
+			v["suggested_post_parameters"] = opts.SuggestedPostParameters
+		}
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
 		if opts.ReplyMarkup != nil {
-			bs, err := json.Marshal(opts.ReplyMarkup)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-			}
-			v["reply_markup"] = string(bs)
+			v["reply_markup"] = opts.ReplyMarkup
 		}
 	}
 
@@ -4774,7 +4566,7 @@ func (bot *Bot) SendDocumentWithContext(ctx context.Context, chatId int64, docum
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendDocument", v, data, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendDocument", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -4808,7 +4600,7 @@ type SendGameOpts struct {
 // SendGame (https://core.telegram.org/bots/api#sendgame)
 //
 // Use this method to send a game. On success, the sent Message is returned.
-//   - chatId (type int64): Unique identifier for the target chat
+//   - chatId (type int64): Unique identifier for the target chat. Games can't be sent to channel direct messages chats and channel chats.
 //   - gameShortName (type string): Short name of the game, serves as the unique identifier for the game. Set up your games via @BotFather.
 //   - opts (type SendGameOpts): All optional parameters.
 func (bot *Bot) SendGame(chatId int64, gameShortName string, opts *SendGameOpts) (*Message, error) {
@@ -4817,30 +4609,20 @@ func (bot *Bot) SendGame(chatId int64, gameShortName string, opts *SendGameOpts)
 
 // SendGameWithContext is the same as Bot.SendGame, but with a context.Context parameter
 func (bot *Bot) SendGameWithContext(ctx context.Context, chatId int64, gameShortName string, opts *SendGameOpts) (*Message, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	v["game_short_name"] = gameShortName
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["allow_paid_broadcast"] = strconv.FormatBool(opts.AllowPaidBroadcast)
+		v["message_thread_id"] = opts.MessageThreadId
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
 		v["message_effect_id"] = opts.MessageEffectId
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
-		bs, err := json.Marshal(opts.ReplyMarkup)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-		}
-		v["reply_markup"] = string(bs)
+		v["reply_markup"] = opts.ReplyMarkup
 	}
 
 	var reqOpts *RequestOpts
@@ -4848,7 +4630,7 @@ func (bot *Bot) SendGameWithContext(ctx context.Context, chatId int64, gameShort
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendGame", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendGame", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -4886,24 +4668,16 @@ func (bot *Bot) SendGift(giftId string, opts *SendGiftOpts) (bool, error) {
 
 // SendGiftWithContext is the same as Bot.SendGift, but with a context.Context parameter
 func (bot *Bot) SendGiftWithContext(ctx context.Context, giftId string, opts *SendGiftOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["gift_id"] = giftId
 	if opts != nil {
-		if opts.UserId != 0 {
-			v["user_id"] = strconv.FormatInt(opts.UserId, 10)
-		}
-		if opts.ChatId != 0 {
-			v["chat_id"] = strconv.FormatInt(opts.ChatId, 10)
-		}
-		v["pay_for_upgrade"] = strconv.FormatBool(opts.PayForUpgrade)
+		v["user_id"] = opts.UserId
+		v["chat_id"] = opts.ChatId
+		v["pay_for_upgrade"] = opts.PayForUpgrade
 		v["text"] = opts.Text
 		v["text_parse_mode"] = opts.TextParseMode
 		if opts.TextEntities != nil {
-			bs, err := json.Marshal(opts.TextEntities)
-			if err != nil {
-				return false, fmt.Errorf("failed to marshal field text_entities: %w", err)
-			}
-			v["text_entities"] = string(bs)
+			v["text_entities"] = opts.TextEntities
 		}
 	}
 
@@ -4912,7 +4686,7 @@ func (bot *Bot) SendGiftWithContext(ctx context.Context, giftId string, opts *Se
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendGift", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendGift", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -4925,6 +4699,8 @@ func (bot *Bot) SendGiftWithContext(ctx context.Context, giftId string, opts *Se
 type SendInvoiceOpts struct {
 	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
 	MessageThreadId int64
+	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
+	DirectMessagesTopicId int64
 	// Payment provider token, obtained via @BotFather. Pass an empty string for payments in Telegram Stars.
 	ProviderToken string
 	// The maximum accepted amount for tips in the smallest units of the currency (integer, not float/double). For example, for a maximum tip of US$ 1.45 pass max_tip_amount = 145. See the exp parameter in currencies.json, it shows the number of digits past the decimal point for each currency (2 for the majority of currencies). Defaults to 0. Not supported for payments in Telegram Stars.
@@ -4965,6 +4741,8 @@ type SendInvoiceOpts struct {
 	AllowPaidBroadcast bool
 	// Unique identifier of the message effect to be added to the message; for private chats only
 	MessageEffectId string
+	// A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only. If the message is sent as a reply to another suggested post, then that suggested post is automatically declined.
+	SuggestedPostParameters *SuggestedPostParameters
 	// Description of the message to reply to
 	ReplyParameters *ReplyParameters
 	// A JSON-serialized object for an inline keyboard. If empty, one 'Pay total price' button will be shown. If not empty, the first button must be a Pay button.
@@ -4989,69 +4767,47 @@ func (bot *Bot) SendInvoice(chatId int64, title string, description string, payl
 
 // SendInvoiceWithContext is the same as Bot.SendInvoice, but with a context.Context parameter
 func (bot *Bot) SendInvoiceWithContext(ctx context.Context, chatId int64, title string, description string, payload string, currency string, prices []LabeledPrice, opts *SendInvoiceOpts) (*Message, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	v["title"] = title
 	v["description"] = description
 	v["payload"] = payload
 	v["currency"] = currency
 	if prices != nil {
-		bs, err := json.Marshal(prices)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal field prices: %w", err)
-		}
-		v["prices"] = string(bs)
+		v["prices"] = prices
 	}
 	if opts != nil {
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
 		v["provider_token"] = opts.ProviderToken
-		if opts.MaxTipAmount != 0 {
-			v["max_tip_amount"] = strconv.FormatInt(opts.MaxTipAmount, 10)
-		}
+		v["max_tip_amount"] = opts.MaxTipAmount
 		if opts.SuggestedTipAmounts != nil {
-			bs, err := json.Marshal(opts.SuggestedTipAmounts)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field suggested_tip_amounts: %w", err)
-			}
-			v["suggested_tip_amounts"] = string(bs)
+			v["suggested_tip_amounts"] = opts.SuggestedTipAmounts
 		}
 		v["start_parameter"] = opts.StartParameter
 		v["provider_data"] = opts.ProviderData
 		v["photo_url"] = opts.PhotoUrl
-		if opts.PhotoSize != 0 {
-			v["photo_size"] = strconv.FormatInt(opts.PhotoSize, 10)
-		}
-		if opts.PhotoWidth != 0 {
-			v["photo_width"] = strconv.FormatInt(opts.PhotoWidth, 10)
-		}
-		if opts.PhotoHeight != 0 {
-			v["photo_height"] = strconv.FormatInt(opts.PhotoHeight, 10)
-		}
-		v["need_name"] = strconv.FormatBool(opts.NeedName)
-		v["need_phone_number"] = strconv.FormatBool(opts.NeedPhoneNumber)
-		v["need_email"] = strconv.FormatBool(opts.NeedEmail)
-		v["need_shipping_address"] = strconv.FormatBool(opts.NeedShippingAddress)
-		v["send_phone_number_to_provider"] = strconv.FormatBool(opts.SendPhoneNumberToProvider)
-		v["send_email_to_provider"] = strconv.FormatBool(opts.SendEmailToProvider)
-		v["is_flexible"] = strconv.FormatBool(opts.IsFlexible)
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["allow_paid_broadcast"] = strconv.FormatBool(opts.AllowPaidBroadcast)
+		v["photo_size"] = opts.PhotoSize
+		v["photo_width"] = opts.PhotoWidth
+		v["photo_height"] = opts.PhotoHeight
+		v["need_name"] = opts.NeedName
+		v["need_phone_number"] = opts.NeedPhoneNumber
+		v["need_email"] = opts.NeedEmail
+		v["need_shipping_address"] = opts.NeedShippingAddress
+		v["send_phone_number_to_provider"] = opts.SendPhoneNumberToProvider
+		v["send_email_to_provider"] = opts.SendEmailToProvider
+		v["is_flexible"] = opts.IsFlexible
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
 		v["message_effect_id"] = opts.MessageEffectId
+		if opts.SuggestedPostParameters != nil {
+			v["suggested_post_parameters"] = opts.SuggestedPostParameters
+		}
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
-		bs, err := json.Marshal(opts.ReplyMarkup)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-		}
-		v["reply_markup"] = string(bs)
+		v["reply_markup"] = opts.ReplyMarkup
 	}
 
 	var reqOpts *RequestOpts
@@ -5059,7 +4815,7 @@ func (bot *Bot) SendInvoiceWithContext(ctx context.Context, chatId int64, title 
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendInvoice", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendInvoice", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -5074,6 +4830,8 @@ type SendLocationOpts struct {
 	BusinessConnectionId string
 	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
 	MessageThreadId int64
+	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
+	DirectMessagesTopicId int64
 	// The radius of uncertainty for the location, measured in meters; 0-1500
 	HorizontalAccuracy float64
 	// Period in seconds during which the location will be updated (see Live Locations, should be between 60 and 86400, or 0x7FFFFFFF for live locations that can be edited indefinitely.
@@ -5090,6 +4848,8 @@ type SendLocationOpts struct {
 	AllowPaidBroadcast bool
 	// Unique identifier of the message effect to be added to the message; for private chats only
 	MessageEffectId string
+	// A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only. If the message is sent as a reply to another suggested post, then that suggested post is automatically declined.
+	SuggestedPostParameters *SuggestedPostParameters
 	// Description of the message to reply to
 	ReplyParameters *ReplyParameters
 	// Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard, instructions to remove a reply keyboard or to force a reply from the user
@@ -5111,44 +4871,30 @@ func (bot *Bot) SendLocation(chatId int64, latitude float64, longitude float64, 
 
 // SendLocationWithContext is the same as Bot.SendLocation, but with a context.Context parameter
 func (bot *Bot) SendLocationWithContext(ctx context.Context, chatId int64, latitude float64, longitude float64, opts *SendLocationOpts) (*Message, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["latitude"] = strconv.FormatFloat(latitude, 'f', -1, 64)
-	v["longitude"] = strconv.FormatFloat(longitude, 'f', -1, 64)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["latitude"] = latitude
+	v["longitude"] = longitude
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
-		if opts.HorizontalAccuracy != 0.0 {
-			v["horizontal_accuracy"] = strconv.FormatFloat(opts.HorizontalAccuracy, 'f', -1, 64)
-		}
-		if opts.LivePeriod != 0 {
-			v["live_period"] = strconv.FormatInt(opts.LivePeriod, 10)
-		}
-		if opts.Heading != 0 {
-			v["heading"] = strconv.FormatInt(opts.Heading, 10)
-		}
-		if opts.ProximityAlertRadius != 0 {
-			v["proximity_alert_radius"] = strconv.FormatInt(opts.ProximityAlertRadius, 10)
-		}
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["allow_paid_broadcast"] = strconv.FormatBool(opts.AllowPaidBroadcast)
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
+		v["horizontal_accuracy"] = opts.HorizontalAccuracy
+		v["live_period"] = opts.LivePeriod
+		v["heading"] = opts.Heading
+		v["proximity_alert_radius"] = opts.ProximityAlertRadius
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
 		v["message_effect_id"] = opts.MessageEffectId
+		if opts.SuggestedPostParameters != nil {
+			v["suggested_post_parameters"] = opts.SuggestedPostParameters
+		}
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
 		if opts.ReplyMarkup != nil {
-			bs, err := json.Marshal(opts.ReplyMarkup)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-			}
-			v["reply_markup"] = string(bs)
+			v["reply_markup"] = opts.ReplyMarkup
 		}
 	}
 
@@ -5157,7 +4903,7 @@ func (bot *Bot) SendLocationWithContext(ctx context.Context, chatId int64, latit
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendLocation", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendLocation", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -5172,6 +4918,8 @@ type SendMediaGroupOpts struct {
 	BusinessConnectionId string
 	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
 	MessageThreadId int64
+	// Identifier of the direct messages topic to which the messages will be sent; required if the messages are sent to a direct messages chat
+	DirectMessagesTopicId int64
 	// Sends messages silently. Users will receive a notification with no sound.
 	DisableNotification bool
 	// Protects the contents of the sent messages from forwarding and saving
@@ -5188,7 +4936,7 @@ type SendMediaGroupOpts struct {
 
 // SendMediaGroup (https://core.telegram.org/bots/api#sendmediagroup)
 //
-// Use this method to send a group of photos, videos, documents or audios as an album. Documents and audio files can be only grouped in an album with messages of the same type. On success, an array of Messages that were sent is returned.
+// Use this method to send a group of photos, videos, documents or audios as an album. Documents and audio files can be only grouped in an album with messages of the same type. On success, an array of Message objects that were sent is returned.
 //   - chatId (type int64): Unique identifier for the target chat
 //   - media (type []InputMedia): A JSON-serialized array describing messages to be sent, must include 2-10 items
 //   - opts (type SendMediaGroupOpts): All optional parameters.
@@ -5198,39 +4946,21 @@ func (bot *Bot) SendMediaGroup(chatId int64, media []InputMedia, opts *SendMedia
 
 // SendMediaGroupWithContext is the same as Bot.SendMediaGroup, but with a context.Context parameter
 func (bot *Bot) SendMediaGroupWithContext(ctx context.Context, chatId int64, media []InputMedia, opts *SendMediaGroupOpts) ([]Message, error) {
-	v := map[string]string{}
-	data := map[string]FileReader{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	if media != nil {
-		var rawList []json.RawMessage
-		for idx, im := range media {
-			inputBs, err := im.InputParams("media"+strconv.Itoa(idx), data)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal list item %d for field media: %w", idx, err)
-			}
-			rawList = append(rawList, inputBs)
-		}
-		bs, err := json.Marshal(rawList)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal raw json list for field: media %w", err)
-		}
-		v["media"] = string(bs)
+		v["media"] = media
 	}
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["allow_paid_broadcast"] = strconv.FormatBool(opts.AllowPaidBroadcast)
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
 		v["message_effect_id"] = opts.MessageEffectId
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
 	}
 
@@ -5239,7 +4969,7 @@ func (bot *Bot) SendMediaGroupWithContext(ctx context.Context, chatId int64, med
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendMediaGroup", v, data, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendMediaGroup", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -5254,6 +4984,8 @@ type SendMessageOpts struct {
 	BusinessConnectionId string
 	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
 	MessageThreadId int64
+	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
+	DirectMessagesTopicId int64
 	// Mode for parsing entities in the message text. See formatting options for more details.
 	ParseMode string
 	// A JSON-serialized list of special entities that appear in message text, which can be specified instead of parse_mode
@@ -5268,6 +5000,8 @@ type SendMessageOpts struct {
 	AllowPaidBroadcast bool
 	// Unique identifier of the message effect to be added to the message; for private chats only
 	MessageEffectId string
+	// A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only. If the message is sent as a reply to another suggested post, then that suggested post is automatically declined.
+	SuggestedPostParameters *SuggestedPostParameters
 	// Description of the message to reply to
 	ReplyParameters *ReplyParameters
 	// Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard, instructions to remove a reply keyboard or to force a reply from the user
@@ -5288,46 +5022,32 @@ func (bot *Bot) SendMessage(chatId int64, text string, opts *SendMessageOpts) (*
 
 // SendMessageWithContext is the same as Bot.SendMessage, but with a context.Context parameter
 func (bot *Bot) SendMessageWithContext(ctx context.Context, chatId int64, text string, opts *SendMessageOpts) (*Message, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	v["text"] = text
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
 		v["parse_mode"] = opts.ParseMode
 		if opts.Entities != nil {
-			bs, err := json.Marshal(opts.Entities)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field entities: %w", err)
-			}
-			v["entities"] = string(bs)
+			v["entities"] = opts.Entities
 		}
 		if opts.LinkPreviewOptions != nil {
-			bs, err := json.Marshal(opts.LinkPreviewOptions)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field link_preview_options: %w", err)
-			}
-			v["link_preview_options"] = string(bs)
+			v["link_preview_options"] = opts.LinkPreviewOptions
 		}
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["allow_paid_broadcast"] = strconv.FormatBool(opts.AllowPaidBroadcast)
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
 		v["message_effect_id"] = opts.MessageEffectId
+		if opts.SuggestedPostParameters != nil {
+			v["suggested_post_parameters"] = opts.SuggestedPostParameters
+		}
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
 		if opts.ReplyMarkup != nil {
-			bs, err := json.Marshal(opts.ReplyMarkup)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-			}
-			v["reply_markup"] = string(bs)
+			v["reply_markup"] = opts.ReplyMarkup
 		}
 	}
 
@@ -5336,7 +5056,7 @@ func (bot *Bot) SendMessageWithContext(ctx context.Context, chatId int64, text s
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendMessage", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendMessage", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -5349,6 +5069,10 @@ func (bot *Bot) SendMessageWithContext(ctx context.Context, chatId int64, text s
 type SendPaidMediaOpts struct {
 	// Unique identifier of the business connection on behalf of which the message will be sent
 	BusinessConnectionId string
+	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	MessageThreadId int64
+	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
+	DirectMessagesTopicId int64
 	// Bot-defined paid media payload, 0-128 bytes. This will not be displayed to the user, use it for your internal processes.
 	Payload string
 	// Media caption, 0-1024 characters after entities parsing
@@ -5365,6 +5089,8 @@ type SendPaidMediaOpts struct {
 	ProtectContent bool
 	// Pass True to allow up to 1000 messages per second, ignoring broadcasting limits for a fee of 0.1 Telegram Stars per message. The relevant Stars will be withdrawn from the bot's balance
 	AllowPaidBroadcast bool
+	// A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only. If the message is sent as a reply to another suggested post, then that suggested post is automatically declined.
+	SuggestedPostParameters *SuggestedPostParameters
 	// Description of the message to reply to
 	ReplyParameters *ReplyParameters
 	// Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard, instructions to remove a reply keyboard or to force a reply from the user
@@ -5386,54 +5112,34 @@ func (bot *Bot) SendPaidMedia(chatId int64, starCount int64, media []InputPaidMe
 
 // SendPaidMediaWithContext is the same as Bot.SendPaidMedia, but with a context.Context parameter
 func (bot *Bot) SendPaidMediaWithContext(ctx context.Context, chatId int64, starCount int64, media []InputPaidMedia, opts *SendPaidMediaOpts) (*Message, error) {
-	v := map[string]string{}
-	data := map[string]FileReader{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["star_count"] = strconv.FormatInt(starCount, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["star_count"] = starCount
 	if media != nil {
-		var rawList []json.RawMessage
-		for idx, im := range media {
-			inputBs, err := im.InputParams("media"+strconv.Itoa(idx), data)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal list item %d for field media: %w", idx, err)
-			}
-			rawList = append(rawList, inputBs)
-		}
-		bs, err := json.Marshal(rawList)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal raw json list for field: media %w", err)
-		}
-		v["media"] = string(bs)
+		v["media"] = media
 	}
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
 		v["payload"] = opts.Payload
 		v["caption"] = opts.Caption
 		v["parse_mode"] = opts.ParseMode
 		if opts.CaptionEntities != nil {
-			bs, err := json.Marshal(opts.CaptionEntities)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field caption_entities: %w", err)
-			}
-			v["caption_entities"] = string(bs)
+			v["caption_entities"] = opts.CaptionEntities
 		}
-		v["show_caption_above_media"] = strconv.FormatBool(opts.ShowCaptionAboveMedia)
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["allow_paid_broadcast"] = strconv.FormatBool(opts.AllowPaidBroadcast)
+		v["show_caption_above_media"] = opts.ShowCaptionAboveMedia
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
+		if opts.SuggestedPostParameters != nil {
+			v["suggested_post_parameters"] = opts.SuggestedPostParameters
+		}
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
 		if opts.ReplyMarkup != nil {
-			bs, err := json.Marshal(opts.ReplyMarkup)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-			}
-			v["reply_markup"] = string(bs)
+			v["reply_markup"] = opts.ReplyMarkup
 		}
 	}
 
@@ -5442,7 +5148,7 @@ func (bot *Bot) SendPaidMediaWithContext(ctx context.Context, chatId int64, star
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendPaidMedia", v, data, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendPaidMedia", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -5457,6 +5163,8 @@ type SendPhotoOpts struct {
 	BusinessConnectionId string
 	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
 	MessageThreadId int64
+	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
+	DirectMessagesTopicId int64
 	// Photo caption (may also be used when resending photos by file_id), 0-1024 characters after entities parsing
 	Caption string
 	// Mode for parsing entities in the photo caption. See formatting options for more details.
@@ -5475,6 +5183,8 @@ type SendPhotoOpts struct {
 	AllowPaidBroadcast bool
 	// Unique identifier of the message effect to be added to the message; for private chats only
 	MessageEffectId string
+	// A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only. If the message is sent as a reply to another suggested post, then that suggested post is automatically declined.
+	SuggestedPostParameters *SuggestedPostParameters
 	// Description of the message to reply to
 	ReplyParameters *ReplyParameters
 	// Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard, instructions to remove a reply keyboard or to force a reply from the user
@@ -5495,49 +5205,34 @@ func (bot *Bot) SendPhoto(chatId int64, photo InputFileOrString, opts *SendPhoto
 
 // SendPhotoWithContext is the same as Bot.SendPhoto, but with a context.Context parameter
 func (bot *Bot) SendPhotoWithContext(ctx context.Context, chatId int64, photo InputFileOrString, opts *SendPhotoOpts) (*Message, error) {
-	v := map[string]string{}
-	data := map[string]FileReader{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	if photo != nil {
-		err := photo.Attach("photo", data)
-		if err != nil {
-			return nil, fmt.Errorf("failed to attach 'photo' input file: %w", err)
-		}
-		v["photo"] = photo.getValue()
+		v["photo"] = photo
 	}
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
 		v["caption"] = opts.Caption
 		v["parse_mode"] = opts.ParseMode
 		if opts.CaptionEntities != nil {
-			bs, err := json.Marshal(opts.CaptionEntities)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field caption_entities: %w", err)
-			}
-			v["caption_entities"] = string(bs)
+			v["caption_entities"] = opts.CaptionEntities
 		}
-		v["show_caption_above_media"] = strconv.FormatBool(opts.ShowCaptionAboveMedia)
-		v["has_spoiler"] = strconv.FormatBool(opts.HasSpoiler)
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["allow_paid_broadcast"] = strconv.FormatBool(opts.AllowPaidBroadcast)
+		v["show_caption_above_media"] = opts.ShowCaptionAboveMedia
+		v["has_spoiler"] = opts.HasSpoiler
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
 		v["message_effect_id"] = opts.MessageEffectId
+		if opts.SuggestedPostParameters != nil {
+			v["suggested_post_parameters"] = opts.SuggestedPostParameters
+		}
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
 		if opts.ReplyMarkup != nil {
-			bs, err := json.Marshal(opts.ReplyMarkup)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-			}
-			v["reply_markup"] = string(bs)
+			v["reply_markup"] = opts.ReplyMarkup
 		}
 	}
 
@@ -5546,7 +5241,7 @@ func (bot *Bot) SendPhotoWithContext(ctx context.Context, chatId int64, photo In
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendPhoto", v, data, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendPhoto", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -5604,7 +5299,7 @@ type SendPollOpts struct {
 // SendPoll (https://core.telegram.org/bots/api#sendpoll)
 //
 // Use this method to send a native poll. On success, the sent Message is returned.
-//   - chatId (type int64): Unique identifier for the target chat
+//   - chatId (type int64): Unique identifier for the target chat. Polls can't be sent to channel direct messages chats.
 //   - question (type string): Poll question, 1-300 characters
 //   - options (type []InputPollOption): A JSON-serialized list of 2-12 answer options
 //   - opts (type SendPollOpts): All optional parameters.
@@ -5614,69 +5309,43 @@ func (bot *Bot) SendPoll(chatId int64, question string, options []InputPollOptio
 
 // SendPollWithContext is the same as Bot.SendPoll, but with a context.Context parameter
 func (bot *Bot) SendPollWithContext(ctx context.Context, chatId int64, question string, options []InputPollOption, opts *SendPollOpts) (*Message, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	v["question"] = question
 	if options != nil {
-		bs, err := json.Marshal(options)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal field options: %w", err)
-		}
-		v["options"] = string(bs)
+		v["options"] = options
 	}
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
+		v["message_thread_id"] = opts.MessageThreadId
 		v["question_parse_mode"] = opts.QuestionParseMode
 		if opts.QuestionEntities != nil {
-			bs, err := json.Marshal(opts.QuestionEntities)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field question_entities: %w", err)
-			}
-			v["question_entities"] = string(bs)
+			v["question_entities"] = opts.QuestionEntities
 		}
-		v["is_anonymous"] = strconv.FormatBool(opts.IsAnonymous)
+		v["is_anonymous"] = opts.IsAnonymous
 		v["type"] = opts.Type
-		v["allows_multiple_answers"] = strconv.FormatBool(opts.AllowsMultipleAnswers)
+		v["allows_multiple_answers"] = opts.AllowsMultipleAnswers
 		if opts.Type == "quiz" {
 			// correct_option_id should always be set when the type is "quiz" - it doesnt need to be set for type "regular".
-			v["correct_option_id"] = strconv.FormatInt(opts.CorrectOptionId, 10)
+			v["correct_option_id"] = opts.CorrectOptionId
 		}
 		v["explanation"] = opts.Explanation
 		v["explanation_parse_mode"] = opts.ExplanationParseMode
 		if opts.ExplanationEntities != nil {
-			bs, err := json.Marshal(opts.ExplanationEntities)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field explanation_entities: %w", err)
-			}
-			v["explanation_entities"] = string(bs)
+			v["explanation_entities"] = opts.ExplanationEntities
 		}
-		if opts.OpenPeriod != 0 {
-			v["open_period"] = strconv.FormatInt(opts.OpenPeriod, 10)
-		}
-		if opts.CloseDate != 0 {
-			v["close_date"] = strconv.FormatInt(opts.CloseDate, 10)
-		}
-		v["is_closed"] = strconv.FormatBool(opts.IsClosed)
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["allow_paid_broadcast"] = strconv.FormatBool(opts.AllowPaidBroadcast)
+		v["open_period"] = opts.OpenPeriod
+		v["close_date"] = opts.CloseDate
+		v["is_closed"] = opts.IsClosed
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
 		v["message_effect_id"] = opts.MessageEffectId
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
 		if opts.ReplyMarkup != nil {
-			bs, err := json.Marshal(opts.ReplyMarkup)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-			}
-			v["reply_markup"] = string(bs)
+			v["reply_markup"] = opts.ReplyMarkup
 		}
 	}
 
@@ -5685,7 +5354,7 @@ func (bot *Bot) SendPollWithContext(ctx context.Context, chatId int64, question 
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendPoll", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendPoll", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -5700,6 +5369,8 @@ type SendStickerOpts struct {
 	BusinessConnectionId string
 	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
 	MessageThreadId int64
+	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
+	DirectMessagesTopicId int64
 	// Emoji associated with the sticker; only for just uploaded stickers
 	Emoji string
 	// Sends the message silently. Users will receive a notification with no sound.
@@ -5710,6 +5381,8 @@ type SendStickerOpts struct {
 	AllowPaidBroadcast bool
 	// Unique identifier of the message effect to be added to the message; for private chats only
 	MessageEffectId string
+	// A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only. If the message is sent as a reply to another suggested post, then that suggested post is automatically declined.
+	SuggestedPostParameters *SuggestedPostParameters
 	// Description of the message to reply to
 	ReplyParameters *ReplyParameters
 	// Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard, instructions to remove a reply keyboard or to force a reply from the user
@@ -5730,39 +5403,28 @@ func (bot *Bot) SendSticker(chatId int64, sticker InputFileOrString, opts *SendS
 
 // SendStickerWithContext is the same as Bot.SendSticker, but with a context.Context parameter
 func (bot *Bot) SendStickerWithContext(ctx context.Context, chatId int64, sticker InputFileOrString, opts *SendStickerOpts) (*Message, error) {
-	v := map[string]string{}
-	data := map[string]FileReader{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	if sticker != nil {
-		err := sticker.Attach("sticker", data)
-		if err != nil {
-			return nil, fmt.Errorf("failed to attach 'sticker' input file: %w", err)
-		}
-		v["sticker"] = sticker.getValue()
+		v["sticker"] = sticker
 	}
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
 		v["emoji"] = opts.Emoji
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["allow_paid_broadcast"] = strconv.FormatBool(opts.AllowPaidBroadcast)
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
 		v["message_effect_id"] = opts.MessageEffectId
+		if opts.SuggestedPostParameters != nil {
+			v["suggested_post_parameters"] = opts.SuggestedPostParameters
+		}
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
 		if opts.ReplyMarkup != nil {
-			bs, err := json.Marshal(opts.ReplyMarkup)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-			}
-			v["reply_markup"] = string(bs)
+			v["reply_markup"] = opts.ReplyMarkup
 		}
 	}
 
@@ -5771,7 +5433,7 @@ func (bot *Bot) SendStickerWithContext(ctx context.Context, chatId int64, sticke
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendSticker", v, data, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendSticker", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -5786,6 +5448,8 @@ type SendVenueOpts struct {
 	BusinessConnectionId string
 	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
 	MessageThreadId int64
+	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
+	DirectMessagesTopicId int64
 	// Foursquare identifier of the venue
 	FoursquareId string
 	// Foursquare type of the venue, if known. (For example, "arts_entertainment/default", "arts_entertainment/aquarium" or "food/icecream".)
@@ -5802,6 +5466,8 @@ type SendVenueOpts struct {
 	AllowPaidBroadcast bool
 	// Unique identifier of the message effect to be added to the message; for private chats only
 	MessageEffectId string
+	// A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only. If the message is sent as a reply to another suggested post, then that suggested post is automatically declined.
+	SuggestedPostParameters *SuggestedPostParameters
 	// Description of the message to reply to
 	ReplyParameters *ReplyParameters
 	// Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard, instructions to remove a reply keyboard or to force a reply from the user
@@ -5825,38 +5491,32 @@ func (bot *Bot) SendVenue(chatId int64, latitude float64, longitude float64, tit
 
 // SendVenueWithContext is the same as Bot.SendVenue, but with a context.Context parameter
 func (bot *Bot) SendVenueWithContext(ctx context.Context, chatId int64, latitude float64, longitude float64, title string, address string, opts *SendVenueOpts) (*Message, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["latitude"] = strconv.FormatFloat(latitude, 'f', -1, 64)
-	v["longitude"] = strconv.FormatFloat(longitude, 'f', -1, 64)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["latitude"] = latitude
+	v["longitude"] = longitude
 	v["title"] = title
 	v["address"] = address
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
 		v["foursquare_id"] = opts.FoursquareId
 		v["foursquare_type"] = opts.FoursquareType
 		v["google_place_id"] = opts.GooglePlaceId
 		v["google_place_type"] = opts.GooglePlaceType
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["allow_paid_broadcast"] = strconv.FormatBool(opts.AllowPaidBroadcast)
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
 		v["message_effect_id"] = opts.MessageEffectId
+		if opts.SuggestedPostParameters != nil {
+			v["suggested_post_parameters"] = opts.SuggestedPostParameters
+		}
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
 		if opts.ReplyMarkup != nil {
-			bs, err := json.Marshal(opts.ReplyMarkup)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-			}
-			v["reply_markup"] = string(bs)
+			v["reply_markup"] = opts.ReplyMarkup
 		}
 	}
 
@@ -5865,7 +5525,7 @@ func (bot *Bot) SendVenueWithContext(ctx context.Context, chatId int64, latitude
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendVenue", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendVenue", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -5880,6 +5540,8 @@ type SendVideoOpts struct {
 	BusinessConnectionId string
 	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
 	MessageThreadId int64
+	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
+	DirectMessagesTopicId int64
 	// Duration of sent video in seconds
 	Duration int64
 	// Video width
@@ -5912,6 +5574,8 @@ type SendVideoOpts struct {
 	AllowPaidBroadcast bool
 	// Unique identifier of the message effect to be added to the message; for private chats only
 	MessageEffectId string
+	// A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only. If the message is sent as a reply to another suggested post, then that suggested post is automatically declined.
+	SuggestedPostParameters *SuggestedPostParameters
 	// Description of the message to reply to
 	ReplyParameters *ReplyParameters
 	// Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard, instructions to remove a reply keyboard or to force a reply from the user
@@ -5932,76 +5596,45 @@ func (bot *Bot) SendVideo(chatId int64, video InputFileOrString, opts *SendVideo
 
 // SendVideoWithContext is the same as Bot.SendVideo, but with a context.Context parameter
 func (bot *Bot) SendVideoWithContext(ctx context.Context, chatId int64, video InputFileOrString, opts *SendVideoOpts) (*Message, error) {
-	v := map[string]string{}
-	data := map[string]FileReader{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	if video != nil {
-		err := video.Attach("video", data)
-		if err != nil {
-			return nil, fmt.Errorf("failed to attach 'video' input file: %w", err)
-		}
-		v["video"] = video.getValue()
+		v["video"] = video
 	}
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
-		if opts.Duration != 0 {
-			v["duration"] = strconv.FormatInt(opts.Duration, 10)
-		}
-		if opts.Width != 0 {
-			v["width"] = strconv.FormatInt(opts.Width, 10)
-		}
-		if opts.Height != 0 {
-			v["height"] = strconv.FormatInt(opts.Height, 10)
-		}
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
+		v["duration"] = opts.Duration
+		v["width"] = opts.Width
+		v["height"] = opts.Height
 		if opts.Thumbnail != nil {
-			err := opts.Thumbnail.Attach("thumbnail", data)
-			if err != nil {
-				return nil, fmt.Errorf("failed to attach 'thumbnail' input file: %w", err)
-			}
-			v["thumbnail"] = opts.Thumbnail.getValue()
+			v["thumbnail"] = opts.Thumbnail
 		}
 		if opts.Cover != nil {
-			err := opts.Cover.Attach("cover", data)
-			if err != nil {
-				return nil, fmt.Errorf("failed to attach 'cover' input file: %w", err)
-			}
-			v["cover"] = opts.Cover.getValue()
+			v["cover"] = opts.Cover
 		}
-		if opts.StartTimestamp != 0 {
-			v["start_timestamp"] = strconv.FormatInt(opts.StartTimestamp, 10)
-		}
+		v["start_timestamp"] = opts.StartTimestamp
 		v["caption"] = opts.Caption
 		v["parse_mode"] = opts.ParseMode
 		if opts.CaptionEntities != nil {
-			bs, err := json.Marshal(opts.CaptionEntities)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field caption_entities: %w", err)
-			}
-			v["caption_entities"] = string(bs)
+			v["caption_entities"] = opts.CaptionEntities
 		}
-		v["show_caption_above_media"] = strconv.FormatBool(opts.ShowCaptionAboveMedia)
-		v["has_spoiler"] = strconv.FormatBool(opts.HasSpoiler)
-		v["supports_streaming"] = strconv.FormatBool(opts.SupportsStreaming)
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["allow_paid_broadcast"] = strconv.FormatBool(opts.AllowPaidBroadcast)
+		v["show_caption_above_media"] = opts.ShowCaptionAboveMedia
+		v["has_spoiler"] = opts.HasSpoiler
+		v["supports_streaming"] = opts.SupportsStreaming
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
 		v["message_effect_id"] = opts.MessageEffectId
+		if opts.SuggestedPostParameters != nil {
+			v["suggested_post_parameters"] = opts.SuggestedPostParameters
+		}
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
 		if opts.ReplyMarkup != nil {
-			bs, err := json.Marshal(opts.ReplyMarkup)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-			}
-			v["reply_markup"] = string(bs)
+			v["reply_markup"] = opts.ReplyMarkup
 		}
 	}
 
@@ -6010,7 +5643,7 @@ func (bot *Bot) SendVideoWithContext(ctx context.Context, chatId int64, video In
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendVideo", v, data, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendVideo", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -6025,6 +5658,8 @@ type SendVideoNoteOpts struct {
 	BusinessConnectionId string
 	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
 	MessageThreadId int64
+	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
+	DirectMessagesTopicId int64
 	// Duration of sent video in seconds
 	Duration int64
 	// Video width and height, i.e. diameter of the video message
@@ -6039,6 +5674,8 @@ type SendVideoNoteOpts struct {
 	AllowPaidBroadcast bool
 	// Unique identifier of the message effect to be added to the message; for private chats only
 	MessageEffectId string
+	// A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only. If the message is sent as a reply to another suggested post, then that suggested post is automatically declined.
+	SuggestedPostParameters *SuggestedPostParameters
 	// Description of the message to reply to
 	ReplyParameters *ReplyParameters
 	// Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard, instructions to remove a reply keyboard or to force a reply from the user
@@ -6059,51 +5696,32 @@ func (bot *Bot) SendVideoNote(chatId int64, videoNote InputFileOrString, opts *S
 
 // SendVideoNoteWithContext is the same as Bot.SendVideoNote, but with a context.Context parameter
 func (bot *Bot) SendVideoNoteWithContext(ctx context.Context, chatId int64, videoNote InputFileOrString, opts *SendVideoNoteOpts) (*Message, error) {
-	v := map[string]string{}
-	data := map[string]FileReader{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	if videoNote != nil {
-		err := videoNote.Attach("video_note", data)
-		if err != nil {
-			return nil, fmt.Errorf("failed to attach 'video_note' input file: %w", err)
-		}
-		v["video_note"] = videoNote.getValue()
+		v["video_note"] = videoNote
 	}
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
-		if opts.Duration != 0 {
-			v["duration"] = strconv.FormatInt(opts.Duration, 10)
-		}
-		if opts.Length != 0 {
-			v["length"] = strconv.FormatInt(opts.Length, 10)
-		}
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
+		v["duration"] = opts.Duration
+		v["length"] = opts.Length
 		if opts.Thumbnail != nil {
-			err := opts.Thumbnail.Attach("thumbnail", data)
-			if err != nil {
-				return nil, fmt.Errorf("failed to attach 'thumbnail' input file: %w", err)
-			}
-			v["thumbnail"] = opts.Thumbnail.getValue()
+			v["thumbnail"] = opts.Thumbnail
 		}
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["allow_paid_broadcast"] = strconv.FormatBool(opts.AllowPaidBroadcast)
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
 		v["message_effect_id"] = opts.MessageEffectId
+		if opts.SuggestedPostParameters != nil {
+			v["suggested_post_parameters"] = opts.SuggestedPostParameters
+		}
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
 		if opts.ReplyMarkup != nil {
-			bs, err := json.Marshal(opts.ReplyMarkup)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-			}
-			v["reply_markup"] = string(bs)
+			v["reply_markup"] = opts.ReplyMarkup
 		}
 	}
 
@@ -6112,7 +5730,7 @@ func (bot *Bot) SendVideoNoteWithContext(ctx context.Context, chatId int64, vide
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendVideoNote", v, data, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendVideoNote", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -6127,6 +5745,8 @@ type SendVoiceOpts struct {
 	BusinessConnectionId string
 	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
 	MessageThreadId int64
+	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
+	DirectMessagesTopicId int64
 	// Voice message caption, 0-1024 characters after entities parsing
 	Caption string
 	// Mode for parsing entities in the voice message caption. See formatting options for more details.
@@ -6143,6 +5763,8 @@ type SendVoiceOpts struct {
 	AllowPaidBroadcast bool
 	// Unique identifier of the message effect to be added to the message; for private chats only
 	MessageEffectId string
+	// A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only. If the message is sent as a reply to another suggested post, then that suggested post is automatically declined.
+	SuggestedPostParameters *SuggestedPostParameters
 	// Description of the message to reply to
 	ReplyParameters *ReplyParameters
 	// Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard, instructions to remove a reply keyboard or to force a reply from the user
@@ -6163,50 +5785,33 @@ func (bot *Bot) SendVoice(chatId int64, voice InputFileOrString, opts *SendVoice
 
 // SendVoiceWithContext is the same as Bot.SendVoice, but with a context.Context parameter
 func (bot *Bot) SendVoiceWithContext(ctx context.Context, chatId int64, voice InputFileOrString, opts *SendVoiceOpts) (*Message, error) {
-	v := map[string]string{}
-	data := map[string]FileReader{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	if voice != nil {
-		err := voice.Attach("voice", data)
-		if err != nil {
-			return nil, fmt.Errorf("failed to attach 'voice' input file: %w", err)
-		}
-		v["voice"] = voice.getValue()
+		v["voice"] = voice
 	}
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.MessageThreadId != 0 {
-			v["message_thread_id"] = strconv.FormatInt(opts.MessageThreadId, 10)
-		}
+		v["message_thread_id"] = opts.MessageThreadId
+		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
 		v["caption"] = opts.Caption
 		v["parse_mode"] = opts.ParseMode
 		if opts.CaptionEntities != nil {
-			bs, err := json.Marshal(opts.CaptionEntities)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field caption_entities: %w", err)
-			}
-			v["caption_entities"] = string(bs)
+			v["caption_entities"] = opts.CaptionEntities
 		}
-		if opts.Duration != 0 {
-			v["duration"] = strconv.FormatInt(opts.Duration, 10)
-		}
-		v["disable_notification"] = strconv.FormatBool(opts.DisableNotification)
-		v["protect_content"] = strconv.FormatBool(opts.ProtectContent)
-		v["allow_paid_broadcast"] = strconv.FormatBool(opts.AllowPaidBroadcast)
+		v["duration"] = opts.Duration
+		v["disable_notification"] = opts.DisableNotification
+		v["protect_content"] = opts.ProtectContent
+		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
 		v["message_effect_id"] = opts.MessageEffectId
+		if opts.SuggestedPostParameters != nil {
+			v["suggested_post_parameters"] = opts.SuggestedPostParameters
+		}
 		if opts.ReplyParameters != nil {
-			bs, err := json.Marshal(opts.ReplyParameters)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_parameters: %w", err)
-			}
-			v["reply_parameters"] = string(bs)
+			v["reply_parameters"] = opts.ReplyParameters
 		}
 		if opts.ReplyMarkup != nil {
-			bs, err := json.Marshal(opts.ReplyMarkup)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-			}
-			v["reply_markup"] = string(bs)
+			v["reply_markup"] = opts.ReplyMarkup
 		}
 	}
 
@@ -6215,7 +5820,7 @@ func (bot *Bot) SendVoiceWithContext(ctx context.Context, chatId int64, voice In
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "sendVoice", v, data, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "sendVoice", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -6243,7 +5848,7 @@ func (bot *Bot) SetBusinessAccountBio(businessConnectionId string, opts *SetBusi
 
 // SetBusinessAccountBioWithContext is the same as Bot.SetBusinessAccountBio, but with a context.Context parameter
 func (bot *Bot) SetBusinessAccountBioWithContext(ctx context.Context, businessConnectionId string, opts *SetBusinessAccountBioOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
 	if opts != nil {
 		v["bio"] = opts.Bio
@@ -6254,7 +5859,7 @@ func (bot *Bot) SetBusinessAccountBioWithContext(ctx context.Context, businessCo
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setBusinessAccountBio", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setBusinessAccountBio", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -6282,21 +5887,17 @@ func (bot *Bot) SetBusinessAccountGiftSettings(businessConnectionId string, show
 
 // SetBusinessAccountGiftSettingsWithContext is the same as Bot.SetBusinessAccountGiftSettings, but with a context.Context parameter
 func (bot *Bot) SetBusinessAccountGiftSettingsWithContext(ctx context.Context, businessConnectionId string, showGiftButton bool, acceptedGiftTypes AcceptedGiftTypes, opts *SetBusinessAccountGiftSettingsOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
-	v["show_gift_button"] = strconv.FormatBool(showGiftButton)
-	bs, err := json.Marshal(acceptedGiftTypes)
-	if err != nil {
-		return false, fmt.Errorf("failed to marshal field accepted_gift_types: %w", err)
-	}
-	v["accepted_gift_types"] = string(bs)
+	v["show_gift_button"] = showGiftButton
+	v["accepted_gift_types"] = acceptedGiftTypes
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setBusinessAccountGiftSettings", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setBusinessAccountGiftSettings", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -6325,7 +5926,7 @@ func (bot *Bot) SetBusinessAccountName(businessConnectionId string, firstName st
 
 // SetBusinessAccountNameWithContext is the same as Bot.SetBusinessAccountName, but with a context.Context parameter
 func (bot *Bot) SetBusinessAccountNameWithContext(ctx context.Context, businessConnectionId string, firstName string, opts *SetBusinessAccountNameOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
 	v["first_name"] = firstName
 	if opts != nil {
@@ -6337,7 +5938,7 @@ func (bot *Bot) SetBusinessAccountNameWithContext(ctx context.Context, businessC
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setBusinessAccountName", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setBusinessAccountName", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -6366,15 +5967,11 @@ func (bot *Bot) SetBusinessAccountProfilePhoto(businessConnectionId string, phot
 
 // SetBusinessAccountProfilePhotoWithContext is the same as Bot.SetBusinessAccountProfilePhoto, but with a context.Context parameter
 func (bot *Bot) SetBusinessAccountProfilePhotoWithContext(ctx context.Context, businessConnectionId string, photo InputProfilePhoto, opts *SetBusinessAccountProfilePhotoOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
-	bs, err := json.Marshal(photo)
-	if err != nil {
-		return false, fmt.Errorf("failed to marshal field photo: %w", err)
-	}
-	v["photo"] = string(bs)
+	v["photo"] = photo
 	if opts != nil {
-		v["is_public"] = strconv.FormatBool(opts.IsPublic)
+		v["is_public"] = opts.IsPublic
 	}
 
 	var reqOpts *RequestOpts
@@ -6382,7 +5979,7 @@ func (bot *Bot) SetBusinessAccountProfilePhotoWithContext(ctx context.Context, b
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setBusinessAccountProfilePhoto", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setBusinessAccountProfilePhoto", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -6410,7 +6007,7 @@ func (bot *Bot) SetBusinessAccountUsername(businessConnectionId string, opts *Se
 
 // SetBusinessAccountUsernameWithContext is the same as Bot.SetBusinessAccountUsername, but with a context.Context parameter
 func (bot *Bot) SetBusinessAccountUsernameWithContext(ctx context.Context, businessConnectionId string, opts *SetBusinessAccountUsernameOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
 	if opts != nil {
 		v["username"] = opts.Username
@@ -6421,7 +6018,7 @@ func (bot *Bot) SetBusinessAccountUsernameWithContext(ctx context.Context, busin
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setBusinessAccountUsername", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setBusinessAccountUsername", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -6449,9 +6046,9 @@ func (bot *Bot) SetChatAdministratorCustomTitle(chatId int64, userId int64, cust
 
 // SetChatAdministratorCustomTitleWithContext is the same as Bot.SetChatAdministratorCustomTitle, but with a context.Context parameter
 func (bot *Bot) SetChatAdministratorCustomTitleWithContext(ctx context.Context, chatId int64, userId int64, customTitle string, opts *SetChatAdministratorCustomTitleOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["user_id"] = userId
 	v["custom_title"] = customTitle
 
 	var reqOpts *RequestOpts
@@ -6459,7 +6056,7 @@ func (bot *Bot) SetChatAdministratorCustomTitleWithContext(ctx context.Context, 
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setChatAdministratorCustomTitle", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setChatAdministratorCustomTitle", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -6487,8 +6084,8 @@ func (bot *Bot) SetChatDescription(chatId int64, opts *SetChatDescriptionOpts) (
 
 // SetChatDescriptionWithContext is the same as Bot.SetChatDescription, but with a context.Context parameter
 func (bot *Bot) SetChatDescriptionWithContext(ctx context.Context, chatId int64, opts *SetChatDescriptionOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	if opts != nil {
 		v["description"] = opts.Description
 	}
@@ -6498,7 +6095,7 @@ func (bot *Bot) SetChatDescriptionWithContext(ctx context.Context, chatId int64,
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setChatDescription", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setChatDescription", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -6527,16 +6124,12 @@ func (bot *Bot) SetChatMenuButton(opts *SetChatMenuButtonOpts) (bool, error) {
 
 // SetChatMenuButtonWithContext is the same as Bot.SetChatMenuButton, but with a context.Context parameter
 func (bot *Bot) SetChatMenuButtonWithContext(ctx context.Context, opts *SetChatMenuButtonOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if opts != nil {
 		if opts.ChatId != nil {
-			v["chat_id"] = strconv.FormatInt(*opts.ChatId, 10)
+			v["chat_id"] = opts.ChatId
 		}
-		bs, err := json.Marshal(opts.MenuButton)
-		if err != nil {
-			return false, fmt.Errorf("failed to marshal field menu_button: %w", err)
-		}
-		v["menu_button"] = string(bs)
+		v["menu_button"] = opts.MenuButton
 	}
 
 	var reqOpts *RequestOpts
@@ -6544,7 +6137,7 @@ func (bot *Bot) SetChatMenuButtonWithContext(ctx context.Context, opts *SetChatM
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setChatMenuButton", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setChatMenuButton", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -6573,15 +6166,11 @@ func (bot *Bot) SetChatPermissions(chatId int64, permissions ChatPermissions, op
 
 // SetChatPermissionsWithContext is the same as Bot.SetChatPermissions, but with a context.Context parameter
 func (bot *Bot) SetChatPermissionsWithContext(ctx context.Context, chatId int64, permissions ChatPermissions, opts *SetChatPermissionsOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	bs, err := json.Marshal(permissions)
-	if err != nil {
-		return false, fmt.Errorf("failed to marshal field permissions: %w", err)
-	}
-	v["permissions"] = string(bs)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["permissions"] = permissions
 	if opts != nil {
-		v["use_independent_chat_permissions"] = strconv.FormatBool(opts.UseIndependentChatPermissions)
+		v["use_independent_chat_permissions"] = opts.UseIndependentChatPermissions
 	}
 
 	var reqOpts *RequestOpts
@@ -6589,7 +6178,7 @@ func (bot *Bot) SetChatPermissionsWithContext(ctx context.Context, chatId int64,
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setChatPermissions", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setChatPermissions", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -6616,15 +6205,10 @@ func (bot *Bot) SetChatPhoto(chatId int64, photo InputFile, opts *SetChatPhotoOp
 
 // SetChatPhotoWithContext is the same as Bot.SetChatPhoto, but with a context.Context parameter
 func (bot *Bot) SetChatPhotoWithContext(ctx context.Context, chatId int64, photo InputFile, opts *SetChatPhotoOpts) (bool, error) {
-	v := map[string]string{}
-	data := map[string]FileReader{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	if photo != nil {
-		err := photo.Attach("photo", data)
-		if err != nil {
-			return false, fmt.Errorf("failed to attach 'photo' input file: %w", err)
-		}
-		v["photo"] = photo.getValue()
+		v["photo"] = photo
 	}
 
 	var reqOpts *RequestOpts
@@ -6632,7 +6216,7 @@ func (bot *Bot) SetChatPhotoWithContext(ctx context.Context, chatId int64, photo
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setChatPhoto", v, data, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setChatPhoto", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -6659,8 +6243,8 @@ func (bot *Bot) SetChatStickerSet(chatId int64, stickerSetName string, opts *Set
 
 // SetChatStickerSetWithContext is the same as Bot.SetChatStickerSet, but with a context.Context parameter
 func (bot *Bot) SetChatStickerSetWithContext(ctx context.Context, chatId int64, stickerSetName string, opts *SetChatStickerSetOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	v["sticker_set_name"] = stickerSetName
 
 	var reqOpts *RequestOpts
@@ -6668,7 +6252,7 @@ func (bot *Bot) SetChatStickerSetWithContext(ctx context.Context, chatId int64, 
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setChatStickerSet", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setChatStickerSet", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -6695,8 +6279,8 @@ func (bot *Bot) SetChatTitle(chatId int64, title string, opts *SetChatTitleOpts)
 
 // SetChatTitleWithContext is the same as Bot.SetChatTitle, but with a context.Context parameter
 func (bot *Bot) SetChatTitleWithContext(ctx context.Context, chatId int64, title string, opts *SetChatTitleOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	v["title"] = title
 
 	var reqOpts *RequestOpts
@@ -6704,7 +6288,7 @@ func (bot *Bot) SetChatTitleWithContext(ctx context.Context, chatId int64, title
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setChatTitle", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setChatTitle", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -6732,7 +6316,7 @@ func (bot *Bot) SetCustomEmojiStickerSetThumbnail(name string, opts *SetCustomEm
 
 // SetCustomEmojiStickerSetThumbnailWithContext is the same as Bot.SetCustomEmojiStickerSetThumbnail, but with a context.Context parameter
 func (bot *Bot) SetCustomEmojiStickerSetThumbnailWithContext(ctx context.Context, name string, opts *SetCustomEmojiStickerSetThumbnailOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["name"] = name
 	if opts != nil {
 		v["custom_emoji_id"] = opts.CustomEmojiId
@@ -6743,7 +6327,7 @@ func (bot *Bot) SetCustomEmojiStickerSetThumbnailWithContext(ctx context.Context
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setCustomEmojiStickerSetThumbnail", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setCustomEmojiStickerSetThumbnail", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -6780,18 +6364,14 @@ func (bot *Bot) SetGameScore(userId int64, score int64, opts *SetGameScoreOpts) 
 
 // SetGameScoreWithContext is the same as Bot.SetGameScore, but with a context.Context parameter
 func (bot *Bot) SetGameScoreWithContext(ctx context.Context, userId int64, score int64, opts *SetGameScoreOpts) (*Message, bool, error) {
-	v := map[string]string{}
-	v["user_id"] = strconv.FormatInt(userId, 10)
-	v["score"] = strconv.FormatInt(score, 10)
+	v := map[string]any{}
+	v["user_id"] = userId
+	v["score"] = score
 	if opts != nil {
-		v["force"] = strconv.FormatBool(opts.Force)
-		v["disable_edit_message"] = strconv.FormatBool(opts.DisableEditMessage)
-		if opts.ChatId != 0 {
-			v["chat_id"] = strconv.FormatInt(opts.ChatId, 10)
-		}
-		if opts.MessageId != 0 {
-			v["message_id"] = strconv.FormatInt(opts.MessageId, 10)
-		}
+		v["force"] = opts.Force
+		v["disable_edit_message"] = opts.DisableEditMessage
+		v["chat_id"] = opts.ChatId
+		v["message_id"] = opts.MessageId
 		v["inline_message_id"] = opts.InlineMessageId
 	}
 
@@ -6800,7 +6380,7 @@ func (bot *Bot) SetGameScoreWithContext(ctx context.Context, userId int64, score
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setGameScore", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setGameScore", v, reqOpts)
 	if err != nil {
 		return nil, false, err
 	}
@@ -6839,18 +6419,14 @@ func (bot *Bot) SetMessageReaction(chatId int64, messageId int64, opts *SetMessa
 
 // SetMessageReactionWithContext is the same as Bot.SetMessageReaction, but with a context.Context parameter
 func (bot *Bot) SetMessageReactionWithContext(ctx context.Context, chatId int64, messageId int64, opts *SetMessageReactionOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["message_id"] = strconv.FormatInt(messageId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["message_id"] = messageId
 	if opts != nil {
 		if opts.Reaction != nil {
-			bs, err := json.Marshal(opts.Reaction)
-			if err != nil {
-				return false, fmt.Errorf("failed to marshal field reaction: %w", err)
-			}
-			v["reaction"] = string(bs)
+			v["reaction"] = opts.Reaction
 		}
-		v["is_big"] = strconv.FormatBool(opts.IsBig)
+		v["is_big"] = opts.IsBig
 	}
 
 	var reqOpts *RequestOpts
@@ -6858,7 +6434,7 @@ func (bot *Bot) SetMessageReactionWithContext(ctx context.Context, chatId int64,
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setMessageReaction", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setMessageReaction", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -6888,20 +6464,12 @@ func (bot *Bot) SetMyCommands(commands []BotCommand, opts *SetMyCommandsOpts) (b
 
 // SetMyCommandsWithContext is the same as Bot.SetMyCommands, but with a context.Context parameter
 func (bot *Bot) SetMyCommandsWithContext(ctx context.Context, commands []BotCommand, opts *SetMyCommandsOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if commands != nil {
-		bs, err := json.Marshal(commands)
-		if err != nil {
-			return false, fmt.Errorf("failed to marshal field commands: %w", err)
-		}
-		v["commands"] = string(bs)
+		v["commands"] = commands
 	}
 	if opts != nil {
-		bs, err := json.Marshal(opts.Scope)
-		if err != nil {
-			return false, fmt.Errorf("failed to marshal field scope: %w", err)
-		}
-		v["scope"] = string(bs)
+		v["scope"] = opts.Scope
 		v["language_code"] = opts.LanguageCode
 	}
 
@@ -6910,7 +6478,7 @@ func (bot *Bot) SetMyCommandsWithContext(ctx context.Context, commands []BotComm
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setMyCommands", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setMyCommands", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -6939,16 +6507,12 @@ func (bot *Bot) SetMyDefaultAdministratorRights(opts *SetMyDefaultAdministratorR
 
 // SetMyDefaultAdministratorRightsWithContext is the same as Bot.SetMyDefaultAdministratorRights, but with a context.Context parameter
 func (bot *Bot) SetMyDefaultAdministratorRightsWithContext(ctx context.Context, opts *SetMyDefaultAdministratorRightsOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if opts != nil {
 		if opts.Rights != nil {
-			bs, err := json.Marshal(opts.Rights)
-			if err != nil {
-				return false, fmt.Errorf("failed to marshal field rights: %w", err)
-			}
-			v["rights"] = string(bs)
+			v["rights"] = opts.Rights
 		}
-		v["for_channels"] = strconv.FormatBool(opts.ForChannels)
+		v["for_channels"] = opts.ForChannels
 	}
 
 	var reqOpts *RequestOpts
@@ -6956,7 +6520,7 @@ func (bot *Bot) SetMyDefaultAdministratorRightsWithContext(ctx context.Context, 
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setMyDefaultAdministratorRights", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setMyDefaultAdministratorRights", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -6985,7 +6549,7 @@ func (bot *Bot) SetMyDescription(opts *SetMyDescriptionOpts) (bool, error) {
 
 // SetMyDescriptionWithContext is the same as Bot.SetMyDescription, but with a context.Context parameter
 func (bot *Bot) SetMyDescriptionWithContext(ctx context.Context, opts *SetMyDescriptionOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if opts != nil {
 		v["description"] = opts.Description
 		v["language_code"] = opts.LanguageCode
@@ -6996,7 +6560,7 @@ func (bot *Bot) SetMyDescriptionWithContext(ctx context.Context, opts *SetMyDesc
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setMyDescription", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setMyDescription", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7025,7 +6589,7 @@ func (bot *Bot) SetMyName(opts *SetMyNameOpts) (bool, error) {
 
 // SetMyNameWithContext is the same as Bot.SetMyName, but with a context.Context parameter
 func (bot *Bot) SetMyNameWithContext(ctx context.Context, opts *SetMyNameOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if opts != nil {
 		v["name"] = opts.Name
 		v["language_code"] = opts.LanguageCode
@@ -7036,7 +6600,7 @@ func (bot *Bot) SetMyNameWithContext(ctx context.Context, opts *SetMyNameOpts) (
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setMyName", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setMyName", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7065,7 +6629,7 @@ func (bot *Bot) SetMyShortDescription(opts *SetMyShortDescriptionOpts) (bool, er
 
 // SetMyShortDescriptionWithContext is the same as Bot.SetMyShortDescription, but with a context.Context parameter
 func (bot *Bot) SetMyShortDescriptionWithContext(ctx context.Context, opts *SetMyShortDescriptionOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if opts != nil {
 		v["short_description"] = opts.ShortDescription
 		v["language_code"] = opts.LanguageCode
@@ -7076,7 +6640,7 @@ func (bot *Bot) SetMyShortDescriptionWithContext(ctx context.Context, opts *SetM
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setMyShortDescription", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setMyShortDescription", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7104,14 +6668,10 @@ func (bot *Bot) SetPassportDataErrors(userId int64, errors []PassportElementErro
 
 // SetPassportDataErrorsWithContext is the same as Bot.SetPassportDataErrors, but with a context.Context parameter
 func (bot *Bot) SetPassportDataErrorsWithContext(ctx context.Context, userId int64, errors []PassportElementError, opts *SetPassportDataErrorsOpts) (bool, error) {
-	v := map[string]string{}
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["user_id"] = userId
 	if errors != nil {
-		bs, err := json.Marshal(errors)
-		if err != nil {
-			return false, fmt.Errorf("failed to marshal field errors: %w", err)
-		}
-		v["errors"] = string(bs)
+		v["errors"] = errors
 	}
 
 	var reqOpts *RequestOpts
@@ -7119,7 +6679,7 @@ func (bot *Bot) SetPassportDataErrorsWithContext(ctx context.Context, userId int
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setPassportDataErrors", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setPassportDataErrors", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7137,23 +6697,21 @@ type SetStickerEmojiListOpts struct {
 // SetStickerEmojiList (https://core.telegram.org/bots/api#setstickeremojilist)
 //
 // Use this method to change the list of emoji assigned to a regular or custom emoji sticker. The sticker must belong to a sticker set created by the bot. Returns True on success.
-//   - sticker (type string): File identifier of the sticker
+//   - sticker (type InputFileOrString): File identifier of the sticker
 //   - emojiList (type []string): A JSON-serialized list of 1-20 emoji associated with the sticker
 //   - opts (type SetStickerEmojiListOpts): All optional parameters.
-func (bot *Bot) SetStickerEmojiList(sticker string, emojiList []string, opts *SetStickerEmojiListOpts) (bool, error) {
+func (bot *Bot) SetStickerEmojiList(sticker InputFileOrString, emojiList []string, opts *SetStickerEmojiListOpts) (bool, error) {
 	return bot.SetStickerEmojiListWithContext(context.Background(), sticker, emojiList, opts)
 }
 
 // SetStickerEmojiListWithContext is the same as Bot.SetStickerEmojiList, but with a context.Context parameter
-func (bot *Bot) SetStickerEmojiListWithContext(ctx context.Context, sticker string, emojiList []string, opts *SetStickerEmojiListOpts) (bool, error) {
-	v := map[string]string{}
-	v["sticker"] = sticker
+func (bot *Bot) SetStickerEmojiListWithContext(ctx context.Context, sticker InputFileOrString, emojiList []string, opts *SetStickerEmojiListOpts) (bool, error) {
+	v := map[string]any{}
+	if sticker != nil {
+		v["sticker"] = sticker
+	}
 	if emojiList != nil {
-		bs, err := json.Marshal(emojiList)
-		if err != nil {
-			return false, fmt.Errorf("failed to marshal field emoji_list: %w", err)
-		}
-		v["emoji_list"] = string(bs)
+		v["emoji_list"] = emojiList
 	}
 
 	var reqOpts *RequestOpts
@@ -7161,7 +6719,7 @@ func (bot *Bot) SetStickerEmojiListWithContext(ctx context.Context, sticker stri
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setStickerEmojiList", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setStickerEmojiList", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7181,23 +6739,21 @@ type SetStickerKeywordsOpts struct {
 // SetStickerKeywords (https://core.telegram.org/bots/api#setstickerkeywords)
 //
 // Use this method to change search keywords assigned to a regular or custom emoji sticker. The sticker must belong to a sticker set created by the bot. Returns True on success.
-//   - sticker (type string): File identifier of the sticker
+//   - sticker (type InputFileOrString): File identifier of the sticker
 //   - opts (type SetStickerKeywordsOpts): All optional parameters.
-func (bot *Bot) SetStickerKeywords(sticker string, opts *SetStickerKeywordsOpts) (bool, error) {
+func (bot *Bot) SetStickerKeywords(sticker InputFileOrString, opts *SetStickerKeywordsOpts) (bool, error) {
 	return bot.SetStickerKeywordsWithContext(context.Background(), sticker, opts)
 }
 
 // SetStickerKeywordsWithContext is the same as Bot.SetStickerKeywords, but with a context.Context parameter
-func (bot *Bot) SetStickerKeywordsWithContext(ctx context.Context, sticker string, opts *SetStickerKeywordsOpts) (bool, error) {
-	v := map[string]string{}
-	v["sticker"] = sticker
+func (bot *Bot) SetStickerKeywordsWithContext(ctx context.Context, sticker InputFileOrString, opts *SetStickerKeywordsOpts) (bool, error) {
+	v := map[string]any{}
+	if sticker != nil {
+		v["sticker"] = sticker
+	}
 	if opts != nil {
 		if opts.Keywords != nil {
-			bs, err := json.Marshal(opts.Keywords)
-			if err != nil {
-				return false, fmt.Errorf("failed to marshal field keywords: %w", err)
-			}
-			v["keywords"] = string(bs)
+			v["keywords"] = opts.Keywords
 		}
 	}
 
@@ -7206,7 +6762,7 @@ func (bot *Bot) SetStickerKeywordsWithContext(ctx context.Context, sticker strin
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setStickerKeywords", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setStickerKeywords", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7226,23 +6782,21 @@ type SetStickerMaskPositionOpts struct {
 // SetStickerMaskPosition (https://core.telegram.org/bots/api#setstickermaskposition)
 //
 // Use this method to change the mask position of a mask sticker. The sticker must belong to a sticker set that was created by the bot. Returns True on success.
-//   - sticker (type string): File identifier of the sticker
+//   - sticker (type InputFileOrString): File identifier of the sticker
 //   - opts (type SetStickerMaskPositionOpts): All optional parameters.
-func (bot *Bot) SetStickerMaskPosition(sticker string, opts *SetStickerMaskPositionOpts) (bool, error) {
+func (bot *Bot) SetStickerMaskPosition(sticker InputFileOrString, opts *SetStickerMaskPositionOpts) (bool, error) {
 	return bot.SetStickerMaskPositionWithContext(context.Background(), sticker, opts)
 }
 
 // SetStickerMaskPositionWithContext is the same as Bot.SetStickerMaskPosition, but with a context.Context parameter
-func (bot *Bot) SetStickerMaskPositionWithContext(ctx context.Context, sticker string, opts *SetStickerMaskPositionOpts) (bool, error) {
-	v := map[string]string{}
-	v["sticker"] = sticker
+func (bot *Bot) SetStickerMaskPositionWithContext(ctx context.Context, sticker InputFileOrString, opts *SetStickerMaskPositionOpts) (bool, error) {
+	v := map[string]any{}
+	if sticker != nil {
+		v["sticker"] = sticker
+	}
 	if opts != nil {
 		if opts.MaskPosition != nil {
-			bs, err := json.Marshal(opts.MaskPosition)
-			if err != nil {
-				return false, fmt.Errorf("failed to marshal field mask_position: %w", err)
-			}
-			v["mask_position"] = string(bs)
+			v["mask_position"] = opts.MaskPosition
 		}
 	}
 
@@ -7251,7 +6805,7 @@ func (bot *Bot) SetStickerMaskPositionWithContext(ctx context.Context, sticker s
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setStickerMaskPosition", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setStickerMaskPosition", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7269,25 +6823,27 @@ type SetStickerPositionInSetOpts struct {
 // SetStickerPositionInSet (https://core.telegram.org/bots/api#setstickerpositioninset)
 //
 // Use this method to move a sticker in a set created by the bot to a specific position. Returns True on success.
-//   - sticker (type string): File identifier of the sticker
+//   - sticker (type InputFileOrString): File identifier of the sticker
 //   - position (type int64): New sticker position in the set, zero-based
 //   - opts (type SetStickerPositionInSetOpts): All optional parameters.
-func (bot *Bot) SetStickerPositionInSet(sticker string, position int64, opts *SetStickerPositionInSetOpts) (bool, error) {
+func (bot *Bot) SetStickerPositionInSet(sticker InputFileOrString, position int64, opts *SetStickerPositionInSetOpts) (bool, error) {
 	return bot.SetStickerPositionInSetWithContext(context.Background(), sticker, position, opts)
 }
 
 // SetStickerPositionInSetWithContext is the same as Bot.SetStickerPositionInSet, but with a context.Context parameter
-func (bot *Bot) SetStickerPositionInSetWithContext(ctx context.Context, sticker string, position int64, opts *SetStickerPositionInSetOpts) (bool, error) {
-	v := map[string]string{}
-	v["sticker"] = sticker
-	v["position"] = strconv.FormatInt(position, 10)
+func (bot *Bot) SetStickerPositionInSetWithContext(ctx context.Context, sticker InputFileOrString, position int64, opts *SetStickerPositionInSetOpts) (bool, error) {
+	v := map[string]any{}
+	if sticker != nil {
+		v["sticker"] = sticker
+	}
+	v["position"] = position
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setStickerPositionInSet", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setStickerPositionInSet", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7317,18 +6873,13 @@ func (bot *Bot) SetStickerSetThumbnail(name string, userId int64, format string,
 
 // SetStickerSetThumbnailWithContext is the same as Bot.SetStickerSetThumbnail, but with a context.Context parameter
 func (bot *Bot) SetStickerSetThumbnailWithContext(ctx context.Context, name string, userId int64, format string, opts *SetStickerSetThumbnailOpts) (bool, error) {
-	v := map[string]string{}
-	data := map[string]FileReader{}
+	v := map[string]any{}
 	v["name"] = name
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v["user_id"] = userId
 	v["format"] = format
 	if opts != nil {
 		if opts.Thumbnail != nil {
-			err := opts.Thumbnail.Attach("thumbnail", data)
-			if err != nil {
-				return false, fmt.Errorf("failed to attach 'thumbnail' input file: %w", err)
-			}
-			v["thumbnail"] = opts.Thumbnail.getValue()
+			v["thumbnail"] = opts.Thumbnail
 		}
 	}
 
@@ -7337,7 +6888,7 @@ func (bot *Bot) SetStickerSetThumbnailWithContext(ctx context.Context, name stri
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setStickerSetThumbnail", v, data, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setStickerSetThumbnail", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7364,7 +6915,7 @@ func (bot *Bot) SetStickerSetTitle(name string, title string, opts *SetStickerSe
 
 // SetStickerSetTitleWithContext is the same as Bot.SetStickerSetTitle, but with a context.Context parameter
 func (bot *Bot) SetStickerSetTitleWithContext(ctx context.Context, name string, title string, opts *SetStickerSetTitleOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["name"] = name
 	v["title"] = title
 
@@ -7373,7 +6924,7 @@ func (bot *Bot) SetStickerSetTitleWithContext(ctx context.Context, name string, 
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setStickerSetTitle", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setStickerSetTitle", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7403,13 +6954,11 @@ func (bot *Bot) SetUserEmojiStatus(userId int64, opts *SetUserEmojiStatusOpts) (
 
 // SetUserEmojiStatusWithContext is the same as Bot.SetUserEmojiStatus, but with a context.Context parameter
 func (bot *Bot) SetUserEmojiStatusWithContext(ctx context.Context, userId int64, opts *SetUserEmojiStatusOpts) (bool, error) {
-	v := map[string]string{}
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["user_id"] = userId
 	if opts != nil {
 		v["emoji_status_custom_emoji_id"] = opts.EmojiStatusCustomEmojiId
-		if opts.EmojiStatusExpirationDate != 0 {
-			v["emoji_status_expiration_date"] = strconv.FormatInt(opts.EmojiStatusExpirationDate, 10)
-		}
+		v["emoji_status_expiration_date"] = opts.EmojiStatusExpirationDate
 	}
 
 	var reqOpts *RequestOpts
@@ -7417,7 +6966,7 @@ func (bot *Bot) SetUserEmojiStatusWithContext(ctx context.Context, userId int64,
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setUserEmojiStatus", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setUserEmojiStatus", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7456,29 +7005,18 @@ func (bot *Bot) SetWebhook(url string, opts *SetWebhookOpts) (bool, error) {
 
 // SetWebhookWithContext is the same as Bot.SetWebhook, but with a context.Context parameter
 func (bot *Bot) SetWebhookWithContext(ctx context.Context, url string, opts *SetWebhookOpts) (bool, error) {
-	v := map[string]string{}
-	data := map[string]FileReader{}
+	v := map[string]any{}
 	v["url"] = url
 	if opts != nil {
 		if opts.Certificate != nil {
-			err := opts.Certificate.Attach("certificate", data)
-			if err != nil {
-				return false, fmt.Errorf("failed to attach 'certificate' input file: %w", err)
-			}
-			v["certificate"] = opts.Certificate.getValue()
+			v["certificate"] = opts.Certificate
 		}
 		v["ip_address"] = opts.IpAddress
-		if opts.MaxConnections != 0 {
-			v["max_connections"] = strconv.FormatInt(opts.MaxConnections, 10)
-		}
+		v["max_connections"] = opts.MaxConnections
 		if opts.AllowedUpdates != nil {
-			bs, err := json.Marshal(opts.AllowedUpdates)
-			if err != nil {
-				return false, fmt.Errorf("failed to marshal field allowed_updates: %w", err)
-			}
-			v["allowed_updates"] = string(bs)
+			v["allowed_updates"] = opts.AllowedUpdates
 		}
-		v["drop_pending_updates"] = strconv.FormatBool(opts.DropPendingUpdates)
+		v["drop_pending_updates"] = opts.DropPendingUpdates
 		v["secret_token"] = opts.SecretToken
 	}
 
@@ -7487,7 +7025,7 @@ func (bot *Bot) SetWebhookWithContext(ctx context.Context, url string, opts *Set
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "setWebhook", v, data, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "setWebhook", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7522,21 +7060,13 @@ func (bot *Bot) StopMessageLiveLocation(opts *StopMessageLiveLocationOpts) (*Mes
 
 // StopMessageLiveLocationWithContext is the same as Bot.StopMessageLiveLocation, but with a context.Context parameter
 func (bot *Bot) StopMessageLiveLocationWithContext(ctx context.Context, opts *StopMessageLiveLocationOpts) (*Message, bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.ChatId != 0 {
-			v["chat_id"] = strconv.FormatInt(opts.ChatId, 10)
-		}
-		if opts.MessageId != 0 {
-			v["message_id"] = strconv.FormatInt(opts.MessageId, 10)
-		}
+		v["chat_id"] = opts.ChatId
+		v["message_id"] = opts.MessageId
 		v["inline_message_id"] = opts.InlineMessageId
-		bs, err := json.Marshal(opts.ReplyMarkup)
-		if err != nil {
-			return nil, false, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-		}
-		v["reply_markup"] = string(bs)
+		v["reply_markup"] = opts.ReplyMarkup
 	}
 
 	var reqOpts *RequestOpts
@@ -7544,7 +7074,7 @@ func (bot *Bot) StopMessageLiveLocationWithContext(ctx context.Context, opts *St
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "stopMessageLiveLocation", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "stopMessageLiveLocation", v, reqOpts)
 	if err != nil {
 		return nil, false, err
 	}
@@ -7583,16 +7113,12 @@ func (bot *Bot) StopPoll(chatId int64, messageId int64, opts *StopPollOpts) (*Po
 
 // StopPollWithContext is the same as Bot.StopPoll, but with a context.Context parameter
 func (bot *Bot) StopPollWithContext(ctx context.Context, chatId int64, messageId int64, opts *StopPollOpts) (*Poll, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["message_id"] = strconv.FormatInt(messageId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["message_id"] = messageId
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
-		bs, err := json.Marshal(opts.ReplyMarkup)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal field reply_markup: %w", err)
-		}
-		v["reply_markup"] = string(bs)
+		v["reply_markup"] = opts.ReplyMarkup
 	}
 
 	var reqOpts *RequestOpts
@@ -7600,7 +7126,7 @@ func (bot *Bot) StopPollWithContext(ctx context.Context, chatId int64, messageId
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "stopPoll", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "stopPoll", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -7627,16 +7153,16 @@ func (bot *Bot) TransferBusinessAccountStars(businessConnectionId string, starCo
 
 // TransferBusinessAccountStarsWithContext is the same as Bot.TransferBusinessAccountStars, but with a context.Context parameter
 func (bot *Bot) TransferBusinessAccountStarsWithContext(ctx context.Context, businessConnectionId string, starCount int64, opts *TransferBusinessAccountStarsOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
-	v["star_count"] = strconv.FormatInt(starCount, 10)
+	v["star_count"] = starCount
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "transferBusinessAccountStars", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "transferBusinessAccountStars", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7666,14 +7192,12 @@ func (bot *Bot) TransferGift(businessConnectionId string, ownedGiftId string, ne
 
 // TransferGiftWithContext is the same as Bot.TransferGift, but with a context.Context parameter
 func (bot *Bot) TransferGiftWithContext(ctx context.Context, businessConnectionId string, ownedGiftId string, newOwnerChatId int64, opts *TransferGiftOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
 	v["owned_gift_id"] = ownedGiftId
-	v["new_owner_chat_id"] = strconv.FormatInt(newOwnerChatId, 10)
+	v["new_owner_chat_id"] = newOwnerChatId
 	if opts != nil {
-		if opts.StarCount != 0 {
-			v["star_count"] = strconv.FormatInt(opts.StarCount, 10)
-		}
+		v["star_count"] = opts.StarCount
 	}
 
 	var reqOpts *RequestOpts
@@ -7681,7 +7205,7 @@ func (bot *Bot) TransferGiftWithContext(ctx context.Context, businessConnectionI
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "transferGift", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "transferGift", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7710,11 +7234,11 @@ func (bot *Bot) UnbanChatMember(chatId int64, userId int64, opts *UnbanChatMembe
 
 // UnbanChatMemberWithContext is the same as Bot.UnbanChatMember, but with a context.Context parameter
 func (bot *Bot) UnbanChatMemberWithContext(ctx context.Context, chatId int64, userId int64, opts *UnbanChatMemberOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["user_id"] = userId
 	if opts != nil {
-		v["only_if_banned"] = strconv.FormatBool(opts.OnlyIfBanned)
+		v["only_if_banned"] = opts.OnlyIfBanned
 	}
 
 	var reqOpts *RequestOpts
@@ -7722,7 +7246,7 @@ func (bot *Bot) UnbanChatMemberWithContext(ctx context.Context, chatId int64, us
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "unbanChatMember", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "unbanChatMember", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7749,16 +7273,16 @@ func (bot *Bot) UnbanChatSenderChat(chatId int64, senderChatId int64, opts *Unba
 
 // UnbanChatSenderChatWithContext is the same as Bot.UnbanChatSenderChat, but with a context.Context parameter
 func (bot *Bot) UnbanChatSenderChatWithContext(ctx context.Context, chatId int64, senderChatId int64, opts *UnbanChatSenderChatOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["sender_chat_id"] = strconv.FormatInt(senderChatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["sender_chat_id"] = senderChatId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "unbanChatSenderChat", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "unbanChatSenderChat", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7784,15 +7308,15 @@ func (bot *Bot) UnhideGeneralForumTopic(chatId int64, opts *UnhideGeneralForumTo
 
 // UnhideGeneralForumTopicWithContext is the same as Bot.UnhideGeneralForumTopic, but with a context.Context parameter
 func (bot *Bot) UnhideGeneralForumTopicWithContext(ctx context.Context, chatId int64, opts *UnhideGeneralForumTopicOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "unhideGeneralForumTopic", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "unhideGeneralForumTopic", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7809,7 +7333,7 @@ type UnpinAllChatMessagesOpts struct {
 
 // UnpinAllChatMessages (https://core.telegram.org/bots/api#unpinallchatmessages)
 //
-// Use this method to clear the list of pinned messages in a chat. If the chat is not a private chat, the bot must be an administrator in the chat for this to work and must have the 'can_pin_messages' administrator right in a supergroup or 'can_edit_messages' administrator right in a channel. Returns True on success.
+// Use this method to clear the list of pinned messages in a chat. In private chats and channel direct messages chats, no additional rights are required to unpin all pinned messages. Conversely, the bot must be an administrator with the 'can_pin_messages' right or the 'can_edit_messages' right to unpin all pinned messages in groups and channels respectively. Returns True on success.
 //   - chatId (type int64): Unique identifier for the target chat
 //   - opts (type UnpinAllChatMessagesOpts): All optional parameters.
 func (bot *Bot) UnpinAllChatMessages(chatId int64, opts *UnpinAllChatMessagesOpts) (bool, error) {
@@ -7818,15 +7342,15 @@ func (bot *Bot) UnpinAllChatMessages(chatId int64, opts *UnpinAllChatMessagesOpt
 
 // UnpinAllChatMessagesWithContext is the same as Bot.UnpinAllChatMessages, but with a context.Context parameter
 func (bot *Bot) UnpinAllChatMessagesWithContext(ctx context.Context, chatId int64, opts *UnpinAllChatMessagesOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "unpinAllChatMessages", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "unpinAllChatMessages", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7853,16 +7377,16 @@ func (bot *Bot) UnpinAllForumTopicMessages(chatId int64, messageThreadId int64, 
 
 // UnpinAllForumTopicMessagesWithContext is the same as Bot.UnpinAllForumTopicMessages, but with a context.Context parameter
 func (bot *Bot) UnpinAllForumTopicMessagesWithContext(ctx context.Context, chatId int64, messageThreadId int64, opts *UnpinAllForumTopicMessagesOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
-	v["message_thread_id"] = strconv.FormatInt(messageThreadId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["message_thread_id"] = messageThreadId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "unpinAllForumTopicMessages", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "unpinAllForumTopicMessages", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7888,15 +7412,15 @@ func (bot *Bot) UnpinAllGeneralForumTopicMessages(chatId int64, opts *UnpinAllGe
 
 // UnpinAllGeneralForumTopicMessagesWithContext is the same as Bot.UnpinAllGeneralForumTopicMessages, but with a context.Context parameter
 func (bot *Bot) UnpinAllGeneralForumTopicMessagesWithContext(ctx context.Context, chatId int64, opts *UnpinAllGeneralForumTopicMessagesOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 
 	var reqOpts *RequestOpts
 	if opts != nil {
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "unpinAllGeneralForumTopicMessages", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "unpinAllGeneralForumTopicMessages", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7917,7 +7441,7 @@ type UnpinChatMessageOpts struct {
 
 // UnpinChatMessage (https://core.telegram.org/bots/api#unpinchatmessage)
 //
-// Use this method to remove a message from the list of pinned messages in a chat. If the chat is not a private chat, the bot must be an administrator in the chat for this to work and must have the 'can_pin_messages' administrator right in a supergroup or 'can_edit_messages' administrator right in a channel. Returns True on success.
+// Use this method to remove a message from the list of pinned messages in a chat. In private chats and channel direct messages chats, all messages can be unpinned. Conversely, the bot must be an administrator with the 'can_pin_messages' right or the 'can_edit_messages' right to unpin messages in groups and channels respectively. Returns True on success.
 //   - chatId (type int64): Unique identifier for the target chat
 //   - opts (type UnpinChatMessageOpts): All optional parameters.
 func (bot *Bot) UnpinChatMessage(chatId int64, opts *UnpinChatMessageOpts) (bool, error) {
@@ -7926,12 +7450,12 @@ func (bot *Bot) UnpinChatMessage(chatId int64, opts *UnpinChatMessageOpts) (bool
 
 // UnpinChatMessageWithContext is the same as Bot.UnpinChatMessage, but with a context.Context parameter
 func (bot *Bot) UnpinChatMessageWithContext(ctx context.Context, chatId int64, opts *UnpinChatMessageOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	if opts != nil {
 		v["business_connection_id"] = opts.BusinessConnectionId
 		if opts.MessageId != nil {
-			v["message_id"] = strconv.FormatInt(*opts.MessageId, 10)
+			v["message_id"] = opts.MessageId
 		}
 	}
 
@@ -7940,7 +7464,7 @@ func (bot *Bot) UnpinChatMessageWithContext(ctx context.Context, chatId int64, o
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "unpinChatMessage", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "unpinChatMessage", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -7971,14 +7495,12 @@ func (bot *Bot) UpgradeGift(businessConnectionId string, ownedGiftId string, opt
 
 // UpgradeGiftWithContext is the same as Bot.UpgradeGift, but with a context.Context parameter
 func (bot *Bot) UpgradeGiftWithContext(ctx context.Context, businessConnectionId string, ownedGiftId string, opts *UpgradeGiftOpts) (bool, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
 	v["owned_gift_id"] = ownedGiftId
 	if opts != nil {
-		v["keep_original_details"] = strconv.FormatBool(opts.KeepOriginalDetails)
-		if opts.StarCount != 0 {
-			v["star_count"] = strconv.FormatInt(opts.StarCount, 10)
-		}
+		v["keep_original_details"] = opts.KeepOriginalDetails
+		v["star_count"] = opts.StarCount
 	}
 
 	var reqOpts *RequestOpts
@@ -7986,7 +7508,7 @@ func (bot *Bot) UpgradeGiftWithContext(ctx context.Context, businessConnectionId
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "upgradeGift", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "upgradeGift", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -8014,15 +7536,10 @@ func (bot *Bot) UploadStickerFile(userId int64, sticker InputFile, stickerFormat
 
 // UploadStickerFileWithContext is the same as Bot.UploadStickerFile, but with a context.Context parameter
 func (bot *Bot) UploadStickerFileWithContext(ctx context.Context, userId int64, sticker InputFile, stickerFormat string, opts *UploadStickerFileOpts) (*File, error) {
-	v := map[string]string{}
-	data := map[string]FileReader{}
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["user_id"] = userId
 	if sticker != nil {
-		err := sticker.Attach("sticker", data)
-		if err != nil {
-			return nil, fmt.Errorf("failed to attach 'sticker' input file: %w", err)
-		}
-		v["sticker"] = sticker.getValue()
+		v["sticker"] = sticker
 	}
 	v["sticker_format"] = stickerFormat
 
@@ -8031,7 +7548,7 @@ func (bot *Bot) UploadStickerFileWithContext(ctx context.Context, userId int64, 
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "uploadStickerFile", v, data, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "uploadStickerFile", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -8051,7 +7568,7 @@ type VerifyChatOpts struct {
 // VerifyChat (https://core.telegram.org/bots/api#verifychat)
 //
 // Verifies a chat on behalf of the organization which is represented by the bot. Returns True on success.
-//   - chatId (type int64): Unique identifier for the target chat
+//   - chatId (type int64): Unique identifier for the target chat. Channel direct messages chats can't be verified.
 //   - opts (type VerifyChatOpts): All optional parameters.
 func (bot *Bot) VerifyChat(chatId int64, opts *VerifyChatOpts) (bool, error) {
 	return bot.VerifyChatWithContext(context.Background(), chatId, opts)
@@ -8059,8 +7576,8 @@ func (bot *Bot) VerifyChat(chatId int64, opts *VerifyChatOpts) (bool, error) {
 
 // VerifyChatWithContext is the same as Bot.VerifyChat, but with a context.Context parameter
 func (bot *Bot) VerifyChatWithContext(ctx context.Context, chatId int64, opts *VerifyChatOpts) (bool, error) {
-	v := map[string]string{}
-	v["chat_id"] = strconv.FormatInt(chatId, 10)
+	v := map[string]any{}
+	v["chat_id"] = chatId
 	if opts != nil {
 		v["custom_description"] = opts.CustomDescription
 	}
@@ -8070,7 +7587,7 @@ func (bot *Bot) VerifyChatWithContext(ctx context.Context, chatId int64, opts *V
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "verifyChat", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "verifyChat", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -8098,8 +7615,8 @@ func (bot *Bot) VerifyUser(userId int64, opts *VerifyUserOpts) (bool, error) {
 
 // VerifyUserWithContext is the same as Bot.VerifyUser, but with a context.Context parameter
 func (bot *Bot) VerifyUserWithContext(ctx context.Context, userId int64, opts *VerifyUserOpts) (bool, error) {
-	v := map[string]string{}
-	v["user_id"] = strconv.FormatInt(userId, 10)
+	v := map[string]any{}
+	v["user_id"] = userId
 	if opts != nil {
 		v["custom_description"] = opts.CustomDescription
 	}
@@ -8109,7 +7626,7 @@ func (bot *Bot) VerifyUserWithContext(ctx context.Context, userId int64, opts *V
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "verifyUser", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "verifyUser", v, reqOpts)
 	if err != nil {
 		return false, err
 	}

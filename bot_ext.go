@@ -86,62 +86,12 @@ func (bot *Bot) GetUpdatesChan(opts *GetUpdatesChanOpts) <-chan Update {
 	return ch
 }
 
-func (bot *Bot) GetChannelAdministrators(username string, opts *GetChatAdministratorsOpts) ([]ChatMember, error) {
-	v := map[string]string{}
-	v["chat_id"] = username
-
-	var reqOpts *RequestOpts
-	if opts != nil {
-		reqOpts = opts.RequestOpts
-	}
-
-	r, err := bot.Request("getChatAdministrators", v, nil, reqOpts)
-	if err != nil {
-		return nil, err
-	}
-
-	return unmarshalChatMemberArray(r)
-}
-
-func (bot *Bot) GetChannelAdministratorsWithContext(
-	ctx context.Context, username string, opts *GetChatAdministratorsOpts,
-) ([]ChatMember, error) {
-	v := map[string]string{}
-	v["chat_id"] = username
-
-	var reqOpts *RequestOpts
-	if opts != nil {
-		reqOpts = opts.RequestOpts
-	}
-
-	r, err := bot.RequestWithContext(ctx, "getChatAdministrators", v, nil, reqOpts)
-	if err != nil {
-		return nil, err
-	}
-
-	return unmarshalChatMemberArray(r)
-}
-
 func (bot *Bot) GetChannel(username string, opts *GetChatOpts) (*ChatFullInfo, error) {
-	v := map[string]string{}
-	v["chat_id"] = username
-
-	var reqOpts *RequestOpts
-	if opts != nil {
-		reqOpts = opts.RequestOpts
-	}
-
-	r, err := bot.Request("getChat", v, nil, reqOpts)
-	if err != nil {
-		return nil, err
-	}
-
-	var c ChatFullInfo
-	return &c, json.Unmarshal(r, &c)
+	return bot.GetChannelWithContext(context.Background(), username, opts)
 }
 
 func (bot *Bot) GetChannelWithContext(ctx context.Context, username string, opts *GetChatOpts) (*ChatFullInfo, error) {
-	v := map[string]string{}
+	v := map[string]any{}
 	v["chat_id"] = username
 
 	var reqOpts *RequestOpts
@@ -149,7 +99,7 @@ func (bot *Bot) GetChannelWithContext(ctx context.Context, username string, opts
 		reqOpts = opts.RequestOpts
 	}
 
-	r, err := bot.RequestWithContext(ctx, "getChat", v, nil, reqOpts)
+	r, err := bot.RequestWithContext(ctx, "getChat", v, reqOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -158,4 +108,4 @@ func (bot *Bot) GetChannelWithContext(ctx context.Context, username string, opts
 	return &c, json.Unmarshal(r, &c)
 }
 
-//go:generate go run github.com/vektra/mockery/v2@latest --name=BotClient --filename=bot_client.go
+//go:generate go run github.com/vektra/mockery/v2@latest --name=BotClient --filename=bot_client.go --output=./mocks
