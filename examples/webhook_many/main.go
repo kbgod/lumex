@@ -28,7 +28,7 @@ func (h *handler) webhookHandler(rw http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
 	// inject bot to context
-	ctx := context.WithValue(req.Context(), router.BotContextKey, h.bots["bot"])
+	ctx := context.WithValue(req.Context(), router.BotContextKey{}, h.bots["bot"])
 	if err := h.botRouter.HandleUpdate(ctx, upd); err != nil {
 		http.Error(rw, "failed to handle update", http.StatusInternalServerError)
 		return

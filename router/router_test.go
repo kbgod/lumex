@@ -328,7 +328,7 @@ func TestRouter_HandleUpdate(t *testing.T) {
 			return nil
 		})
 
-		err := router.HandleUpdate(context.WithValue(context.Background(), BotContextKey, bot), &lumex.Update{})
+		err := router.HandleUpdate(context.WithValue(context.Background(), BotContextKey{}, bot), &lumex.Update{})
 
 		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
 	})

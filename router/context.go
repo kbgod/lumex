@@ -507,7 +507,7 @@ func (ctx *Context) ReplyEmojiBigReactionVoid(emoji ...string) error {
 	return err
 }
 
-func (ctx *Context) ReplyPhoto(photo lumex.InputFile, opts ...*lumex.SendPhotoOpts) (*lumex.Message, error) {
+func (ctx *Context) ReplyPhoto(photo lumex.InputFileOrString, opts ...*lumex.SendPhotoOpts) (*lumex.Message, error) {
 	var opt *lumex.SendPhotoOpts
 
 	if len(opts) > 0 && opts[0] != nil {
@@ -527,14 +527,14 @@ func (ctx *Context) ReplyPhoto(photo lumex.InputFile, opts ...*lumex.SendPhotoOp
 	return ctx.Bot.SendPhotoWithContext(ctx.Context(), ctx.ChatID(), photo, opt)
 }
 
-func (ctx *Context) ReplyPhotoVoid(photo lumex.InputFile, opts ...*lumex.SendPhotoOpts) error {
+func (ctx *Context) ReplyPhotoVoid(photo lumex.InputFileOrString, opts ...*lumex.SendPhotoOpts) error {
 	_, err := ctx.ReplyPhoto(photo, opts...)
 
 	return err
 }
 
 func (ctx *Context) ReplyPhotoWithMenu(
-	photo lumex.InputFile, menu lumex.IMenu, opts ...*lumex.SendPhotoOpts,
+	photo lumex.InputFileOrString, menu lumex.IMenu, opts ...*lumex.SendPhotoOpts,
 ) (*lumex.Message, error) {
 	var opt *lumex.SendPhotoOpts
 
@@ -550,7 +550,7 @@ func (ctx *Context) ReplyPhotoWithMenu(
 }
 
 func (ctx *Context) ReplyPhotoWithMenuVoid(
-	photo lumex.InputFile, menu lumex.IMenu, opts ...*lumex.SendPhotoOpts,
+	photo lumex.InputFileOrString, menu lumex.IMenu, opts ...*lumex.SendPhotoOpts,
 ) error {
 	_, err := ctx.ReplyPhotoWithMenu(photo, menu, opts...)
 
