@@ -292,9 +292,10 @@ func (r *Router) HandleUpdate(ctx context.Context, update *lumex.Update) error {
 	return err
 }
 
-// Listen starts getting updates using bot.GetUpdatesChanWithContext method
-// this is preferred way to get updates in production
-// Attention: this method blocks until interrupt signal received and all workers finished or timeout reached
+// Listen starts getting updates using bot.GetUpdatesChanWithContext method.
+// Attention: this method blocks until interrupt signal received and all workers finished or timeout reached.
+//
+// Deprecated: Use dispatcher.New with StartPolling and Stop instead.
 func (r *Router) Listen(
 	ctx context.Context,
 	interrupt chan os.Signal,

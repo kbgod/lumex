@@ -1,203 +1,213 @@
 # Golang Telegram Bot Framework
+
 [![Test](https://github.com/kbgod/lumex/actions/workflows/test.yml/badge.svg)](https://github.com/kbgod/lumex/actions/workflows/test.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kbgod/lumex)](https://goreportcard.com/report/github.com/kbgod/lumex)
 [![Telegram Bot API Version](https://img.shields.io/static/v1?label=Supported%20Telegram%20Bot%20API&color=29a1d4&logo=telegram&message=v9.4)](https://core.telegram.org/bots/api#august-15-2025)
 [![codecov](https://codecov.io/gh/kbgod/lumex/branch/main/graph/badge.svg)](https://codecov.io/gh/kbgod/lumex)
 
-Based on [paulsonoflars/gotgbot](https://github.com/paulsonoflars/gotgbot) types generation and inspired by [mr-linch/go-tg](https://github.com/mr-linch/go-tg)
+Based on [paulsonoflars/gotgbot](https://github.com/paulsonoflars/gotgbot) types generation and inspired by [mr-linch/go-tg](https://github.com/mr-linch/go-tg).
 
-All the telegram types and methods are generated from
-[a bot api spec](https://github.com/PaulSonOfLars/telegram-bot-api-spec). These are generated in the `gen_*.go` files.
+All Telegram types and methods are generated from a [bot API spec](https://github.com/PaulSonOfLars/telegram-bot-api-spec) and reside in `gen_*.go` files.
 
-## Features:
+---
 
-- All telegram API types and methods are generated from the bot api docs, which makes this library:
-    - Guaranteed to match the docs
-    - Easy to update
-    - Self-documenting (Re-uses pre-existing telegram docs)
-- Type safe; no weird interface{} logic, all types match the bot API docs.
-- No third party library bloat; only uses standard library.
-- Updates are each processed in their own go routine, encouraging concurrent processing, and keeping your bot
-  responsive.
-- Code panics are automatically recovered from and logged, avoiding unexpected downtime.
-- FSM (finite state machine) support
-- Router with middleware support
-- Keyboard and InlineKeyboard builders
-- Webhook support
-- Event driven updates handling
+## Features
 
-## Getting started
+- **Auto-generated API** — all Telegram types and methods are generated directly from the official bot API docs:
+  - Guaranteed to match the official documentation
+  - Easy to update to new API versions
+  - Self-documenting (reuses existing Telegram docs)
+- **Type-safe** — no `interface{}` magic; all types match the bot API exactly
+- **Zero third-party dependencies** — only the standard library is used
+- **Concurrent update processing** — each update is handled in its own goroutine, keeping the bot responsive
+- **Automatic panic recovery** — panics are caught and logged to prevent unexpected downtime
+- **FSM support** — built-in finite state machine for multi-step flows
+- **Router with middleware** — flexible routing with global and per-route middleware
+- **Keyboard builders** — fluent API for `ReplyKeyboard` and `InlineKeyboard`
+- **Webhook support** — single-bot and multi-bot webhook modes
+- **Event-driven update handling**
 
-Download the library with the standard `go get` command:
+---
+
+## Getting Started
+
+Install the library using the standard `go get` command:
 
 ```bash
 go get github.com/kbgod/lumex
 ```
 
-### Examples
-#### Just use telegram bot API methods
+---
+
+## Examples
+
+### Bare API usage
+
+The simplest way to use the library — just call Telegram Bot API methods directly:
 
 ```go
 package main
 
 import (
-  "os"
+    "os"
 
-  "github.com/kbgod/lumex"
+    "github.com/kbgod/lumex"
 )
 
 func main() {
-  bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"), nil)
-  if err != nil {
-    panic(err)
-  }
+    bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"), nil)
+    if err != nil {
+        panic(err)
+    }
 
-  message, err := bot.SendMessage(123, "hello", nil)
+    message, err := bot.SendMessage(123, "hello", nil)
+    _ = message
+    _ = err
 }
 ```
 
-#### Simple production ready bot (Long-Poll)
-> This example demonstrates simple bot with graceful shutdown, logging, error handling and panic handling
+---
+
+### Production-ready bot (Long Polling + Dispatcher)
+
+A complete example with graceful shutdown, structured logging, error handling, and panic recovery. Uses the recommended `Dispatcher`:
+
 ```go
 package main
 
 import (
-  "context"
-  "errors"
-  "fmt"
-  "os"
-  "os/signal"
-  "syscall"
-  "time"
+    "context"
+    "log/slog"
+    "os"
+    "os/signal"
+    "syscall"
+    "time"
 
-  "github.com/kbgod/lumex"
-  zerologAdapter "github.com/kbgod/lumex/log/adapter/zerolog"
-  "github.com/kbgod/lumex/plugin"
-  "github.com/kbgod/lumex/router"
-  "github.com/rs/zerolog"
+    "github.com/kbgod/lumex"
+    "github.com/kbgod/lumex/dispatcher"
+    "github.com/kbgod/lumex/router"
 )
 
-var logger = zerolog.New(
-  zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
-    w.Out = os.Stderr
-    w.TimeFormat = time.RFC3339
-  }),
-).With().Timestamp().Logger()
-
 func main() {
-  bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"), nil)
-  if err != nil {
-    logger.Fatal().Err(err).Msg("failed to create bot")
-  }
-  logger.Info().Str("username", bot.User.Username).Msg("bot authorized successfully")
+    interrupt := make(chan os.Signal, 1)
+    signal.Notify(interrupt, os.Interrupt, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 
-  routerLogger := zerologAdapter.NewAdapter(&logger)
-  r := router.New(
-    bot,
-    router.WithLogger(routerLogger),
-    router.WithErrorHandler(func(ctx *router.Context, err error) {
-      if errors.Is(err, router.ErrRouteNotFound) {
+    log := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+    bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"), nil)
+    if err != nil {
+        log.Error("failed to create bot", "error", err)
         return
-      }
-      logger.Error().Err(err).Interface("upd", ctx.Update).Msg("handle update error")
-    }),
-  )
-  r.Use(
-    plugin.RecoveryMiddleware(routerLogger),
-  )
-  r.OnStart(func(ctx *router.Context) error {
-    return ctx.ReplyVoid("Hello")
-  })
-  r.OnMessage(func(ctx *router.Context) error {
-    return ctx.ReplyVoid("Undefined command!")
-  })
+    }
+    log.Info("bot authorized successfully", "username", bot.User.Username)
 
-  interrupt := make(chan os.Signal, 1)
-  signal.Notify(interrupt, os.Interrupt, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+    r := router.New(bot, router.WithErrorHandler(func(ctx *router.Context, err error) {
+        log.Error("handle update error", "error", err, "update", ctx.Update)
+    }))
+    r.OnStart(func(ctx *router.Context) error {
+        return ctx.ReplyVoid("Hello, World!")
+    })
+    r.OnMessage(func(ctx *router.Context) error {
+        return ctx.ReplyVoid("Undefined command!")
+    })
 
-  ctx := context.Background()
+    d := dispatcher.New(bot, r)
 
-  r.Listen(ctx, interrupt, 5*time.Second, 100, &lumex.GetUpdatesChanOpts{
-    Buffer: 100,
-    GetUpdatesOpts: &lumex.GetUpdatesOpts{
-      Timeout: 600,
-      RequestOpts: &lumex.RequestOpts{
-        Timeout: 600 * time.Second,
-      },
-      AllowedUpdates: []string{
-        "message",
-        "callback_query",
-        "my_chat_member",
-        "chat_member",
-        "inline_query",
-        "chosen_inline_result",
-        "chat_join_request",
-      },
-    },
-    ErrorHandler: func(err error) {
-      logger.Error().Err(err).Msg("get updates error")
-    },
-  })
+    go func() {
+        if err := d.StartPolling(100, nil); err != nil {
+            log.Error("failed to start dispatcher", "error", err)
+            os.Exit(1)
+        }
+        log.Info("dispatcher started")
+    }()
 
-  logger.Info().Str("username", bot.User.Username).Msg("bot stopped")
+    <-interrupt
+
+    log.Info("shutting down dispatcher...")
+
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    if err = d.Stop(ctx); err != nil {
+        log.Error("failed to stop dispatcher", "error", err)
+    }
 }
 ```
->P.S. You can handle every update manually using `bot.GetUpdatesChanWithContext` and `router.HandleUpdate` instead of `router.Listen`
 
-#### Handler context data
+> **Note:** `router.Listen` is **deprecated**. Use `dispatcher.New` + `d.StartPolling` / `d.Stop` instead.
+
+---
+
+### Passing data through handler context
+
+Use middleware to attach arbitrary data (e.g. a database user) to the context so handlers can access it:
+
 ```go
-// ...
 const userCtxKey = "user"
 
 func UserMiddleware(ctx *router.Context) error {
     user := getUserFromDB(ctx.Sender().Id)
-	ctx.SetContext(context.WithValue(ctx.Context(), userCtxKey, user))
-
+    ctx.SetContext(context.WithValue(ctx.Context(), userCtxKey, user))
     return ctx.Next()
 }
-// ...
 
+// Register globally:
 r.Use(UserMiddleware)
 ```
 
-#### Keyboard
+---
+
+### Reply Keyboard
+
 ```go
 menu := lumex.NewMenu().SetPlaceholder("Select an option")
 menu.Row().TextBtn("1")
 
+// Send via context helper:
 return ctx.ReplyWithMenuVoid("keyboard", menu)
-// or
+
+// Or send directly via bot:
 ctx.Bot.SendMessage(ctx.ChatID(), "test", &lumex.SendMessageOpts{
-ReplyMarkup: menu,
+    ReplyMarkup: menu,
 })
 ```
 
-#### Inline Keyboard
+---
+
+### Inline Keyboard
+
 ```go
 menu := lumex.NewInlineMenu()
-// menu.Row().PayBtn("pay") - supported only in invoice messages
+// menu.Row().PayBtn("pay") — only valid inside invoice messages
 menu.Row().CallbackBtn("callback", "callback_data")
-// menu.Row().
-// URLBtn("URL", "https://google.com").
-//	LoginBtn("login", "https://google.com") // verify domain in bot settings
+menu.Row().
+    URLBtn("URL", "https://google.com").
+    LoginBtn("login", "https://google.com") // domain must be verified in bot settings
 menu.Row().WebAppBtn("webapp", "https://google.com")
 menu.Row().
-  SwitchInlineQueryBtn("switch", "query").
-  SwitchInlineCurrentChatBtn("switch chat", "query")
+    SwitchInlineQueryBtn("switch", "query").
+    SwitchInlineCurrentChatBtn("switch chat", "query")
 menu.Row().CopyBtn("copy", "copied value")
 
+// Send via context helper:
 return ctx.ReplyWithMenuVoid("Inline keyboard", menu)
-// or
+
+// Or send directly via bot:
 ctx.Bot.SendMessage(ctx.ChatID(), "test", &lumex.SendMessageOpts{
-ReplyMarkup: menu,
+    ReplyMarkup: menu,
 })
 ```
 
-#### CallbackQuery
-We often code our `callbackQuery.data`, so with lumex you can work with it so easily
+---
+
+### Callback Queries
+
+Callback data is often structured as `prefix:payload`. Lumex makes it easy to route and parse such data:
+
 ```go
 r.OnStart(func(ctx *router.Context) error {
     menu := lumex.NewInlineMenu()
+
     var buttons []lumex.InlineKeyboardButton
     for i := 0; i < 5; i++ {
         sid := fmt.Sprintf("%d", i)
@@ -207,9 +217,8 @@ r.OnStart(func(ctx *router.Context) error {
         sid := fmt.Sprintf("%d", i)
         buttons = append(buttons, lumex.CallbackBtn("Category "+sid, "category:"+sid))
     }
-    
+
     menu.Fill(2, buttons...)
-    
     return ctx.ReplyWithMenuVoid("Menu", menu)
 })
 
@@ -220,82 +229,96 @@ r.OnCallbackPrefix("category", func(ctx *router.Context) error {
     return ctx.AnswerAlertVoid("You selected category " + ctx.ShiftCallbackData(":"))
 })
 ```
-> Context has similar methods for `InlineQuery` as `ctx.Query()`, `ctx.ShiftInlineQuery(...)` and `router.OnInlinePrefix`
 
-#### FSM and event system
-Using Lumex, you can define event handlers either without state or with state.
-Routes associated with a specific state are ignored if the state is not set (i.e., `ctx.SetState(...)` has not been called). This means that routes without a specific state are global and accessible from any state.
-To make a handler global, you simply need to declare it before all state-specific routers.
+> **Tip:** `Context` provides similar helpers for inline queries: `ctx.Query()`, `ctx.ShiftInlineQuery(...)`, and `router.OnInlinePrefix`.
 
-Additionally, you can define a fallback handler. To do this, declare it at the very end, after all global event handlers and state-specific routers. A fallback handler will only trigger if no global or state-specific handler matches before it.
+---
 
-This approach allows you to define global routes like MainMenu, Help, and others, while also ensuring that unmatched events are handled appropriately by the fallback handler.
+### FSM (Finite State Machine)
+
+Lumex lets you define handlers that are active only in a specific state, alongside global handlers that are always available.
+
+**Rules:**
+- Handlers registered **before** any `UseState` router are **global** (active in every state).
+- Handlers registered **inside** a `UseState` router are **state-specific** (ignored when that state is not active).
+- A handler registered **at the very end** acts as a **fallback** — it fires only if no global or state-specific handler matched.
+
 ```go
 r.Use(func(ctx *router.Context) error {
     state := loadStateFromDB(ctx.Sender().Id)
-	if state != nil {
+    if state != nil {
         ctx.SetState(state)
     }
-    
     return ctx.Next()
 })
 
-r.OnStart(mainMenu) // always available, because defined before any UseState router
+// Global — always available regardless of state:
+r.OnStart(mainMenu)
 
+// State-specific:
 enterProductName := r.UseState("enter_product_name")
-enterProductName.OnMessage(...)
+enterProductName.OnMessage(handleProductName)
 
-r.OnMessage(mainMenu) // will be called only if `ctx.UseState("enter_product_name")` not called
+// Fallback — called only when no other handler matched:
+r.OnMessage(mainMenu)
 ```
-> Real FSM implementation you can find in [examples](/examples/fsm/main.go)
 
-#### Middlewares
-Global (router) middlewares declares using `r.Use(...)`.
+> See a full FSM example in [examples/fsm/main.go](/examples/fsm/main.go).
+
+---
+
+### Middleware
+
+**Global middleware** runs before every update, even if no route matches:
+
 ```go
 r.Use(logAllUpdates)
 r.Use(userMiddleware)
-// ...
 ```
-Global middlewares executes always before checking routes (Even no routes defined or matched).
-Also you can add route middleware. Route middlewares executes only if route matched, before route handler
+
+**Route middleware** runs only when a specific route is matched, immediately before its handler:
+
 ```go
 r.OnMessage(logMessage, mainMenu) // logMessage is a route middleware
 ```
-Sometimes you need to add one route middleware to group of routes:
+
+**Group middleware** applies a middleware to a set of routes at once:
+
 ```go
-typingGroup := r.Group(typingMiddleware) // typingMiddleware provides sending typing action
+typingGroup := r.Group(typingMiddleware) // sends "typing" chat action
 typingGroup.OnCommand("/download_big_file", downloadBigFile)
 typingGroup.OnMessage(processMessageViaAI)
 ```
 
-### More detailed code examples
-[Echobot](/examples/echobot/main.go)
+---
 
-[Keyboards](/examples/keyboard/main.go)
+## More Examples
 
-[CallbackQuery](/examples/callback/main.go)
+| Example | Description |
+|---------|-------------|
+| [Echobot](/examples/echobot/main.go) | Minimal bot that echoes messages |
+| [Keyboards](/examples/keyboard/main.go) | Reply and inline keyboard usage |
+| [CallbackQuery](/examples/callback/main.go) | Handling callback queries |
+| [Webhook](/examples/webhook/main.go) | Single-bot webhook setup |
+| [Webhook (multi-bot)](/examples/webhook_many/main.go) | Webhook for multiple bots or mini-app builders |
 
-[Webhook](/examples/webhook/main.go)
+---
 
-[Webhook for many bots in one API or mini app builders](/examples/webhook_many/main.go)
+## Example Bots
 
+- [@CircloBot](https://t.me/CircloBot)
+- [@FruitCoinBot](https://t.me/FruitCoinBot)
+- [@AnonInboxBot](https://t.me/AnonInboxBot)
 
-### Example bots
-
-[@CircloBot](https://t.me/CircloBot)
-
-[@FruitCoinBot](https://t.me/FruitCoinBot)
-
-[@AnonInboxBot](https://t.me/AnonInboxBot)
-
-
+---
 
 ## Docs
 
-Raw telegram methods [here](https://pkg.go.dev/github.com/kbgod/lumex).
+- Raw Telegram methods — [pkg.go.dev/github.com/kbgod/lumex](https://pkg.go.dev/github.com/kbgod/lumex)
+- Router & Context — [pkg.go.dev/github.com/kbgod/lumex/router](https://pkg.go.dev/github.com/kbgod/lumex/router)
 
-Router & Context [here](https://pkg.go.dev/github.com/kbgod/lumex/router).
+---
 
 ## Contributing
 
-*in progress...*
+*In progress...*
