@@ -351,19 +351,14 @@ func (ctx *Context) ReplyWithMenuVoid(
 
 // Answer sends answer to callback query from update
 func (ctx *Context) Answer(text string, opts ...*lumex.AnswerCallbackQueryOpts) (bool, error) {
-	if text != "" {
-		if len(opts) == 0 {
-			opts = append(opts, &lumex.AnswerCallbackQueryOpts{
-				Text: text,
-			})
-		} else {
-			opts[0].Text = text
-		}
-	}
 	var opt *lumex.AnswerCallbackQueryOpts
-	if len(opts) > 0 {
+	if len(opts) > 0 && opts[0] != nil {
 		opt = opts[0]
+	} else {
+		opt = &lumex.AnswerCallbackQueryOpts{}
 	}
+
+	opt.Text = text
 
 	return ctx.Bot.AnswerCallbackQueryWithContext(ctx.Context(), ctx.Update.CallbackQuery.Id, opt)
 }
@@ -377,15 +372,16 @@ func (ctx *Context) AnswerVoid(text string, opts ...*lumex.AnswerCallbackQueryOp
 
 // AnswerAlert sends answer to callback query from update with alert
 func (ctx *Context) AnswerAlert(text string, opts ...*lumex.AnswerCallbackQueryOpts) (bool, error) {
-	if len(opts) == 0 {
-		opts = append(opts, &lumex.AnswerCallbackQueryOpts{
-			ShowAlert: true,
-		})
+	var opt *lumex.AnswerCallbackQueryOpts
+	if len(opts) > 0 && opts[0] != nil {
+		opt = opts[0]
 	} else {
-		opts[0].ShowAlert = true
+		opt = &lumex.AnswerCallbackQueryOpts{}
 	}
 
-	return ctx.Answer(text, opts...)
+	opt.ShowAlert = true
+
+	return ctx.Answer(text, opt)
 }
 
 // AnswerAlertVoid sends answer to callback query with alert without returning result
@@ -429,25 +425,16 @@ func (ctx *Context) DeleteMessageVoid(opts ...*lumex.DeleteMessageOpts) error {
 
 // EditMessageText edits message text which is in update
 func (ctx *Context) EditMessageText(text string, opts ...*lumex.EditMessageTextOpts) (*lumex.Message, bool, error) {
-	if ctx.parseMode != nil {
-		if len(opts) == 0 {
-			opts = append(opts, &lumex.EditMessageTextOpts{
-				ParseMode: *ctx.parseMode,
-			})
-		} else {
-			opts[0].ParseMode = *ctx.parseMode
-		}
-	}
-	var opt *lumex.EditMessageTextOpts
-	if len(opts) > 0 {
+	opt := &lumex.EditMessageTextOpts{}
+	if len(opts) > 0 && opts[0] != nil {
 		opt = opts[0]
-		opt.ChatId = ctx.ChatID()
-		opt.MessageId = ctx.Message().MessageId
-	} else {
-		opt = &lumex.EditMessageTextOpts{
-			ChatId:    ctx.ChatID(),
-			MessageId: ctx.Message().MessageId,
-		}
+	}
+
+	opt.ChatId = ctx.ChatID()
+	opt.MessageId = ctx.Message().MessageId
+
+	if ctx.parseMode != nil {
+		opt.ParseMode = *ctx.parseMode
 	}
 
 	return ctx.Bot.EditMessageTextWithContext(ctx.Context(), text, opt)
@@ -553,6 +540,56 @@ func (ctx *Context) ReplyPhotoWithMenuVoid(
 	photo lumex.InputFileOrString, menu lumex.IMenu, opts ...*lumex.SendPhotoOpts,
 ) error {
 	_, err := ctx.ReplyPhotoWithMenu(photo, menu, opts...)
+
+	return err
+}
+
+func (ctx *Context) ReplyVideo(video lumex.InputFileOrString, opts ...*lumex.SendVideoOpts) (*lumex.Message, error) {
+	var opt *lumex.SendVideoOpts
+
+	if len(opts) > 0 && opts[0] != nil {
+		opt = opts[0]
+	}
+
+	if ctx.parseMode != nil {
+		if opt == nil {
+			opt = &lumex.SendVideoOpts{
+				ParseMode: *ctx.parseMode,
+			}
+		} else if opt.ParseMode == "" {
+			opt.ParseMode = *ctx.parseMode
+		}
+	}
+
+	return ctx.Bot.SendVideoWithContext(ctx.Context(), ctx.ChatID(), video, opt)
+}
+
+func (ctx *Context) ReplyVideoVoid(video lumex.InputFileOrString, opts ...*lumex.SendVideoOpts) error {
+	_, err := ctx.ReplyVideo(video, opts...)
+
+	return err
+}
+
+func (ctx *Context) ReplyVideoWithMenu(
+	video lumex.InputFileOrString, menu lumex.IMenu, opts ...*lumex.SendVideoOpts,
+) (*lumex.Message, error) {
+	var opt *lumex.SendVideoOpts
+
+	if len(opts) > 0 && opts[0] != nil {
+		opt = opts[0]
+	} else {
+		opt = &lumex.SendVideoOpts{}
+	}
+
+	opt.ReplyMarkup = menu.Unwrap()
+
+	return ctx.ReplyVideo(video, opt)
+}
+
+func (ctx *Context) ReplyVideoWithMenuVoid(
+	video lumex.InputFileOrString, menu lumex.IMenu, opts ...*lumex.SendVideoOpts,
+) error {
+	_, err := ctx.ReplyVideoWithMenu(video, menu, opts...)
 
 	return err
 }

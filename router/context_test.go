@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/kbgod/lumex"
@@ -648,35 +649,6 @@ func TestContext_CommandArgs(t *testing.T) {
 	}
 }
 
-//func (fakeHttpClient) Do(req *http.Request) (*http.Response, error) {
-//	sendMessage := map[string]string{}
-//	_ = json.NewDecoder(req.Body).Decode(&sendMessage)
-//	chatId, _ := strconv.ParseInt(sendMessage["chat_Id"], 10, 64)
-//	replyToMessageId, _ := strconv.ParseInt(sendMessage["reply_to_message_Id"], 10, 64)
-//
-//	if req.URL.String() == "https://api.telegram.org/bot123:test/sendMessage" {
-//		message := &lumex.Message{
-//			Chat: lumex.Chat{
-//				Id: chatId,
-//			},
-//			MessageId: 123,
-//			Text:      sendMessage["text"],
-//			ReplyToMessage: &lumex.Message{
-//				MessageId: replyToMessageId,
-//			},
-//		}
-//		msgBytes, _ := json.Marshal(message)
-//		respBytes, _ := json.Marshal(&lumex.Response{
-//			Ok:     true,
-//			Result: msgBytes,
-//		})
-//		return &http.Response{
-//			Body: io.NopCloser(bytes.NewBuffer(respBytes)),
-//		}, nil
-//	}
-//	return nil, errors.New("req err")
-//}
-
 func TestContext_Reply(t *testing.T) {
 	cl := mocks.NewBotClient(t)
 	const fakeToken = "123:test"
@@ -1255,4 +1227,1869 @@ func TestContext_ShiftInlineQuery(t *testing.T) {
 			t, "", data, "ctx.ShiftInlineQuery() = %v; want ''", data,
 		)
 	})
+}
+
+func TestContext_ReplyPhoto(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+	const fakeToken = "123:test"
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "getMe"
+			},
+		),
+		mock.IsType(map[string]any{}),
+		mock.IsType(&lumex.RequestOpts{}),
+	).Return(
+		json.RawMessage(`{"id":555555,"is_bot":true,"first_name":"test bot","username":"test_bot","can_join_groups":true,"can_read_all_group_messages":false,"supports_inline_queries":false,"can_connect_to_business":false,"has_main_web_app":false}`),
+		nil,
+	)
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "sendPhoto"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				_, ok := params["photo"].(*lumex.FileReader)
+				_, hasParseMode := params["parse_mode"]
+				_, hasCaption := params["caption"]
+
+				return params["chat_id"].(int64) == 1 && ok && !hasParseMode && !hasCaption
+			},
+		),
+		mock.Anything,
+	).Return(
+		json.RawMessage(`{"message_id":123,"chat":{"id":1},"photo":[{"file_id":"test_photo"}]}`),
+		nil,
+	).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "sendPhoto"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				capVal, _ := params["caption"].(string)
+				return capVal == "opts_only"
+			},
+		),
+		mock.Anything,
+	).Return(
+		json.RawMessage(`{"message_id":124,"chat":{"id":1},"photo":[{"file_id":"test_photo"}]}`),
+		nil,
+	).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "sendPhoto"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				pmVal, _ := params["parse_mode"].(string)
+				_, hasCaption := params["caption"]
+				return pmVal == "Markdown" && !hasCaption
+			},
+		),
+		mock.Anything,
+	).Return(
+		json.RawMessage(`{"message_id":125,"chat":{"id":1},"photo":[{"file_id":"test_photo"}]}`),
+		nil,
+	).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "sendPhoto"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				pmVal, _ := params["parse_mode"].(string)
+				capVal, _ := params["caption"].(string)
+				return pmVal == "Markdown" && capVal == "empty_parse_mode_in_opts"
+			},
+		),
+		mock.Anything,
+	).Return(
+		json.RawMessage(`{"message_id":126,"chat":{"id":1},"photo":[{"file_id":"test_photo"}]}`),
+		nil,
+	).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "sendPhoto"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				pmVal, _ := params["parse_mode"].(string)
+				capVal, _ := params["caption"].(string)
+				return pmVal == "HTML" && capVal == "override_parse_mode"
+			},
+		),
+		mock.Anything,
+	).Return(
+		json.RawMessage(`{"message_id":127,"chat":{"id":1},"photo":[{"file_id":"test_photo"}]}`),
+		nil,
+	).Once()
+
+	bot, err := lumex.NewBot(fakeToken, &lumex.BotOpts{
+		BotClient: cl,
+	})
+	assert.Nil(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Chat: lumex.Chat{
+				Id: 1,
+			},
+		},
+	})
+
+	testPhotoFileID := lumex.InputFileByID("test_photo")
+
+	m, err := ctx.ReplyPhoto(testPhotoFileID)
+	if err != nil || m == nil || m.MessageId != 123 {
+		t.Errorf("Base ReplyPhoto failed: %v", err)
+	}
+
+	m2, err := ctx.ReplyPhoto(testPhotoFileID, &lumex.SendPhotoOpts{
+		Caption: "opts_only",
+	})
+	if err != nil || m2 == nil || m2.MessageId != 124 {
+		t.Errorf("Opts ReplyPhoto failed: %v", err)
+	}
+
+	pm := "Markdown"
+	ctx.parseMode = &pm
+
+	m3, err := ctx.ReplyPhoto(testPhotoFileID)
+	if err != nil || m3 == nil || m3.MessageId != 125 {
+		t.Errorf("Ctx ParseMode ReplyPhoto failed: %v", err)
+	}
+
+	m4, err := ctx.ReplyPhoto(testPhotoFileID, &lumex.SendPhotoOpts{
+		Caption: "empty_parse_mode_in_opts",
+	})
+	if err != nil || m4 == nil || m4.MessageId != 126 {
+		t.Errorf("Ctx ParseMode with empty Opts ParseMode failed: %v", err)
+	}
+
+	m5, err := ctx.ReplyPhoto(testPhotoFileID, &lumex.SendPhotoOpts{
+		Caption:   "override_parse_mode",
+		ParseMode: "HTML",
+	})
+	if err != nil || m5 == nil || m5.MessageId != 127 {
+		t.Errorf("Opts ParseMode override failed: %v", err)
+	}
+}
+
+func TestContext_ReplyPhotoVoid(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+	const fakeToken = "123:test"
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "getMe"
+			},
+		),
+		mock.IsType(map[string]any{}),
+		mock.IsType(&lumex.RequestOpts{}),
+	).Return(
+		json.RawMessage(`{"id":555555,"is_bot":true,"first_name":"test bot","username":"test_bot","can_join_groups":true,"can_read_all_group_messages":false,"supports_inline_queries":false,"can_connect_to_business":false,"has_main_web_app":false}`),
+		nil,
+	)
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "sendPhoto"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				capVal, _ := params["caption"].(string)
+				return params["chat_id"].(int64) == 1 && capVal == "success"
+			},
+		),
+		mock.Anything,
+	).Return(
+		json.RawMessage(`{"message_id":128,"chat":{"id":1},"photo":[{"file_id":"test_photo"}]}`),
+		nil,
+	).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "sendPhoto"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				capVal, _ := params["caption"].(string)
+				return params["chat_id"].(int64) == 1 && capVal == "error"
+			},
+		),
+		mock.Anything,
+	).Return(
+		nil,
+		errors.New("mocked bot error"),
+	).Once()
+
+	bot, err := lumex.NewBot(fakeToken, &lumex.BotOpts{
+		BotClient: cl,
+	})
+	assert.Nil(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Chat: lumex.Chat{
+				Id: 1,
+			},
+		},
+	})
+
+	testPhotoFileID := lumex.InputFileByID("test_photo")
+
+	err = ctx.ReplyPhotoVoid(testPhotoFileID, &lumex.SendPhotoOpts{
+		Caption: "success",
+	})
+	if err != nil {
+		t.Errorf("ctx.ReplyPhotoVoid() success case = %v; want <nil>", err)
+	}
+
+	err = ctx.ReplyPhotoVoid(testPhotoFileID, &lumex.SendPhotoOpts{
+		Caption: "error",
+	})
+	if err == nil {
+		t.Errorf("ctx.ReplyPhotoVoid() error case expected error, got nil")
+	} else if err.Error() != "mocked bot error" {
+		t.Errorf("ctx.ReplyPhotoVoid() error = %v; want mocked bot error", err)
+	}
+}
+
+func TestContext_ReplyPhotoWithMenu(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+	const fakeToken = "123:test"
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "getMe"
+			},
+		),
+		mock.IsType(map[string]any{}),
+		mock.IsType(&lumex.RequestOpts{}),
+	).Return(
+		json.RawMessage(`{"id":555555,"is_bot":true,"first_name":"test bot","username":"test_bot","can_join_groups":true,"can_read_all_group_messages":false,"supports_inline_queries":false,"can_connect_to_business":false,"has_main_web_app":false}`),
+		nil,
+	)
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "sendPhoto"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				_, hasMarkup := params["reply_markup"]
+				_, hasCaption := params["caption"]
+				return params["chat_id"].(int64) == 1 && hasMarkup && !hasCaption
+			},
+		),
+		mock.Anything,
+	).Return(
+		json.RawMessage(`{"message_id":129,"chat":{"id":1},"photo":[{"file_id":"test_photo"}]}`),
+		nil,
+	).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "sendPhoto"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				_, hasMarkup := params["reply_markup"]
+				capVal, hasCaption := params["caption"].(string)
+				return params["chat_id"].(int64) == 1 && hasMarkup && hasCaption && capVal == "with_menu"
+			},
+		),
+		mock.Anything,
+	).Return(
+		json.RawMessage(`{"message_id":130,"chat":{"id":1},"photo":[{"file_id":"test_photo"}]}`),
+		nil,
+	).Once()
+
+	bot, err := lumex.NewBot(fakeToken, &lumex.BotOpts{
+		BotClient: cl,
+	})
+	assert.Nil(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Chat: lumex.Chat{
+				Id: 1,
+			},
+		},
+	})
+
+	testPhotoFileID := lumex.InputFileByID("test_photo")
+	menu := lumex.NewInlineMenu().Row().CallbackBtn("test_text", "test_data")
+
+	m1, err := ctx.ReplyPhotoWithMenu(testPhotoFileID, menu)
+	if err != nil {
+		t.Errorf("ctx.ReplyPhotoWithMenu() err = %v; want <nil>", err)
+	} else if m1 == nil || m1.MessageId != 129 {
+		t.Errorf("ctx.ReplyPhotoWithMenu() message_id = %v; want 129", m1)
+	}
+
+	m2, err := ctx.ReplyPhotoWithMenu(testPhotoFileID, menu, &lumex.SendPhotoOpts{
+		Caption: "with_menu",
+	})
+	if err != nil {
+		t.Errorf("ctx.ReplyPhotoWithMenu() opts err = %v; want <nil>", err)
+	} else if m2 == nil || m2.MessageId != 130 {
+		t.Errorf("ctx.ReplyPhotoWithMenu() opts message_id = %v; want 130", m2)
+	}
+}
+
+func TestContext_ReplyPhotoWithMenuVoid(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "getMe", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`{"id":1}`), nil)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "sendPhoto", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`{"message_id":131}`), nil).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "sendPhoto", mock.Anything, mock.Anything,
+	).Return(nil, errors.New("menu void error")).Once()
+
+	bot, _ := lumex.NewBot("123:test", &lumex.BotOpts{
+		BotClient: cl,
+	})
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Chat: lumex.Chat{
+				Id: 1,
+			},
+		},
+	})
+
+	menu := lumex.NewInlineMenu().Row().CallbackBtn("test_text", "test_data")
+	testPhotoFileID := lumex.InputFileByID("test_photo")
+
+	err := ctx.ReplyPhotoWithMenuVoid(testPhotoFileID, menu)
+	if err != nil {
+		t.Errorf("ctx.ReplyPhotoWithMenuVoid() = %v; want <nil>", err)
+	}
+
+	err = ctx.ReplyPhotoWithMenuVoid(testPhotoFileID, menu)
+	if err == nil || err.Error() != "menu void error" {
+		t.Errorf("ctx.ReplyPhotoWithMenuVoid() = %v; want menu void error", err)
+	}
+}
+
+func TestContext_ReplyVideo(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+	const fakeToken = "123:test"
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "getMe"
+			},
+		),
+		mock.IsType(map[string]any{}),
+		mock.IsType(&lumex.RequestOpts{}),
+	).Return(
+		json.RawMessage(`{"id":555555,"is_bot":true,"first_name":"test bot","username":"test_bot","can_join_groups":true,"can_read_all_group_messages":false,"supports_inline_queries":false,"can_connect_to_business":false,"has_main_web_app":false}`),
+		nil,
+	)
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "sendVideo"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				_, ok := params["video"].(*lumex.FileReader)
+				_, hasParseMode := params["parse_mode"]
+				_, hasCaption := params["caption"]
+
+				return params["chat_id"].(int64) == 1 && ok && !hasParseMode && !hasCaption
+			},
+		),
+		mock.Anything,
+	).Return(
+		json.RawMessage(`{"message_id":123,"chat":{"id":1},"video":{"file_id":"test_video"}}`),
+		nil,
+	).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "sendVideo"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				capVal, _ := params["caption"].(string)
+				return capVal == "opts_only"
+			},
+		),
+		mock.Anything,
+	).Return(
+		json.RawMessage(`{"message_id":124,"chat":{"id":1},"video":{"file_id":"test_video"}}`),
+		nil,
+	).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "sendVideo"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				pmVal, _ := params["parse_mode"].(string)
+				_, hasCaption := params["caption"]
+				return pmVal == "Markdown" && !hasCaption
+			},
+		),
+		mock.Anything,
+	).Return(
+		json.RawMessage(`{"message_id":125,"chat":{"id":1},"video":{"file_id":"test_video"}}`),
+		nil,
+	).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "sendVideo"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				pmVal, _ := params["parse_mode"].(string)
+				capVal, _ := params["caption"].(string)
+				return pmVal == "Markdown" && capVal == "empty_parse_mode_in_opts"
+			},
+		),
+		mock.Anything,
+	).Return(
+		json.RawMessage(`{"message_id":126,"chat":{"id":1},"video":{"file_id":"test_video"}}`),
+		nil,
+	).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "sendVideo"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				pmVal, _ := params["parse_mode"].(string)
+				capVal, _ := params["caption"].(string)
+				return pmVal == "HTML" && capVal == "override_parse_mode"
+			},
+		),
+		mock.Anything,
+	).Return(
+		json.RawMessage(`{"message_id":127,"chat":{"id":1},"video":{"file_id":"test_video"}}`),
+		nil,
+	).Once()
+
+	bot, err := lumex.NewBot(fakeToken, &lumex.BotOpts{
+		BotClient: cl,
+	})
+	assert.Nil(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Chat: lumex.Chat{
+				Id: 1,
+			},
+		},
+	})
+
+	testVideoFileID := lumex.InputFileByID("test_video")
+
+	m, err := ctx.ReplyVideo(testVideoFileID)
+	if err != nil || m == nil || m.MessageId != 123 {
+		t.Errorf("Base ReplyVideo failed: %v", err)
+	}
+
+	m2, err := ctx.ReplyVideo(testVideoFileID, &lumex.SendVideoOpts{
+		Caption: "opts_only",
+	})
+	if err != nil || m2 == nil || m2.MessageId != 124 {
+		t.Errorf("Opts ReplyVideo failed: %v", err)
+	}
+
+	pm := "Markdown"
+	ctx.parseMode = &pm
+
+	m3, err := ctx.ReplyVideo(testVideoFileID)
+	if err != nil || m3 == nil || m3.MessageId != 125 {
+		t.Errorf("Ctx ParseMode ReplyVideo failed: %v", err)
+	}
+
+	m4, err := ctx.ReplyVideo(testVideoFileID, &lumex.SendVideoOpts{
+		Caption: "empty_parse_mode_in_opts",
+	})
+	if err != nil || m4 == nil || m4.MessageId != 126 {
+		t.Errorf("Ctx ParseMode with empty Opts ParseMode failed: %v", err)
+	}
+
+	m5, err := ctx.ReplyVideo(testVideoFileID, &lumex.SendVideoOpts{
+		Caption:   "override_parse_mode",
+		ParseMode: "HTML",
+	})
+	if err != nil || m5 == nil || m5.MessageId != 127 {
+		t.Errorf("Opts ParseMode override failed: %v", err)
+	}
+}
+
+func TestContext_ReplyVideoVoid(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "getMe", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`{"id":1}`), nil)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "sendVideo", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`{"message_id":128}`), nil).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "sendVideo", mock.Anything, mock.Anything,
+	).Return(nil, errors.New("video void error")).Once()
+
+	bot, _ := lumex.NewBot("123:test", &lumex.BotOpts{
+		BotClient: cl,
+	})
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Chat: lumex.Chat{
+				Id: 1,
+			},
+		},
+	})
+
+	testVideoFileID := lumex.InputFileByID("test_video")
+
+	err := ctx.ReplyVideoVoid(testVideoFileID)
+	if err != nil {
+		t.Errorf("ctx.ReplyVideoVoid() = %v; want <nil>", err)
+	}
+
+	err = ctx.ReplyVideoVoid(testVideoFileID)
+	if err == nil || err.Error() != "video void error" {
+		t.Errorf("ctx.ReplyVideoVoid() = %v; want video void error", err)
+	}
+}
+
+func TestContext_ReplyVideoWithMenu(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+	const fakeToken = "123:test"
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "getMe"
+			},
+		),
+		mock.IsType(map[string]any{}),
+		mock.IsType(&lumex.RequestOpts{}),
+	).Return(
+		json.RawMessage(`{"id":555555,"is_bot":true,"first_name":"test bot","username":"test_bot","can_join_groups":true,"can_read_all_group_messages":false,"supports_inline_queries":false,"can_connect_to_business":false,"has_main_web_app":false}`),
+		nil,
+	)
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "sendVideo"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				_, hasMarkup := params["reply_markup"]
+				_, hasCaption := params["caption"]
+				return params["chat_id"].(int64) == 1 && hasMarkup && !hasCaption
+			},
+		),
+		mock.Anything,
+	).Return(
+		json.RawMessage(`{"message_id":129,"chat":{"id":1},"video":{"file_id":"test_video"}}`),
+		nil,
+	).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "sendVideo"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				_, hasMarkup := params["reply_markup"]
+				capVal, hasCaption := params["caption"].(string)
+				return params["chat_id"].(int64) == 1 && hasMarkup && hasCaption && capVal == "with_menu"
+			},
+		),
+		mock.Anything,
+	).Return(
+		json.RawMessage(`{"message_id":130,"chat":{"id":1},"video":{"file_id":"test_video"}}`),
+		nil,
+	).Once()
+
+	bot, err := lumex.NewBot(fakeToken, &lumex.BotOpts{
+		BotClient: cl,
+	})
+	assert.Nil(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Chat: lumex.Chat{
+				Id: 1,
+			},
+		},
+	})
+
+	testVideoFileID := lumex.InputFileByID("test_video")
+	menu := lumex.NewInlineMenu().Row().CallbackBtn("test_text", "test_data")
+
+	m1, err := ctx.ReplyVideoWithMenu(testVideoFileID, menu)
+	if err != nil {
+		t.Errorf("ctx.ReplyVideoWithMenu() err = %v; want <nil>", err)
+	} else if m1 == nil || m1.MessageId != 129 {
+		t.Errorf("ctx.ReplyVideoWithMenu() message_id = %v; want 129", m1)
+	}
+
+	m2, err := ctx.ReplyVideoWithMenu(testVideoFileID, menu, &lumex.SendVideoOpts{
+		Caption: "with_menu",
+	})
+	if err != nil {
+		t.Errorf("ctx.ReplyVideoWithMenu() opts err = %v; want <nil>", err)
+	} else if m2 == nil || m2.MessageId != 130 {
+		t.Errorf("ctx.ReplyVideoWithMenu() opts message_id = %v; want 130", m2)
+	}
+}
+
+func TestContext_ReplyVideoWithMenuVoid(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "getMe", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`{"id":1}`), nil)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "sendVideo", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`{"message_id":131}`), nil).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "sendVideo", mock.Anything, mock.Anything,
+	).Return(nil, errors.New("menu void error")).Once()
+
+	bot, _ := lumex.NewBot("123:test", &lumex.BotOpts{
+		BotClient: cl,
+	})
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Chat: lumex.Chat{
+				Id: 1,
+			},
+		},
+	})
+
+	menu := lumex.NewInlineMenu().Row().CallbackBtn("test_text", "test_data")
+	testVideoFileID := lumex.InputFileByID("test_video")
+
+	err := ctx.ReplyVideoWithMenuVoid(testVideoFileID, menu)
+	if err != nil {
+		t.Errorf("ctx.ReplyVideoWithMenuVoid() = %v; want <nil>", err)
+	}
+
+	err = ctx.ReplyVideoWithMenuVoid(testVideoFileID, menu)
+	if err == nil || err.Error() != "menu void error" {
+		t.Errorf("ctx.ReplyVideoWithMenuVoid() = %v; want menu void error", err)
+	}
+}
+
+func TestContext_ReplyWithMenuVoid(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "getMe", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`{"id":1}`), nil)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "sendMessage", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`{"message_id":132}`), nil).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "sendMessage", mock.Anything, mock.Anything,
+	).Return(nil, errors.New("menu void error")).Once()
+
+	bot, _ := lumex.NewBot("123:test", &lumex.BotOpts{
+		BotClient: cl,
+	})
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Chat: lumex.Chat{
+				Id: 1,
+			},
+		},
+	})
+
+	menu := lumex.NewInlineMenu().Row().CallbackBtn("test_text", "test_data")
+
+	err := ctx.ReplyWithMenuVoid("test", menu)
+	if err != nil {
+		t.Errorf("ctx.ReplyWithMenuVoid() = %v; want <nil>", err)
+	}
+
+	err = ctx.ReplyWithMenuVoid("test", menu)
+	if err == nil || err.Error() != "menu void error" {
+		t.Errorf("ctx.ReplyWithMenuVoid() = %v; want menu void error", err)
+	}
+}
+
+func TestContext_Answer(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+	const fakeToken = "123:test"
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "getMe"
+			},
+		),
+		mock.IsType(map[string]any{}),
+		mock.IsType(&lumex.RequestOpts{}),
+	).Return(
+		json.RawMessage(`{"id":555555,"is_bot":true,"first_name":"test bot","username":"test_bot","can_join_groups":true,"can_read_all_group_messages":false,"supports_inline_queries":false,"can_connect_to_business":false,"has_main_web_app":false}`),
+		nil,
+	)
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "answerCallbackQuery"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				_, hasText := params["text"]
+				return params["callback_query_id"].(string) == "cb_123" && !hasText
+			},
+		),
+		mock.Anything,
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "answerCallbackQuery"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				textVal, hasText := params["text"].(string)
+				return params["callback_query_id"].(string) == "cb_123" && hasText && textVal == "hello"
+			},
+		),
+		mock.Anything,
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "answerCallbackQuery"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				textVal, hasText := params["text"].(string)
+				showAlert, hasShowAlert := params["show_alert"].(bool)
+				return params["callback_query_id"].(string) == "cb_123" && hasText && textVal == "hello" && hasShowAlert && showAlert
+			},
+		),
+		mock.Anything,
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	bot, err := lumex.NewBot(fakeToken, &lumex.BotOpts{
+		BotClient: cl,
+	})
+	assert.Nil(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		CallbackQuery: &lumex.CallbackQuery{
+			Id: "cb_123",
+		},
+	})
+
+	b, err := ctx.Answer("")
+	if err != nil {
+		t.Errorf("ctx.Answer empty failed: %v", err)
+	} else if !b {
+		t.Errorf("ctx.Answer empty = %v; want true", b)
+	}
+
+	b2, err := ctx.Answer("hello")
+	if err != nil {
+		t.Errorf("ctx.Answer text failed: %v", err)
+	} else if !b2 {
+		t.Errorf("ctx.Answer text = %v; want true", b2)
+	}
+
+	b3, err := ctx.Answer("hello", &lumex.AnswerCallbackQueryOpts{
+		Text:      "old_text",
+		ShowAlert: true,
+	})
+	if err != nil {
+		t.Errorf("ctx.Answer opts failed: %v", err)
+	} else if !b3 {
+		t.Errorf("ctx.Answer opts = %v; want true", b3)
+	}
+}
+
+func TestContext_AnswerVoid(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "getMe", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`{"id":1}`), nil)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "answerCallbackQuery", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "answerCallbackQuery", mock.Anything, mock.Anything,
+	).Return(nil, errors.New("answer void error")).Once()
+
+	bot, _ := lumex.NewBot("123:test", &lumex.BotOpts{
+		BotClient: cl,
+	})
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		CallbackQuery: &lumex.CallbackQuery{
+			Id: "cb_123",
+		},
+	})
+
+	err := ctx.AnswerVoid("test")
+	if err != nil {
+		t.Errorf("ctx.AnswerVoid() = %v; want <nil>", err)
+	}
+
+	err = ctx.AnswerVoid("test")
+	if err == nil || err.Error() != "answer void error" {
+		t.Errorf("ctx.AnswerVoid() = %v; want answer void error", err)
+	}
+}
+
+func TestContext_AnswerAlert(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+	const fakeToken = "123:test"
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "getMe"
+			},
+		),
+		mock.IsType(map[string]any{}),
+		mock.IsType(&lumex.RequestOpts{}),
+	).Return(
+		json.RawMessage(`{"id":555555,"is_bot":true,"first_name":"test bot"}`),
+		nil,
+	)
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "answerCallbackQuery"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				textVal, hasText := params["text"].(string)
+				showAlert, hasShowAlert := params["show_alert"].(bool)
+				return params["callback_query_id"].(string) == "cb_123" && hasText && textVal == "alert1" && hasShowAlert && showAlert
+			},
+		),
+		mock.Anything,
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "answerCallbackQuery"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				textVal, hasText := params["text"].(string)
+				showAlert, hasShowAlert := params["show_alert"].(bool)
+				return params["callback_query_id"].(string) == "cb_123" && hasText && textVal == "alert2" && hasShowAlert && showAlert
+			},
+		),
+		mock.Anything,
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	bot, err := lumex.NewBot(fakeToken, &lumex.BotOpts{
+		BotClient: cl,
+	})
+	assert.Nil(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		CallbackQuery: &lumex.CallbackQuery{
+			Id: "cb_123",
+		},
+	})
+
+	b1, err := ctx.AnswerAlert("alert1")
+	if err != nil || !b1 {
+		t.Errorf("ctx.AnswerAlert empty opts failed: %v", err)
+	}
+
+	b2, err := ctx.AnswerAlert("alert2", &lumex.AnswerCallbackQueryOpts{})
+	if err != nil || !b2 {
+		t.Errorf("ctx.AnswerAlert with opts failed: %v", err)
+	}
+}
+
+func TestContext_AnswerAlertVoid(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "getMe", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`{"id":1}`), nil)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "answerCallbackQuery", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "answerCallbackQuery", mock.Anything, mock.Anything,
+	).Return(nil, errors.New("answer alert void error")).Once()
+
+	bot, _ := lumex.NewBot("123:test", &lumex.BotOpts{
+		BotClient: cl,
+	})
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		CallbackQuery: &lumex.CallbackQuery{
+			Id: "cb_123",
+		},
+	})
+
+	err := ctx.AnswerAlertVoid("test")
+	if err != nil {
+		t.Errorf("ctx.AnswerAlertVoid() = %v; want <nil>", err)
+	}
+
+	err = ctx.AnswerAlertVoid("test")
+	if err == nil || err.Error() != "answer alert void error" {
+		t.Errorf("ctx.AnswerAlertVoid() = %v; want answer alert void error", err)
+	}
+}
+
+func TestContext_AnswerQuery(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+	const fakeToken = "123:test"
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "getMe"
+			},
+		),
+		mock.IsType(map[string]any{}),
+		mock.IsType(&lumex.RequestOpts{}),
+	).Return(
+		json.RawMessage(`{"id":555555,"is_bot":true,"first_name":"test bot"}`),
+		nil,
+	)
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "answerInlineQuery"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				idVal, ok := params["inline_query_id"].(string)
+				_, hasCacheTime := params["cache_time"]
+				return ok && idVal == "iq_123" && !hasCacheTime
+			},
+		),
+		mock.Anything,
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "answerInlineQuery"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				idVal, ok := params["inline_query_id"].(string)
+				cacheVal, hasCacheTime := params["cache_time"].(*int64)
+				return ok && idVal == "iq_123" && hasCacheTime && *cacheVal == 300
+			},
+		),
+		mock.Anything,
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	bot, err := lumex.NewBot(fakeToken, &lumex.BotOpts{
+		BotClient: cl,
+	})
+	assert.Nil(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		InlineQuery: &lumex.InlineQuery{
+			Id: "iq_123",
+		},
+	})
+
+	var dummyResults []lumex.InlineQueryResult
+
+	b1, err := ctx.AnswerQuery(dummyResults)
+	if err != nil || !b1 {
+		t.Errorf("ctx.AnswerQuery empty opts failed: %v", err)
+	}
+
+	cacheTime := int64(300)
+	b2, err := ctx.AnswerQuery(dummyResults, &lumex.AnswerInlineQueryOpts{
+		CacheTime: &cacheTime,
+	})
+	if err != nil || !b2 {
+		t.Errorf("ctx.AnswerQuery with opts failed: %v", err)
+	}
+}
+
+func TestContext_AnswerQueryVoid(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "getMe", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`{"id":1}`), nil)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "answerInlineQuery", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "answerInlineQuery", mock.Anything, mock.Anything,
+	).Return(nil, errors.New("answer query void error")).Once()
+
+	bot, _ := lumex.NewBot("123:test", &lumex.BotOpts{
+		BotClient: cl,
+	})
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		InlineQuery: &lumex.InlineQuery{
+			Id: "iq_123",
+		},
+	})
+
+	var dummyResults []lumex.InlineQueryResult
+
+	err := ctx.AnswerQueryVoid(dummyResults)
+	if err != nil {
+		t.Errorf("ctx.AnswerQueryVoid() = %v; want <nil>", err)
+	}
+
+	err = ctx.AnswerQueryVoid(dummyResults)
+	if err == nil || err.Error() != "answer query void error" {
+		t.Errorf("ctx.AnswerQueryVoid() = %v; want answer query void error", err)
+	}
+}
+
+func TestContext_DeleteMessage(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+	const fakeToken = "123:test"
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "getMe"
+			},
+		),
+		mock.IsType(map[string]any{}),
+		mock.IsType(&lumex.RequestOpts{}),
+	).Return(
+		json.RawMessage(`{"id":555555,"is_bot":true,"first_name":"test bot"}`),
+		nil,
+	)
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "deleteMessage"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				chatIdVal, hasChatId := params["chat_id"].(int64)
+				msgIdVal, hasMsgId := params["message_id"].(int64)
+				return hasChatId && chatIdVal == 1 && hasMsgId && msgIdVal == 42
+			},
+		),
+		mock.Anything,
+	).Return(json.RawMessage(`true`), nil).Twice()
+
+	bot, err := lumex.NewBot(fakeToken, &lumex.BotOpts{
+		BotClient: cl,
+	})
+	assert.Nil(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Chat: lumex.Chat{
+				Id: 1,
+			},
+			MessageId: 42,
+		},
+	})
+
+	b1, err := ctx.DeleteMessage()
+	if err != nil || !b1 {
+		t.Errorf("ctx.DeleteMessage empty opts failed: %v", err)
+	}
+
+	b2, err := ctx.DeleteMessage(&lumex.DeleteMessageOpts{})
+	if err != nil || !b2 {
+		t.Errorf("ctx.DeleteMessage with opts failed: %v", err)
+	}
+}
+
+func TestContext_DeleteMessageVoid(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "getMe", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`{"id":1}`), nil)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "deleteMessage", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "deleteMessage", mock.Anything, mock.Anything,
+	).Return(nil, errors.New("delete message void error")).Once()
+
+	bot, _ := lumex.NewBot("123:test", &lumex.BotOpts{
+		BotClient: cl,
+	})
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Chat: lumex.Chat{
+				Id: 1,
+			},
+			MessageId: 42,
+		},
+	})
+
+	err := ctx.DeleteMessageVoid()
+	if err != nil {
+		t.Errorf("ctx.DeleteMessageVoid() = %v; want <nil>", err)
+	}
+
+	err = ctx.DeleteMessageVoid()
+	if err == nil || err.Error() != "delete message void error" {
+		t.Errorf("ctx.DeleteMessageVoid() = %v; want delete message void error", err)
+	}
+}
+
+func TestContext_EditMessageText(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+	const fakeToken = "123:test"
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "getMe"
+			},
+		),
+		mock.Anything,
+		mock.Anything,
+	).Return(json.RawMessage(`{"id":555555,"is_bot":true,"first_name":"test bot"}`), nil)
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "editMessageText"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				return fmt.Sprintf("%v", params["chat_id"]) == "1" &&
+					fmt.Sprintf("%v", params["message_id"]) == "42" &&
+					fmt.Sprintf("%v", params["text"]) == "basic_text" &&
+					params["parse_mode"] == nil
+			},
+		),
+		mock.Anything,
+	).Return(json.RawMessage(`{"message_id":42,"text":"basic_text"}`), nil).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "editMessageText"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				pm, _ := params["parse_mode"].(string)
+				return fmt.Sprintf("%v", params["text"]) == "opts_text" && pm == "HTML"
+			},
+		),
+		mock.Anything,
+	).Return(json.RawMessage(`{"message_id":42,"text":"opts_text"}`), nil).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(
+			func(tok string) bool {
+				return tok == fakeToken
+			},
+		),
+		mock.MatchedBy(
+			func(method string) bool {
+				return method == "editMessageText"
+			},
+		),
+		mock.MatchedBy(
+			func(params map[string]any) bool {
+				pm, _ := params["parse_mode"].(string)
+				return fmt.Sprintf("%v", params["text"]) == "ctx_pm_text" && pm == "Markdown"
+			},
+		),
+		mock.Anything,
+	).Return(json.RawMessage(`{"message_id":42,"text":"ctx_pm_text"}`), nil).Once()
+
+	bot, err := lumex.NewBot(fakeToken, &lumex.BotOpts{
+		BotClient: cl,
+	})
+	assert.Nil(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Chat: lumex.Chat{
+				Id: 1,
+			},
+			MessageId: 42,
+		},
+	})
+
+	m1, _, err := ctx.EditMessageText("basic_text")
+	if err != nil || m1 == nil || m1.MessageId != 42 {
+		t.Errorf("ctx.EditMessageText empty opts failed: %v", err)
+	}
+
+	m2, _, err := ctx.EditMessageText("opts_text", &lumex.EditMessageTextOpts{
+		ParseMode: "HTML",
+	})
+	if err != nil || m2 == nil || m2.Text != "opts_text" {
+		t.Errorf("ctx.EditMessageText with opts failed: %v", err)
+	}
+
+	pm := "Markdown"
+	ctx.parseMode = &pm
+
+	m3, _, err := ctx.EditMessageText("ctx_pm_text", &lumex.EditMessageTextOpts{
+		ParseMode: "HTML",
+	})
+	if err != nil || m3 == nil || m3.Text != "ctx_pm_text" {
+		t.Errorf("ctx.EditMessageText with ctx parse mode override failed: %v", err)
+	}
+}
+
+func TestContext_EditMessageTextVoid(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "getMe", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`{"id":1}`), nil)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "editMessageText", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`{"message_id":42}`), nil).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "editMessageText", mock.Anything, mock.Anything,
+	).Return(nil, errors.New("edit message text void error")).Once()
+
+	bot, _ := lumex.NewBot("123:test", &lumex.BotOpts{
+		BotClient: cl,
+	})
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Chat: lumex.Chat{
+				Id: 1,
+			},
+			MessageId: 42,
+		},
+	})
+
+	err := ctx.EditMessageTextVoid("test")
+	if err != nil {
+		t.Errorf("ctx.EditMessageTextVoid() = %v; want <nil>", err)
+	}
+
+	err = ctx.EditMessageTextVoid("test")
+	if err == nil || err.Error() != "edit message text void error" {
+		t.Errorf("ctx.EditMessageTextVoid() = %v; want edit message text void error", err)
+	}
+}
+
+func TestContext_ReplyEmojiReaction(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+	const fakeToken = "123:test"
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(func(tok string) bool { return tok == fakeToken }),
+		mock.MatchedBy(func(method string) bool { return method == "getMe" }),
+		mock.IsType(map[string]any{}),
+		mock.IsType(&lumex.RequestOpts{}),
+	).Return(json.RawMessage(`{"id":555555,"is_bot":true,"first_name":"test bot"}`), nil)
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(func(tok string) bool { return tok == fakeToken }),
+		mock.MatchedBy(func(method string) bool { return method == "setMessageReaction" }),
+		mock.MatchedBy(func(params map[string]any) bool {
+			chatOK := fmt.Sprintf("%v", params["chat_id"]) == "1"
+			msgOK := fmt.Sprintf("%v", params["message_id"]) == "42"
+			r, ok := params["reaction"].([]lumex.ReactionType)
+			isBig, hasIsBig := params["is_big"]
+
+			return chatOK && msgOK && ok && len(r) == 1 && (!hasIsBig || isBig == false)
+		}),
+		mock.Anything,
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(func(tok string) bool { return tok == fakeToken }),
+		mock.MatchedBy(func(method string) bool { return method == "setMessageReaction" }),
+		mock.MatchedBy(func(params map[string]any) bool {
+			chatOK := fmt.Sprintf("%v", params["chat_id"]) == "1"
+			msgOK := fmt.Sprintf("%v", params["message_id"]) == "42"
+			r, ok := params["reaction"].([]lumex.ReactionType)
+
+			return chatOK && msgOK && ok && len(r) == 2
+		}),
+		mock.Anything,
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	bot, err := lumex.NewBot(fakeToken, &lumex.BotOpts{
+		BotClient: cl,
+	})
+	assert.Nil(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Chat:      lumex.Chat{Id: 1},
+			MessageId: 42,
+		},
+	})
+
+	b1, err := ctx.ReplyEmojiReaction("👍")
+	if err != nil || !b1 {
+		t.Errorf("ctx.ReplyEmojiReaction single failed: %v", err)
+	}
+
+	b2, err := ctx.ReplyEmojiReaction("👍", "👎")
+	if err != nil || !b2 {
+		t.Errorf("ctx.ReplyEmojiReaction multiple failed: %v", err)
+	}
+}
+
+func TestContext_ReplyEmojiReactionVoid(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "getMe", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`{"id":1}`), nil)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "setMessageReaction", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "setMessageReaction", mock.Anything, mock.Anything,
+	).Return(nil, errors.New("reaction void error")).Once()
+
+	bot, _ := lumex.NewBot("123:test", &lumex.BotOpts{
+		BotClient: cl,
+	})
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Chat:      lumex.Chat{Id: 1},
+			MessageId: 42,
+		},
+	})
+
+	err := ctx.ReplyEmojiReactionVoid("👍")
+	if err != nil {
+		t.Errorf("ctx.ReplyEmojiReactionVoid() = %v; want <nil>", err)
+	}
+
+	err = ctx.ReplyEmojiReactionVoid("👍")
+	if err == nil || err.Error() != "reaction void error" {
+		t.Errorf("ctx.ReplyEmojiReactionVoid() = %v; want reaction void error", err)
+	}
+}
+
+func TestContext_ReplyEmojiBigReaction(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+	const fakeToken = "123:test"
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(func(tok string) bool { return tok == fakeToken }),
+		mock.MatchedBy(func(method string) bool { return method == "getMe" }),
+		mock.IsType(map[string]any{}),
+		mock.IsType(&lumex.RequestOpts{}),
+	).Return(json.RawMessage(`{"id":555555,"is_bot":true,"first_name":"test bot"}`), nil)
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(func(tok string) bool { return tok == fakeToken }),
+		mock.MatchedBy(func(method string) bool { return method == "setMessageReaction" }),
+		mock.MatchedBy(func(params map[string]any) bool {
+			chatOK := fmt.Sprintf("%v", params["chat_id"]) == "1"
+			msgOK := fmt.Sprintf("%v", params["message_id"]) == "42"
+			r, ok := params["reaction"].([]lumex.ReactionType)
+			isBig, hasIsBig := params["is_big"].(bool)
+
+			return chatOK && msgOK && ok && len(r) == 1 && hasIsBig && isBig
+		}),
+		mock.Anything,
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.IsType(context.Background()),
+		mock.MatchedBy(func(tok string) bool { return tok == fakeToken }),
+		mock.MatchedBy(func(method string) bool { return method == "setMessageReaction" }),
+		mock.MatchedBy(func(params map[string]any) bool {
+			chatOK := fmt.Sprintf("%v", params["chat_id"]) == "1"
+			msgOK := fmt.Sprintf("%v", params["message_id"]) == "42"
+			r, ok := params["reaction"].([]lumex.ReactionType)
+			isBig, hasIsBig := params["is_big"].(bool)
+
+			return chatOK && msgOK && ok && len(r) == 2 && hasIsBig && isBig
+		}),
+		mock.Anything,
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	bot, err := lumex.NewBot(fakeToken, &lumex.BotOpts{
+		BotClient: cl,
+	})
+	assert.Nil(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Chat:      lumex.Chat{Id: 1},
+			MessageId: 42,
+		},
+	})
+
+	b1, err := ctx.ReplyEmojiBigReaction("🔥")
+	if err != nil || !b1 {
+		t.Errorf("ctx.ReplyEmojiBigReaction single failed: %v", err)
+	}
+
+	b2, err := ctx.ReplyEmojiBigReaction("🔥", "🎉")
+	if err != nil || !b2 {
+		t.Errorf("ctx.ReplyEmojiBigReaction multiple failed: %v", err)
+	}
+}
+
+func TestContext_ReplyEmojiBigReactionVoid(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "getMe", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`{"id":1}`), nil)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "setMessageReaction", mock.Anything, mock.Anything,
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything, mock.Anything, "setMessageReaction", mock.Anything, mock.Anything,
+	).Return(nil, errors.New("big reaction void error")).Once()
+
+	bot, _ := lumex.NewBot("123:test", &lumex.BotOpts{
+		BotClient: cl,
+	})
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		Message: &lumex.Message{
+			Chat:      lumex.Chat{Id: 1},
+			MessageId: 42,
+		},
+	})
+
+	err := ctx.ReplyEmojiBigReactionVoid("🔥")
+	if err != nil {
+		t.Errorf("ctx.ReplyEmojiBigReactionVoid() = %v; want <nil>", err)
+	}
+
+	err = ctx.ReplyEmojiBigReactionVoid("🔥")
+	if err == nil || err.Error() != "big reaction void error" {
+		t.Errorf("ctx.ReplyEmojiBigReactionVoid() = %v; want big reaction void error", err)
+	}
 }

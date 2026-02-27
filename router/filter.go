@@ -39,6 +39,7 @@ func CommandWithAt(command string) RouteFilter {
 		if ctx.Update.Message == nil {
 			return false
 		}
+
 		return strings.HasPrefix(ctx.Update.Message.Text, "/"+command+"@"+ctx.Bot.Username)
 	}
 }
@@ -59,6 +60,7 @@ func TextEquals(text string) RouteFilter {
 		if ctx.Update.Message == nil {
 			return false
 		}
+
 		return ctx.Update.Message.Text == text
 	}
 }
@@ -69,6 +71,7 @@ func TextPrefix(text string) RouteFilter {
 		if ctx.Update.Message == nil {
 			return false
 		}
+
 		return strings.HasPrefix(ctx.Update.Message.Text, text)
 	}
 }
@@ -86,6 +89,7 @@ func CallbackPrefix(text string) RouteFilter {
 		if ctx.Update.CallbackQuery == nil {
 			return false
 		}
+
 		return strings.HasPrefix(ctx.Update.CallbackQuery.Data, text)
 	}
 }
@@ -103,6 +107,7 @@ func InlineQueryPrefix(text string) RouteFilter {
 		if ctx.Update.InlineQuery == nil {
 			return false
 		}
+
 		return strings.HasPrefix(ctx.Update.InlineQuery.Query, text)
 	}
 }
@@ -143,6 +148,7 @@ func ForwardedChannelMessage() RouteFilter {
 			return false
 		}
 		origin := ctx.Update.Message.ForwardOrigin
+
 		return origin != nil && origin.GetType() == "channel"
 	}
 }
