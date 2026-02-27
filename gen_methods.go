@@ -74,10 +74,10 @@ func (bot *Bot) AnswerCallbackQueryWithContext(ctx context.Context, callbackQuer
 	v := map[string]any{}
 	v["callback_query_id"] = callbackQueryId
 	if opts != nil {
-		v["text"] = opts.Text
-		v["show_alert"] = opts.ShowAlert
-		v["url"] = opts.Url
-		v["cache_time"] = opts.CacheTime
+		addIfValueNotZero(v, "text", opts.Text, opts.Text == "")
+		addIfValueNotZero(v, "show_alert", opts.ShowAlert, opts.ShowAlert == false)
+		addIfValueNotZero(v, "url", opts.Url, opts.Url == "")
+		addIfValueNotZero(v, "cache_time", opts.CacheTime, opts.CacheTime == 0)
 	}
 
 	var reqOpts *RequestOpts
@@ -97,7 +97,7 @@ func (bot *Bot) AnswerCallbackQueryWithContext(ctx context.Context, callbackQuer
 // AnswerInlineQueryOpts is the set of optional fields for Bot.AnswerInlineQuery and Bot.AnswerInlineQueryWithContext.
 type AnswerInlineQueryOpts struct {
 	// The maximum amount of time in seconds that the result of the inline query may be cached on the server. Defaults to 300.
-	CacheTime int64
+	CacheTime *int64
 	// Pass True if results may be cached on the server side only for the user that sent the query. By default, results may be returned to any user who sends the same query.
 	IsPersonal bool
 	// Pass the offset that a client should send in the next query with the same text to receive more results. Pass an empty string if there are no more results or if you don't support pagination. Offset length can't exceed 64 bytes.
@@ -123,16 +123,12 @@ func (bot *Bot) AnswerInlineQuery(inlineQueryId string, results []InlineQueryRes
 func (bot *Bot) AnswerInlineQueryWithContext(ctx context.Context, inlineQueryId string, results []InlineQueryResult, opts *AnswerInlineQueryOpts) (bool, error) {
 	v := map[string]any{}
 	v["inline_query_id"] = inlineQueryId
-	if results != nil {
-		v["results"] = results
-	}
+	v["results"] = results
 	if opts != nil {
-		v["cache_time"] = opts.CacheTime
-		v["is_personal"] = opts.IsPersonal
-		v["next_offset"] = opts.NextOffset
-		if opts.Button != nil {
-			v["button"] = opts.Button
-		}
+		addIfValueNotZero(v, "cache_time", opts.CacheTime, opts.CacheTime == nil)
+		addIfValueNotZero(v, "is_personal", opts.IsPersonal, opts.IsPersonal == false)
+		addIfValueNotZero(v, "next_offset", opts.NextOffset, opts.NextOffset == "")
+		addIfValueNotZero(v, "button", opts.Button, opts.Button == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -173,7 +169,7 @@ func (bot *Bot) AnswerPreCheckoutQueryWithContext(ctx context.Context, preChecko
 	v["pre_checkout_query_id"] = preCheckoutQueryId
 	v["ok"] = ok
 	if opts != nil {
-		v["error_message"] = opts.ErrorMessage
+		addIfValueNotZero(v, "error_message", opts.ErrorMessage, opts.ErrorMessage == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -216,10 +212,8 @@ func (bot *Bot) AnswerShippingQueryWithContext(ctx context.Context, shippingQuer
 	v["shipping_query_id"] = shippingQueryId
 	v["ok"] = ok
 	if opts != nil {
-		if opts.ShippingOptions != nil {
-			v["shipping_options"] = opts.ShippingOptions
-		}
-		v["error_message"] = opts.ErrorMessage
+		addIfValueNotZero(v, "shipping_options", opts.ShippingOptions, opts.ShippingOptions == nil)
+		addIfValueNotZero(v, "error_message", opts.ErrorMessage, opts.ErrorMessage == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -332,7 +326,7 @@ func (bot *Bot) ApproveSuggestedPostWithContext(ctx context.Context, chatId int6
 	v["chat_id"] = chatId
 	v["message_id"] = messageId
 	if opts != nil {
-		v["send_date"] = opts.SendDate
+		addIfValueNotZero(v, "send_date", opts.SendDate, opts.SendDate == 0)
 	}
 
 	var reqOpts *RequestOpts
@@ -375,8 +369,8 @@ func (bot *Bot) BanChatMemberWithContext(ctx context.Context, chatId int64, user
 	v["chat_id"] = chatId
 	v["user_id"] = userId
 	if opts != nil {
-		v["until_date"] = opts.UntilDate
-		v["revoke_messages"] = opts.RevokeMessages
+		addIfValueNotZero(v, "until_date", opts.UntilDate, opts.UntilDate == 0)
+		addIfValueNotZero(v, "revoke_messages", opts.RevokeMessages, opts.RevokeMessages == false)
 	}
 
 	var reqOpts *RequestOpts
@@ -569,7 +563,7 @@ func (bot *Bot) ConvertGiftToStarsWithContext(ctx context.Context, businessConne
 
 // CopyMessageOpts is the set of optional fields for Bot.CopyMessage and Bot.CopyMessageWithContext.
 type CopyMessageOpts struct {
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
 	DirectMessagesTopicId int64
@@ -589,6 +583,8 @@ type CopyMessageOpts struct {
 	ProtectContent bool
 	// Pass True to allow up to 1000 messages per second, ignoring broadcasting limits for a fee of 0.1 Telegram Stars per message. The relevant Stars will be withdrawn from the bot's balance
 	AllowPaidBroadcast bool
+	// Unique identifier of the message effect to be added to the message; only available when copying to private chats
+	MessageEffectId string
 	// A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only. If the message is sent as a reply to another suggested post, then that suggested post is automatically declined.
 	SuggestedPostParameters *SuggestedPostParameters
 	// Description of the message to reply to
@@ -617,29 +613,20 @@ func (bot *Bot) CopyMessageWithContext(ctx context.Context, chatId int64, fromCh
 	v["from_chat_id"] = fromChatId
 	v["message_id"] = messageId
 	if opts != nil {
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		v["video_start_timestamp"] = opts.VideoStartTimestamp
-		if opts.Caption != nil {
-			v["caption"] = opts.Caption
-		}
-		v["parse_mode"] = opts.ParseMode
-		if opts.CaptionEntities != nil {
-			v["caption_entities"] = opts.CaptionEntities
-		}
-		v["show_caption_above_media"] = opts.ShowCaptionAboveMedia
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
-		if opts.SuggestedPostParameters != nil {
-			v["suggested_post_parameters"] = opts.SuggestedPostParameters
-		}
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
-		if opts.ReplyMarkup != nil {
-			v["reply_markup"] = opts.ReplyMarkup
-		}
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		addIfValueNotZero(v, "video_start_timestamp", opts.VideoStartTimestamp, opts.VideoStartTimestamp == 0)
+		addIfValueNotZero(v, "caption", opts.Caption, opts.Caption == nil)
+		addIfValueNotZero(v, "parse_mode", opts.ParseMode, opts.ParseMode == "")
+		addIfValueNotZero(v, "caption_entities", opts.CaptionEntities, opts.CaptionEntities == nil)
+		addIfValueNotZero(v, "show_caption_above_media", opts.ShowCaptionAboveMedia, opts.ShowCaptionAboveMedia == false)
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "allow_paid_broadcast", opts.AllowPaidBroadcast, opts.AllowPaidBroadcast == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "suggested_post_parameters", opts.SuggestedPostParameters, opts.SuggestedPostParameters == nil)
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
+		addIfValueNotZero(v, "reply_markup", opts.ReplyMarkup, opts.ReplyMarkup == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -658,7 +645,7 @@ func (bot *Bot) CopyMessageWithContext(ctx context.Context, chatId int64, fromCh
 
 // CopyMessagesOpts is the set of optional fields for Bot.CopyMessages and Bot.CopyMessagesWithContext.
 type CopyMessagesOpts struct {
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the messages will be sent; required if the messages are sent to a direct messages chat
 	DirectMessagesTopicId int64
@@ -688,15 +675,13 @@ func (bot *Bot) CopyMessagesWithContext(ctx context.Context, chatId int64, fromC
 	v := map[string]any{}
 	v["chat_id"] = chatId
 	v["from_chat_id"] = fromChatId
-	if messageIds != nil {
-		v["message_ids"] = messageIds
-	}
+	v["message_ids"] = messageIds
 	if opts != nil {
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["remove_caption"] = opts.RemoveCaption
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "remove_caption", opts.RemoveCaption, opts.RemoveCaption == false)
 	}
 
 	var reqOpts *RequestOpts
@@ -741,10 +726,10 @@ func (bot *Bot) CreateChatInviteLinkWithContext(ctx context.Context, chatId int6
 	v := map[string]any{}
 	v["chat_id"] = chatId
 	if opts != nil {
-		v["name"] = opts.Name
-		v["expire_date"] = opts.ExpireDate
-		v["member_limit"] = opts.MemberLimit
-		v["creates_join_request"] = opts.CreatesJoinRequest
+		addIfValueNotZero(v, "name", opts.Name, opts.Name == "")
+		addIfValueNotZero(v, "expire_date", opts.ExpireDate, opts.ExpireDate == 0)
+		addIfValueNotZero(v, "member_limit", opts.MemberLimit, opts.MemberLimit == 0)
+		addIfValueNotZero(v, "creates_join_request", opts.CreatesJoinRequest, opts.CreatesJoinRequest == false)
 	}
 
 	var reqOpts *RequestOpts
@@ -787,7 +772,7 @@ func (bot *Bot) CreateChatSubscriptionInviteLinkWithContext(ctx context.Context,
 	v["subscription_period"] = subscriptionPeriod
 	v["subscription_price"] = subscriptionPrice
 	if opts != nil {
-		v["name"] = opts.Name
+		addIfValueNotZero(v, "name", opts.Name, opts.Name == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -816,7 +801,7 @@ type CreateForumTopicOpts struct {
 
 // CreateForumTopic (https://core.telegram.org/bots/api#createforumtopic)
 //
-// Use this method to create a topic in a forum supergroup chat. The bot must be an administrator in the chat for this to work and must have the can_manage_topics administrator rights. Returns information about the created topic as a ForumTopic object.
+// Use this method to create a topic in a forum supergroup chat or a private chat with a user. In the case of a supergroup chat the bot must be an administrator in the chat for this to work and must have the can_manage_topics administrator right. Returns information about the created topic as a ForumTopic object.
 //   - chatId (type int64): Unique identifier for the target chat
 //   - name (type string): Topic name, 1-128 characters
 //   - opts (type CreateForumTopicOpts): All optional parameters.
@@ -830,8 +815,8 @@ func (bot *Bot) CreateForumTopicWithContext(ctx context.Context, chatId int64, n
 	v["chat_id"] = chatId
 	v["name"] = name
 	if opts != nil {
-		v["icon_color"] = opts.IconColor
-		v["icon_custom_emoji_id"] = opts.IconCustomEmojiId
+		addIfValueNotZero(v, "icon_color", opts.IconColor, opts.IconColor == 0)
+		addIfValueNotZero(v, "icon_custom_emoji_id", opts.IconCustomEmojiId, opts.IconCustomEmojiId == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -908,29 +893,25 @@ func (bot *Bot) CreateInvoiceLinkWithContext(ctx context.Context, title string, 
 	v["description"] = description
 	v["payload"] = payload
 	v["currency"] = currency
-	if prices != nil {
-		v["prices"] = prices
-	}
+	v["prices"] = prices
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["provider_token"] = opts.ProviderToken
-		v["subscription_period"] = opts.SubscriptionPeriod
-		v["max_tip_amount"] = opts.MaxTipAmount
-		if opts.SuggestedTipAmounts != nil {
-			v["suggested_tip_amounts"] = opts.SuggestedTipAmounts
-		}
-		v["provider_data"] = opts.ProviderData
-		v["photo_url"] = opts.PhotoUrl
-		v["photo_size"] = opts.PhotoSize
-		v["photo_width"] = opts.PhotoWidth
-		v["photo_height"] = opts.PhotoHeight
-		v["need_name"] = opts.NeedName
-		v["need_phone_number"] = opts.NeedPhoneNumber
-		v["need_email"] = opts.NeedEmail
-		v["need_shipping_address"] = opts.NeedShippingAddress
-		v["send_phone_number_to_provider"] = opts.SendPhoneNumberToProvider
-		v["send_email_to_provider"] = opts.SendEmailToProvider
-		v["is_flexible"] = opts.IsFlexible
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "provider_token", opts.ProviderToken, opts.ProviderToken == "")
+		addIfValueNotZero(v, "subscription_period", opts.SubscriptionPeriod, opts.SubscriptionPeriod == 0)
+		addIfValueNotZero(v, "max_tip_amount", opts.MaxTipAmount, opts.MaxTipAmount == 0)
+		addIfValueNotZero(v, "suggested_tip_amounts", opts.SuggestedTipAmounts, opts.SuggestedTipAmounts == nil)
+		addIfValueNotZero(v, "provider_data", opts.ProviderData, opts.ProviderData == "")
+		addIfValueNotZero(v, "photo_url", opts.PhotoUrl, opts.PhotoUrl == "")
+		addIfValueNotZero(v, "photo_size", opts.PhotoSize, opts.PhotoSize == 0)
+		addIfValueNotZero(v, "photo_width", opts.PhotoWidth, opts.PhotoWidth == 0)
+		addIfValueNotZero(v, "photo_height", opts.PhotoHeight, opts.PhotoHeight == 0)
+		addIfValueNotZero(v, "need_name", opts.NeedName, opts.NeedName == false)
+		addIfValueNotZero(v, "need_phone_number", opts.NeedPhoneNumber, opts.NeedPhoneNumber == false)
+		addIfValueNotZero(v, "need_email", opts.NeedEmail, opts.NeedEmail == false)
+		addIfValueNotZero(v, "need_shipping_address", opts.NeedShippingAddress, opts.NeedShippingAddress == false)
+		addIfValueNotZero(v, "send_phone_number_to_provider", opts.SendPhoneNumberToProvider, opts.SendPhoneNumberToProvider == false)
+		addIfValueNotZero(v, "send_email_to_provider", opts.SendEmailToProvider, opts.SendEmailToProvider == false)
+		addIfValueNotZero(v, "is_flexible", opts.IsFlexible, opts.IsFlexible == false)
 	}
 
 	var reqOpts *RequestOpts
@@ -975,12 +956,10 @@ func (bot *Bot) CreateNewStickerSetWithContext(ctx context.Context, userId int64
 	v["user_id"] = userId
 	v["name"] = name
 	v["title"] = title
-	if stickers != nil {
-		v["stickers"] = stickers
-	}
+	v["stickers"] = stickers
 	if opts != nil {
-		v["sticker_type"] = opts.StickerType
-		v["needs_repainting"] = opts.NeedsRepainting
+		addIfValueNotZero(v, "sticker_type", opts.StickerType, opts.StickerType == "")
+		addIfValueNotZero(v, "needs_repainting", opts.NeedsRepainting, opts.NeedsRepainting == false)
 	}
 
 	var reqOpts *RequestOpts
@@ -1057,7 +1036,7 @@ func (bot *Bot) DeclineSuggestedPostWithContext(ctx context.Context, chatId int6
 	v["chat_id"] = chatId
 	v["message_id"] = messageId
 	if opts != nil {
-		v["comment"] = opts.Comment
+		addIfValueNotZero(v, "comment", opts.Comment, opts.Comment == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -1094,9 +1073,7 @@ func (bot *Bot) DeleteBusinessMessages(businessConnectionId string, messageIds [
 func (bot *Bot) DeleteBusinessMessagesWithContext(ctx context.Context, businessConnectionId string, messageIds []int64, opts *DeleteBusinessMessagesOpts) (bool, error) {
 	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
-	if messageIds != nil {
-		v["message_ids"] = messageIds
-	}
+	v["message_ids"] = messageIds
 
 	var reqOpts *RequestOpts
 	if opts != nil {
@@ -1188,7 +1165,7 @@ type DeleteForumTopicOpts struct {
 
 // DeleteForumTopic (https://core.telegram.org/bots/api#deleteforumtopic)
 //
-// Use this method to delete a forum topic along with all its messages in a forum supergroup chat. The bot must be an administrator in the chat for this to work and must have the can_delete_messages administrator rights. Returns True on success.
+// Use this method to delete a forum topic along with all its messages in a forum supergroup chat or a private chat with a user. In the case of a supergroup chat the bot must be an administrator in the chat for this to work and must have the can_delete_messages administrator rights. Returns True on success.
 //   - chatId (type int64): Unique identifier for the target chat
 //   - messageThreadId (type int64): Unique identifier for the target message thread of the forum topic
 //   - opts (type DeleteForumTopicOpts): All optional parameters.
@@ -1283,9 +1260,7 @@ func (bot *Bot) DeleteMessages(chatId int64, messageIds []int64, opts *DeleteMes
 func (bot *Bot) DeleteMessagesWithContext(ctx context.Context, chatId int64, messageIds []int64, opts *DeleteMessagesOpts) (bool, error) {
 	v := map[string]any{}
 	v["chat_id"] = chatId
-	if messageIds != nil {
-		v["message_ids"] = messageIds
-	}
+	v["message_ids"] = messageIds
 
 	var reqOpts *RequestOpts
 	if opts != nil {
@@ -1324,7 +1299,7 @@ func (bot *Bot) DeleteMyCommandsWithContext(ctx context.Context, opts *DeleteMyC
 	v := map[string]any{}
 	if opts != nil {
 		v["scope"] = opts.Scope
-		v["language_code"] = opts.LanguageCode
+		addIfValueNotZero(v, "language_code", opts.LanguageCode, opts.LanguageCode == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -1359,9 +1334,7 @@ func (bot *Bot) DeleteStickerFromSet(sticker InputFileOrString, opts *DeleteStic
 // DeleteStickerFromSetWithContext is the same as Bot.DeleteStickerFromSet, but with a context.Context parameter
 func (bot *Bot) DeleteStickerFromSetWithContext(ctx context.Context, sticker InputFileOrString, opts *DeleteStickerFromSetOpts) (bool, error) {
 	v := map[string]any{}
-	if sticker != nil {
-		v["sticker"] = sticker
-	}
+	v["sticker"] = sticker
 
 	var reqOpts *RequestOpts
 	if opts != nil {
@@ -1467,7 +1440,7 @@ func (bot *Bot) DeleteWebhook(opts *DeleteWebhookOpts) (bool, error) {
 func (bot *Bot) DeleteWebhookWithContext(ctx context.Context, opts *DeleteWebhookOpts) (bool, error) {
 	v := map[string]any{}
 	if opts != nil {
-		v["drop_pending_updates"] = opts.DropPendingUpdates
+		addIfValueNotZero(v, "drop_pending_updates", opts.DropPendingUpdates, opts.DropPendingUpdates == false)
 	}
 
 	var reqOpts *RequestOpts
@@ -1514,10 +1487,10 @@ func (bot *Bot) EditChatInviteLinkWithContext(ctx context.Context, chatId int64,
 	v["chat_id"] = chatId
 	v["invite_link"] = inviteLink
 	if opts != nil {
-		v["name"] = opts.Name
-		v["expire_date"] = opts.ExpireDate
-		v["member_limit"] = opts.MemberLimit
-		v["creates_join_request"] = opts.CreatesJoinRequest
+		addIfValueNotZero(v, "name", opts.Name, opts.Name == "")
+		addIfValueNotZero(v, "expire_date", opts.ExpireDate, opts.ExpireDate == 0)
+		addIfValueNotZero(v, "member_limit", opts.MemberLimit, opts.MemberLimit == 0)
+		addIfValueNotZero(v, "creates_join_request", opts.CreatesJoinRequest, opts.CreatesJoinRequest == false)
 	}
 
 	var reqOpts *RequestOpts
@@ -1558,7 +1531,7 @@ func (bot *Bot) EditChatSubscriptionInviteLinkWithContext(ctx context.Context, c
 	v["chat_id"] = chatId
 	v["invite_link"] = inviteLink
 	if opts != nil {
-		v["name"] = opts.Name
+		addIfValueNotZero(v, "name", opts.Name, opts.Name == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -1587,7 +1560,7 @@ type EditForumTopicOpts struct {
 
 // EditForumTopic (https://core.telegram.org/bots/api#editforumtopic)
 //
-// Use this method to edit name and icon of a topic in a forum supergroup chat. The bot must be an administrator in the chat for this to work and must have the can_manage_topics administrator rights, unless it is the creator of the topic. Returns True on success.
+// Use this method to edit name and icon of a topic in a forum supergroup chat or a private chat with a user. In the case of a supergroup chat the bot must be an administrator in the chat for this to work and must have the can_manage_topics administrator rights, unless it is the creator of the topic. Returns True on success.
 //   - chatId (type int64): Unique identifier for the target chat
 //   - messageThreadId (type int64): Unique identifier for the target message thread of the forum topic
 //   - opts (type EditForumTopicOpts): All optional parameters.
@@ -1601,10 +1574,8 @@ func (bot *Bot) EditForumTopicWithContext(ctx context.Context, chatId int64, mes
 	v["chat_id"] = chatId
 	v["message_thread_id"] = messageThreadId
 	if opts != nil {
-		v["name"] = opts.Name
-		if opts.IconCustomEmojiId != nil {
-			v["icon_custom_emoji_id"] = opts.IconCustomEmojiId
-		}
+		addIfValueNotZero(v, "name", opts.Name, opts.Name == "")
+		addIfValueNotZero(v, "icon_custom_emoji_id", opts.IconCustomEmojiId, opts.IconCustomEmojiId == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -1693,16 +1664,14 @@ func (bot *Bot) EditMessageCaption(opts *EditMessageCaptionOpts) (*Message, bool
 func (bot *Bot) EditMessageCaptionWithContext(ctx context.Context, opts *EditMessageCaptionOpts) (*Message, bool, error) {
 	v := map[string]any{}
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["chat_id"] = opts.ChatId
-		v["message_id"] = opts.MessageId
-		v["inline_message_id"] = opts.InlineMessageId
-		v["caption"] = opts.Caption
-		v["parse_mode"] = opts.ParseMode
-		if opts.CaptionEntities != nil {
-			v["caption_entities"] = opts.CaptionEntities
-		}
-		v["show_caption_above_media"] = opts.ShowCaptionAboveMedia
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "chat_id", opts.ChatId, opts.ChatId == 0)
+		addIfValueNotZero(v, "message_id", opts.MessageId, opts.MessageId == 0)
+		addIfValueNotZero(v, "inline_message_id", opts.InlineMessageId, opts.InlineMessageId == "")
+		addIfValueNotZero(v, "caption", opts.Caption, opts.Caption == "")
+		addIfValueNotZero(v, "parse_mode", opts.ParseMode, opts.ParseMode == "")
+		addIfValueNotZero(v, "caption_entities", opts.CaptionEntities, opts.CaptionEntities == nil)
+		addIfValueNotZero(v, "show_caption_above_media", opts.ShowCaptionAboveMedia, opts.ShowCaptionAboveMedia == false)
 		v["reply_markup"] = opts.ReplyMarkup
 	}
 
@@ -1813,16 +1782,14 @@ func (bot *Bot) EditMessageLiveLocationWithContext(ctx context.Context, latitude
 	v["latitude"] = latitude
 	v["longitude"] = longitude
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["chat_id"] = opts.ChatId
-		v["message_id"] = opts.MessageId
-		v["inline_message_id"] = opts.InlineMessageId
-		if opts.LivePeriod != nil {
-			v["live_period"] = opts.LivePeriod
-		}
-		v["horizontal_accuracy"] = opts.HorizontalAccuracy
-		v["heading"] = opts.Heading
-		v["proximity_alert_radius"] = opts.ProximityAlertRadius
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "chat_id", opts.ChatId, opts.ChatId == 0)
+		addIfValueNotZero(v, "message_id", opts.MessageId, opts.MessageId == 0)
+		addIfValueNotZero(v, "inline_message_id", opts.InlineMessageId, opts.InlineMessageId == "")
+		addIfValueNotZero(v, "live_period", opts.LivePeriod, opts.LivePeriod == nil)
+		addIfValueNotZero(v, "horizontal_accuracy", opts.HorizontalAccuracy, opts.HorizontalAccuracy == 0.0)
+		addIfValueNotZero(v, "heading", opts.Heading, opts.Heading == 0)
+		addIfValueNotZero(v, "proximity_alert_radius", opts.ProximityAlertRadius, opts.ProximityAlertRadius == 0)
 		v["reply_markup"] = opts.ReplyMarkup
 	}
 
@@ -1876,14 +1843,12 @@ func (bot *Bot) EditMessageMedia(media InputMedia, opts *EditMessageMediaOpts) (
 // EditMessageMediaWithContext is the same as Bot.EditMessageMedia, but with a context.Context parameter
 func (bot *Bot) EditMessageMediaWithContext(ctx context.Context, media InputMedia, opts *EditMessageMediaOpts) (*Message, bool, error) {
 	v := map[string]any{}
-	if media != nil {
-		v["media"] = media
-	}
+	v["media"] = media
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["chat_id"] = opts.ChatId
-		v["message_id"] = opts.MessageId
-		v["inline_message_id"] = opts.InlineMessageId
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "chat_id", opts.ChatId, opts.ChatId == 0)
+		addIfValueNotZero(v, "message_id", opts.MessageId, opts.MessageId == 0)
+		addIfValueNotZero(v, "inline_message_id", opts.InlineMessageId, opts.InlineMessageId == "")
 		v["reply_markup"] = opts.ReplyMarkup
 	}
 
@@ -1937,10 +1902,10 @@ func (bot *Bot) EditMessageReplyMarkup(opts *EditMessageReplyMarkupOpts) (*Messa
 func (bot *Bot) EditMessageReplyMarkupWithContext(ctx context.Context, opts *EditMessageReplyMarkupOpts) (*Message, bool, error) {
 	v := map[string]any{}
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["chat_id"] = opts.ChatId
-		v["message_id"] = opts.MessageId
-		v["inline_message_id"] = opts.InlineMessageId
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "chat_id", opts.ChatId, opts.ChatId == 0)
+		addIfValueNotZero(v, "message_id", opts.MessageId, opts.MessageId == 0)
+		addIfValueNotZero(v, "inline_message_id", opts.InlineMessageId, opts.InlineMessageId == "")
 		v["reply_markup"] = opts.ReplyMarkup
 	}
 
@@ -2002,17 +1967,13 @@ func (bot *Bot) EditMessageTextWithContext(ctx context.Context, text string, opt
 	v := map[string]any{}
 	v["text"] = text
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["chat_id"] = opts.ChatId
-		v["message_id"] = opts.MessageId
-		v["inline_message_id"] = opts.InlineMessageId
-		v["parse_mode"] = opts.ParseMode
-		if opts.Entities != nil {
-			v["entities"] = opts.Entities
-		}
-		if opts.LinkPreviewOptions != nil {
-			v["link_preview_options"] = opts.LinkPreviewOptions
-		}
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "chat_id", opts.ChatId, opts.ChatId == 0)
+		addIfValueNotZero(v, "message_id", opts.MessageId, opts.MessageId == 0)
+		addIfValueNotZero(v, "inline_message_id", opts.InlineMessageId, opts.InlineMessageId == "")
+		addIfValueNotZero(v, "parse_mode", opts.ParseMode, opts.ParseMode == "")
+		addIfValueNotZero(v, "entities", opts.Entities, opts.Entities == nil)
+		addIfValueNotZero(v, "link_preview_options", opts.LinkPreviewOptions, opts.LinkPreviewOptions == nil)
 		v["reply_markup"] = opts.ReplyMarkup
 	}
 
@@ -2070,14 +2031,10 @@ func (bot *Bot) EditStoryWithContext(ctx context.Context, businessConnectionId s
 	v["story_id"] = storyId
 	v["content"] = content
 	if opts != nil {
-		v["caption"] = opts.Caption
-		v["parse_mode"] = opts.ParseMode
-		if opts.CaptionEntities != nil {
-			v["caption_entities"] = opts.CaptionEntities
-		}
-		if opts.Areas != nil {
-			v["areas"] = opts.Areas
-		}
+		addIfValueNotZero(v, "caption", opts.Caption, opts.Caption == "")
+		addIfValueNotZero(v, "parse_mode", opts.ParseMode, opts.ParseMode == "")
+		addIfValueNotZero(v, "caption_entities", opts.CaptionEntities, opts.CaptionEntities == nil)
+		addIfValueNotZero(v, "areas", opts.Areas, opts.Areas == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -2168,7 +2125,7 @@ func (bot *Bot) ExportChatInviteLinkWithContext(ctx context.Context, chatId int6
 
 // ForwardMessageOpts is the set of optional fields for Bot.ForwardMessage and Bot.ForwardMessageWithContext.
 type ForwardMessageOpts struct {
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the message will be forwarded; required if the message is forwarded to a direct messages chat
 	DirectMessagesTopicId int64
@@ -2178,6 +2135,8 @@ type ForwardMessageOpts struct {
 	DisableNotification bool
 	// Protects the contents of the forwarded message from forwarding and saving
 	ProtectContent bool
+	// Unique identifier of the message effect to be added to the message; only available when forwarding to private chats
+	MessageEffectId string
 	// A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only
 	SuggestedPostParameters *SuggestedPostParameters
 	// RequestOpts are an additional optional field to configure timeouts for individual requests
@@ -2202,14 +2161,13 @@ func (bot *Bot) ForwardMessageWithContext(ctx context.Context, chatId int64, fro
 	v["from_chat_id"] = fromChatId
 	v["message_id"] = messageId
 	if opts != nil {
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		v["video_start_timestamp"] = opts.VideoStartTimestamp
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		if opts.SuggestedPostParameters != nil {
-			v["suggested_post_parameters"] = opts.SuggestedPostParameters
-		}
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		addIfValueNotZero(v, "video_start_timestamp", opts.VideoStartTimestamp, opts.VideoStartTimestamp == 0)
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "suggested_post_parameters", opts.SuggestedPostParameters, opts.SuggestedPostParameters == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -2228,7 +2186,7 @@ func (bot *Bot) ForwardMessageWithContext(ctx context.Context, chatId int64, fro
 
 // ForwardMessagesOpts is the set of optional fields for Bot.ForwardMessages and Bot.ForwardMessagesWithContext.
 type ForwardMessagesOpts struct {
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the messages will be forwarded; required if the messages are forwarded to a direct messages chat
 	DirectMessagesTopicId int64
@@ -2256,14 +2214,12 @@ func (bot *Bot) ForwardMessagesWithContext(ctx context.Context, chatId int64, fr
 	v := map[string]any{}
 	v["chat_id"] = chatId
 	v["from_chat_id"] = fromChatId
-	if messageIds != nil {
-		v["message_ids"] = messageIds
-	}
+	v["message_ids"] = messageIds
 	if opts != nil {
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
 	}
 
 	var reqOpts *RequestOpts
@@ -2320,10 +2276,14 @@ type GetBusinessAccountGiftsOpts struct {
 	ExcludeSaved bool
 	// Pass True to exclude gifts that can be purchased an unlimited number of times
 	ExcludeUnlimited bool
-	// Pass True to exclude gifts that can be purchased a limited number of times
-	ExcludeLimited bool
+	// Pass True to exclude gifts that can be purchased a limited number of times and can be upgraded to unique
+	ExcludeLimitedUpgradable bool
+	// Pass True to exclude gifts that can be purchased a limited number of times and can't be upgraded to unique
+	ExcludeLimitedNonUpgradable bool
 	// Pass True to exclude unique gifts
 	ExcludeUnique bool
+	// Pass True to exclude gifts that were assigned from the TON blockchain and can't be resold or transferred in Telegram
+	ExcludeFromBlockchain bool
 	// Pass True to sort results by gift price instead of send date. Sorting is applied before pagination.
 	SortByPrice bool
 	// Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
@@ -2348,14 +2308,16 @@ func (bot *Bot) GetBusinessAccountGiftsWithContext(ctx context.Context, business
 	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
 	if opts != nil {
-		v["exclude_unsaved"] = opts.ExcludeUnsaved
-		v["exclude_saved"] = opts.ExcludeSaved
-		v["exclude_unlimited"] = opts.ExcludeUnlimited
-		v["exclude_limited"] = opts.ExcludeLimited
-		v["exclude_unique"] = opts.ExcludeUnique
-		v["sort_by_price"] = opts.SortByPrice
-		v["offset"] = opts.Offset
-		v["limit"] = opts.Limit
+		addIfValueNotZero(v, "exclude_unsaved", opts.ExcludeUnsaved, opts.ExcludeUnsaved == false)
+		addIfValueNotZero(v, "exclude_saved", opts.ExcludeSaved, opts.ExcludeSaved == false)
+		addIfValueNotZero(v, "exclude_unlimited", opts.ExcludeUnlimited, opts.ExcludeUnlimited == false)
+		addIfValueNotZero(v, "exclude_limited_upgradable", opts.ExcludeLimitedUpgradable, opts.ExcludeLimitedUpgradable == false)
+		addIfValueNotZero(v, "exclude_limited_non_upgradable", opts.ExcludeLimitedNonUpgradable, opts.ExcludeLimitedNonUpgradable == false)
+		addIfValueNotZero(v, "exclude_unique", opts.ExcludeUnique, opts.ExcludeUnique == false)
+		addIfValueNotZero(v, "exclude_from_blockchain", opts.ExcludeFromBlockchain, opts.ExcludeFromBlockchain == false)
+		addIfValueNotZero(v, "sort_by_price", opts.SortByPrice, opts.SortByPrice == false)
+		addIfValueNotZero(v, "offset", opts.Offset, opts.Offset == "")
+		addIfValueNotZero(v, "limit", opts.Limit, opts.Limit == 0)
 	}
 
 	var reqOpts *RequestOpts
@@ -2507,6 +2469,72 @@ func (bot *Bot) GetChatAdministratorsWithContext(ctx context.Context, chatId int
 	return unmarshalChatMemberArray(r)
 }
 
+// GetChatGiftsOpts is the set of optional fields for Bot.GetChatGifts and Bot.GetChatGiftsWithContext.
+type GetChatGiftsOpts struct {
+	// Pass True to exclude gifts that aren't saved to the chat's profile page. Always True, unless the bot has the can_post_messages administrator right in the channel.
+	ExcludeUnsaved bool
+	// Pass True to exclude gifts that are saved to the chat's profile page. Always False, unless the bot has the can_post_messages administrator right in the channel.
+	ExcludeSaved bool
+	// Pass True to exclude gifts that can be purchased an unlimited number of times
+	ExcludeUnlimited bool
+	// Pass True to exclude gifts that can be purchased a limited number of times and can be upgraded to unique
+	ExcludeLimitedUpgradable bool
+	// Pass True to exclude gifts that can be purchased a limited number of times and can't be upgraded to unique
+	ExcludeLimitedNonUpgradable bool
+	// Pass True to exclude gifts that were assigned from the TON blockchain and can't be resold or transferred in Telegram
+	ExcludeFromBlockchain bool
+	// Pass True to exclude unique gifts
+	ExcludeUnique bool
+	// Pass True to sort results by gift price instead of send date. Sorting is applied before pagination.
+	SortByPrice bool
+	// Offset of the first entry to return as received from the previous request; use an empty string to get the first chunk of results
+	Offset string
+	// The maximum number of gifts to be returned; 1-100. Defaults to 100
+	Limit int64
+	// RequestOpts are an additional optional field to configure timeouts for individual requests
+	RequestOpts *RequestOpts
+}
+
+// GetChatGifts (https://core.telegram.org/bots/api#getchatgifts)
+//
+// Returns the gifts owned by a chat. Returns OwnedGifts on success.
+//   - chatId (type int64): Unique identifier for the target chat
+//   - opts (type GetChatGiftsOpts): All optional parameters.
+func (bot *Bot) GetChatGifts(chatId int64, opts *GetChatGiftsOpts) (*OwnedGifts, error) {
+	return bot.GetChatGiftsWithContext(context.Background(), chatId, opts)
+}
+
+// GetChatGiftsWithContext is the same as Bot.GetChatGifts, but with a context.Context parameter
+func (bot *Bot) GetChatGiftsWithContext(ctx context.Context, chatId int64, opts *GetChatGiftsOpts) (*OwnedGifts, error) {
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	if opts != nil {
+		addIfValueNotZero(v, "exclude_unsaved", opts.ExcludeUnsaved, opts.ExcludeUnsaved == false)
+		addIfValueNotZero(v, "exclude_saved", opts.ExcludeSaved, opts.ExcludeSaved == false)
+		addIfValueNotZero(v, "exclude_unlimited", opts.ExcludeUnlimited, opts.ExcludeUnlimited == false)
+		addIfValueNotZero(v, "exclude_limited_upgradable", opts.ExcludeLimitedUpgradable, opts.ExcludeLimitedUpgradable == false)
+		addIfValueNotZero(v, "exclude_limited_non_upgradable", opts.ExcludeLimitedNonUpgradable, opts.ExcludeLimitedNonUpgradable == false)
+		addIfValueNotZero(v, "exclude_from_blockchain", opts.ExcludeFromBlockchain, opts.ExcludeFromBlockchain == false)
+		addIfValueNotZero(v, "exclude_unique", opts.ExcludeUnique, opts.ExcludeUnique == false)
+		addIfValueNotZero(v, "sort_by_price", opts.SortByPrice, opts.SortByPrice == false)
+		addIfValueNotZero(v, "offset", opts.Offset, opts.Offset == "")
+		addIfValueNotZero(v, "limit", opts.Limit, opts.Limit == 0)
+	}
+
+	var reqOpts *RequestOpts
+	if opts != nil {
+		reqOpts = opts.RequestOpts
+	}
+
+	r, err := bot.RequestWithContext(ctx, "getChatGifts", v, reqOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	var o OwnedGifts
+	return &o, json.Unmarshal(r, &o)
+}
+
 // GetChatMemberOpts is the set of optional fields for Bot.GetChatMember and Bot.GetChatMemberWithContext.
 type GetChatMemberOpts struct {
 	// RequestOpts are an additional optional field to configure timeouts for individual requests
@@ -2596,9 +2624,7 @@ func (bot *Bot) GetChatMenuButton(opts *GetChatMenuButtonOpts) (MenuButton, erro
 func (bot *Bot) GetChatMenuButtonWithContext(ctx context.Context, opts *GetChatMenuButtonOpts) (MenuButton, error) {
 	v := map[string]any{}
 	if opts != nil {
-		if opts.ChatId != nil {
-			v["chat_id"] = opts.ChatId
-		}
+		addIfValueNotZero(v, "chat_id", opts.ChatId, opts.ChatId == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -2632,9 +2658,7 @@ func (bot *Bot) GetCustomEmojiStickers(customEmojiIds []string, opts *GetCustomE
 // GetCustomEmojiStickersWithContext is the same as Bot.GetCustomEmojiStickers, but with a context.Context parameter
 func (bot *Bot) GetCustomEmojiStickersWithContext(ctx context.Context, customEmojiIds []string, opts *GetCustomEmojiStickersOpts) ([]Sticker, error) {
 	v := map[string]any{}
-	if customEmojiIds != nil {
-		v["custom_emoji_ids"] = customEmojiIds
-	}
+	v["custom_emoji_ids"] = customEmojiIds
 
 	var reqOpts *RequestOpts
 	if opts != nil {
@@ -2743,9 +2767,9 @@ func (bot *Bot) GetGameHighScoresWithContext(ctx context.Context, userId int64, 
 	v := map[string]any{}
 	v["user_id"] = userId
 	if opts != nil {
-		v["chat_id"] = opts.ChatId
-		v["message_id"] = opts.MessageId
-		v["inline_message_id"] = opts.InlineMessageId
+		addIfValueNotZero(v, "chat_id", opts.ChatId, opts.ChatId == 0)
+		addIfValueNotZero(v, "message_id", opts.MessageId, opts.MessageId == 0)
+		addIfValueNotZero(v, "inline_message_id", opts.InlineMessageId, opts.InlineMessageId == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -2817,7 +2841,7 @@ func (bot *Bot) GetMyCommandsWithContext(ctx context.Context, opts *GetMyCommand
 	v := map[string]any{}
 	if opts != nil {
 		v["scope"] = opts.Scope
-		v["language_code"] = opts.LanguageCode
+		addIfValueNotZero(v, "language_code", opts.LanguageCode, opts.LanguageCode == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -2854,7 +2878,7 @@ func (bot *Bot) GetMyDefaultAdministratorRights(opts *GetMyDefaultAdministratorR
 func (bot *Bot) GetMyDefaultAdministratorRightsWithContext(ctx context.Context, opts *GetMyDefaultAdministratorRightsOpts) (*ChatAdministratorRights, error) {
 	v := map[string]any{}
 	if opts != nil {
-		v["for_channels"] = opts.ForChannels
+		addIfValueNotZero(v, "for_channels", opts.ForChannels, opts.ForChannels == false)
 	}
 
 	var reqOpts *RequestOpts
@@ -2891,7 +2915,7 @@ func (bot *Bot) GetMyDescription(opts *GetMyDescriptionOpts) (*BotDescription, e
 func (bot *Bot) GetMyDescriptionWithContext(ctx context.Context, opts *GetMyDescriptionOpts) (*BotDescription, error) {
 	v := map[string]any{}
 	if opts != nil {
-		v["language_code"] = opts.LanguageCode
+		addIfValueNotZero(v, "language_code", opts.LanguageCode, opts.LanguageCode == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -2928,7 +2952,7 @@ func (bot *Bot) GetMyName(opts *GetMyNameOpts) (*BotName, error) {
 func (bot *Bot) GetMyNameWithContext(ctx context.Context, opts *GetMyNameOpts) (*BotName, error) {
 	v := map[string]any{}
 	if opts != nil {
-		v["language_code"] = opts.LanguageCode
+		addIfValueNotZero(v, "language_code", opts.LanguageCode, opts.LanguageCode == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -2965,7 +2989,7 @@ func (bot *Bot) GetMyShortDescription(opts *GetMyShortDescriptionOpts) (*BotShor
 func (bot *Bot) GetMyShortDescriptionWithContext(ctx context.Context, opts *GetMyShortDescriptionOpts) (*BotShortDescription, error) {
 	v := map[string]any{}
 	if opts != nil {
-		v["language_code"] = opts.LanguageCode
+		addIfValueNotZero(v, "language_code", opts.LanguageCode, opts.LanguageCode == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -3036,8 +3060,8 @@ func (bot *Bot) GetStarTransactions(opts *GetStarTransactionsOpts) (*StarTransac
 func (bot *Bot) GetStarTransactionsWithContext(ctx context.Context, opts *GetStarTransactionsOpts) (*StarTransactions, error) {
 	v := map[string]any{}
 	if opts != nil {
-		v["offset"] = opts.Offset
-		v["limit"] = opts.Limit
+		addIfValueNotZero(v, "offset", opts.Offset, opts.Offset == 0)
+		addIfValueNotZero(v, "limit", opts.Limit, opts.Limit == 0)
 	}
 
 	var reqOpts *RequestOpts
@@ -3114,12 +3138,10 @@ func (bot *Bot) GetUpdates(opts *GetUpdatesOpts) ([]Update, error) {
 func (bot *Bot) GetUpdatesWithContext(ctx context.Context, opts *GetUpdatesOpts) ([]Update, error) {
 	v := map[string]any{}
 	if opts != nil {
-		v["offset"] = opts.Offset
-		v["limit"] = opts.Limit
-		v["timeout"] = opts.Timeout
-		if opts.AllowedUpdates != nil {
-			v["allowed_updates"] = opts.AllowedUpdates
-		}
+		addIfValueNotZero(v, "offset", opts.Offset, opts.Offset == 0)
+		addIfValueNotZero(v, "limit", opts.Limit, opts.Limit == 0)
+		addIfValueNotZero(v, "timeout", opts.Timeout, opts.Timeout == 0)
+		addIfValueNotZero(v, "allowed_updates", opts.AllowedUpdates, opts.AllowedUpdates == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -3172,6 +3194,108 @@ func (bot *Bot) GetUserChatBoostsWithContext(ctx context.Context, chatId int64, 
 	return &u, json.Unmarshal(r, &u)
 }
 
+// GetUserGiftsOpts is the set of optional fields for Bot.GetUserGifts and Bot.GetUserGiftsWithContext.
+type GetUserGiftsOpts struct {
+	// Pass True to exclude gifts that can be purchased an unlimited number of times
+	ExcludeUnlimited bool
+	// Pass True to exclude gifts that can be purchased a limited number of times and can be upgraded to unique
+	ExcludeLimitedUpgradable bool
+	// Pass True to exclude gifts that can be purchased a limited number of times and can't be upgraded to unique
+	ExcludeLimitedNonUpgradable bool
+	// Pass True to exclude gifts that were assigned from the TON blockchain and can't be resold or transferred in Telegram
+	ExcludeFromBlockchain bool
+	// Pass True to exclude unique gifts
+	ExcludeUnique bool
+	// Pass True to sort results by gift price instead of send date. Sorting is applied before pagination.
+	SortByPrice bool
+	// Offset of the first entry to return as received from the previous request; use an empty string to get the first chunk of results
+	Offset string
+	// The maximum number of gifts to be returned; 1-100. Defaults to 100
+	Limit int64
+	// RequestOpts are an additional optional field to configure timeouts for individual requests
+	RequestOpts *RequestOpts
+}
+
+// GetUserGifts (https://core.telegram.org/bots/api#getusergifts)
+//
+// Returns the gifts owned and hosted by a user. Returns OwnedGifts on success.
+//   - userId (type int64): Unique identifier of the user
+//   - opts (type GetUserGiftsOpts): All optional parameters.
+func (bot *Bot) GetUserGifts(userId int64, opts *GetUserGiftsOpts) (*OwnedGifts, error) {
+	return bot.GetUserGiftsWithContext(context.Background(), userId, opts)
+}
+
+// GetUserGiftsWithContext is the same as Bot.GetUserGifts, but with a context.Context parameter
+func (bot *Bot) GetUserGiftsWithContext(ctx context.Context, userId int64, opts *GetUserGiftsOpts) (*OwnedGifts, error) {
+	v := map[string]any{}
+	v["user_id"] = userId
+	if opts != nil {
+		addIfValueNotZero(v, "exclude_unlimited", opts.ExcludeUnlimited, opts.ExcludeUnlimited == false)
+		addIfValueNotZero(v, "exclude_limited_upgradable", opts.ExcludeLimitedUpgradable, opts.ExcludeLimitedUpgradable == false)
+		addIfValueNotZero(v, "exclude_limited_non_upgradable", opts.ExcludeLimitedNonUpgradable, opts.ExcludeLimitedNonUpgradable == false)
+		addIfValueNotZero(v, "exclude_from_blockchain", opts.ExcludeFromBlockchain, opts.ExcludeFromBlockchain == false)
+		addIfValueNotZero(v, "exclude_unique", opts.ExcludeUnique, opts.ExcludeUnique == false)
+		addIfValueNotZero(v, "sort_by_price", opts.SortByPrice, opts.SortByPrice == false)
+		addIfValueNotZero(v, "offset", opts.Offset, opts.Offset == "")
+		addIfValueNotZero(v, "limit", opts.Limit, opts.Limit == 0)
+	}
+
+	var reqOpts *RequestOpts
+	if opts != nil {
+		reqOpts = opts.RequestOpts
+	}
+
+	r, err := bot.RequestWithContext(ctx, "getUserGifts", v, reqOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	var o OwnedGifts
+	return &o, json.Unmarshal(r, &o)
+}
+
+// GetUserProfileAudiosOpts is the set of optional fields for Bot.GetUserProfileAudios and Bot.GetUserProfileAudiosWithContext.
+type GetUserProfileAudiosOpts struct {
+	// Sequential number of the first audio to be returned. By default, all audios are returned.
+	Offset int64
+	// Limits the number of audios to be retrieved. Values between 1-100 are accepted. Defaults to 100.
+	Limit int64
+	// RequestOpts are an additional optional field to configure timeouts for individual requests
+	RequestOpts *RequestOpts
+}
+
+// GetUserProfileAudios (https://core.telegram.org/bots/api#getuserprofileaudios)
+//
+// Use this method to get a list of profile audios for a user. Returns a UserProfileAudios object.
+//   - userId (type int64): Unique identifier of the target user
+//   - opts (type GetUserProfileAudiosOpts): All optional parameters.
+func (bot *Bot) GetUserProfileAudios(userId int64, opts *GetUserProfileAudiosOpts) (*UserProfileAudios, error) {
+	return bot.GetUserProfileAudiosWithContext(context.Background(), userId, opts)
+}
+
+// GetUserProfileAudiosWithContext is the same as Bot.GetUserProfileAudios, but with a context.Context parameter
+func (bot *Bot) GetUserProfileAudiosWithContext(ctx context.Context, userId int64, opts *GetUserProfileAudiosOpts) (*UserProfileAudios, error) {
+	v := map[string]any{}
+	v["user_id"] = userId
+	if opts != nil {
+		addIfValueNotZero(v, "offset", opts.Offset, opts.Offset == 0)
+		addIfValueNotZero(v, "limit", opts.Limit, opts.Limit == 0)
+	}
+
+	var reqOpts *RequestOpts
+	if opts != nil {
+		reqOpts = opts.RequestOpts
+	}
+
+	r, err := bot.RequestWithContext(ctx, "getUserProfileAudios", v, reqOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	var u UserProfileAudios
+	return &u, json.Unmarshal(r, &u)
+}
+
 // GetUserProfilePhotosOpts is the set of optional fields for Bot.GetUserProfilePhotos and Bot.GetUserProfilePhotosWithContext.
 type GetUserProfilePhotosOpts struct {
 	// Sequential number of the first photo to be returned. By default, all photos are returned.
@@ -3196,8 +3320,8 @@ func (bot *Bot) GetUserProfilePhotosWithContext(ctx context.Context, userId int6
 	v := map[string]any{}
 	v["user_id"] = userId
 	if opts != nil {
-		v["offset"] = opts.Offset
-		v["limit"] = opts.Limit
+		addIfValueNotZero(v, "offset", opts.Offset, opts.Offset == 0)
+		addIfValueNotZero(v, "limit", opts.Limit, opts.Limit == 0)
 	}
 
 	var reqOpts *RequestOpts
@@ -3276,11 +3400,9 @@ func (bot *Bot) GiftPremiumSubscriptionWithContext(ctx context.Context, userId i
 	v["month_count"] = monthCount
 	v["star_count"] = starCount
 	if opts != nil {
-		v["text"] = opts.Text
-		v["text_parse_mode"] = opts.TextParseMode
-		if opts.TextEntities != nil {
-			v["text_entities"] = opts.TextEntities
-		}
+		addIfValueNotZero(v, "text", opts.Text, opts.Text == "")
+		addIfValueNotZero(v, "text_parse_mode", opts.TextParseMode, opts.TextParseMode == "")
+		addIfValueNotZero(v, "text_entities", opts.TextEntities, opts.TextEntities == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -3423,8 +3545,8 @@ func (bot *Bot) PinChatMessageWithContext(ctx context.Context, chatId int64, mes
 	v["chat_id"] = chatId
 	v["message_id"] = messageId
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["disable_notification"] = opts.DisableNotification
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
 	}
 
 	var reqOpts *RequestOpts
@@ -3477,16 +3599,12 @@ func (bot *Bot) PostStoryWithContext(ctx context.Context, businessConnectionId s
 	v["content"] = content
 	v["active_period"] = activePeriod
 	if opts != nil {
-		v["caption"] = opts.Caption
-		v["parse_mode"] = opts.ParseMode
-		if opts.CaptionEntities != nil {
-			v["caption_entities"] = opts.CaptionEntities
-		}
-		if opts.Areas != nil {
-			v["areas"] = opts.Areas
-		}
-		v["post_to_chat_page"] = opts.PostToChatPage
-		v["protect_content"] = opts.ProtectContent
+		addIfValueNotZero(v, "caption", opts.Caption, opts.Caption == "")
+		addIfValueNotZero(v, "parse_mode", opts.ParseMode, opts.ParseMode == "")
+		addIfValueNotZero(v, "caption_entities", opts.CaptionEntities, opts.CaptionEntities == nil)
+		addIfValueNotZero(v, "areas", opts.Areas, opts.Areas == nil)
+		addIfValueNotZero(v, "post_to_chat_page", opts.PostToChatPage, opts.PostToChatPage == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
 	}
 
 	var reqOpts *RequestOpts
@@ -3513,7 +3631,7 @@ type PromoteChatMemberOpts struct {
 	CanDeleteMessages bool
 	// Pass True if the administrator can manage video chats
 	CanManageVideoChats bool
-	// Pass True if the administrator can restrict, ban or unban chat members, or access supergroup statistics
+	// Pass True if the administrator can restrict, ban or unban chat members, or access supergroup statistics. For backward compatibility, defaults to True for promotions of channel administrators
 	CanRestrictMembers bool
 	// Pass True if the administrator can add new administrators with a subset of their own privileges or demote administrators that they have promoted, directly or indirectly (promoted by administrators that were appointed by him)
 	CanPromoteMembers bool
@@ -3557,22 +3675,22 @@ func (bot *Bot) PromoteChatMemberWithContext(ctx context.Context, chatId int64, 
 	v["chat_id"] = chatId
 	v["user_id"] = userId
 	if opts != nil {
-		v["is_anonymous"] = opts.IsAnonymous
-		v["can_manage_chat"] = opts.CanManageChat
-		v["can_delete_messages"] = opts.CanDeleteMessages
-		v["can_manage_video_chats"] = opts.CanManageVideoChats
-		v["can_restrict_members"] = opts.CanRestrictMembers
-		v["can_promote_members"] = opts.CanPromoteMembers
-		v["can_change_info"] = opts.CanChangeInfo
-		v["can_invite_users"] = opts.CanInviteUsers
-		v["can_post_stories"] = opts.CanPostStories
-		v["can_edit_stories"] = opts.CanEditStories
-		v["can_delete_stories"] = opts.CanDeleteStories
-		v["can_post_messages"] = opts.CanPostMessages
-		v["can_edit_messages"] = opts.CanEditMessages
-		v["can_pin_messages"] = opts.CanPinMessages
-		v["can_manage_topics"] = opts.CanManageTopics
-		v["can_manage_direct_messages"] = opts.CanManageDirectMessages
+		addIfValueNotZero(v, "is_anonymous", opts.IsAnonymous, opts.IsAnonymous == false)
+		addIfValueNotZero(v, "can_manage_chat", opts.CanManageChat, opts.CanManageChat == false)
+		addIfValueNotZero(v, "can_delete_messages", opts.CanDeleteMessages, opts.CanDeleteMessages == false)
+		addIfValueNotZero(v, "can_manage_video_chats", opts.CanManageVideoChats, opts.CanManageVideoChats == false)
+		addIfValueNotZero(v, "can_restrict_members", opts.CanRestrictMembers, opts.CanRestrictMembers == false)
+		addIfValueNotZero(v, "can_promote_members", opts.CanPromoteMembers, opts.CanPromoteMembers == false)
+		addIfValueNotZero(v, "can_change_info", opts.CanChangeInfo, opts.CanChangeInfo == false)
+		addIfValueNotZero(v, "can_invite_users", opts.CanInviteUsers, opts.CanInviteUsers == false)
+		addIfValueNotZero(v, "can_post_stories", opts.CanPostStories, opts.CanPostStories == false)
+		addIfValueNotZero(v, "can_edit_stories", opts.CanEditStories, opts.CanEditStories == false)
+		addIfValueNotZero(v, "can_delete_stories", opts.CanDeleteStories, opts.CanDeleteStories == false)
+		addIfValueNotZero(v, "can_post_messages", opts.CanPostMessages, opts.CanPostMessages == false)
+		addIfValueNotZero(v, "can_edit_messages", opts.CanEditMessages, opts.CanEditMessages == false)
+		addIfValueNotZero(v, "can_pin_messages", opts.CanPinMessages, opts.CanPinMessages == false)
+		addIfValueNotZero(v, "can_manage_topics", opts.CanManageTopics, opts.CanManageTopics == false)
+		addIfValueNotZero(v, "can_manage_direct_messages", opts.CanManageDirectMessages, opts.CanManageDirectMessages == false)
 	}
 
 	var reqOpts *RequestOpts
@@ -3685,7 +3803,7 @@ func (bot *Bot) RemoveBusinessAccountProfilePhotoWithContext(ctx context.Context
 	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
 	if opts != nil {
-		v["is_public"] = opts.IsPublic
+		addIfValueNotZero(v, "is_public", opts.IsPublic, opts.IsPublic == false)
 	}
 
 	var reqOpts *RequestOpts
@@ -3728,6 +3846,38 @@ func (bot *Bot) RemoveChatVerificationWithContext(ctx context.Context, chatId in
 	}
 
 	r, err := bot.RequestWithContext(ctx, "removeChatVerification", v, reqOpts)
+	if err != nil {
+		return false, err
+	}
+
+	var b bool
+	return b, json.Unmarshal(r, &b)
+}
+
+// RemoveMyProfilePhotoOpts is the set of optional fields for Bot.RemoveMyProfilePhoto and Bot.RemoveMyProfilePhotoWithContext.
+type RemoveMyProfilePhotoOpts struct {
+	// RequestOpts are an additional optional field to configure timeouts for individual requests
+	RequestOpts *RequestOpts
+}
+
+// RemoveMyProfilePhoto (https://core.telegram.org/bots/api#removemyprofilephoto)
+//
+// Removes the profile photo of the bot. Requires no parameters. Returns True on success.
+//   - opts (type RemoveMyProfilePhotoOpts): All optional parameters.
+func (bot *Bot) RemoveMyProfilePhoto(opts *RemoveMyProfilePhotoOpts) (bool, error) {
+	return bot.RemoveMyProfilePhotoWithContext(context.Background(), opts)
+}
+
+// RemoveMyProfilePhotoWithContext is the same as Bot.RemoveMyProfilePhoto, but with a context.Context parameter
+func (bot *Bot) RemoveMyProfilePhotoWithContext(ctx context.Context, opts *RemoveMyProfilePhotoOpts) (bool, error) {
+	v := map[string]any{}
+
+	var reqOpts *RequestOpts
+	if opts != nil {
+		reqOpts = opts.RequestOpts
+	}
+
+	r, err := bot.RequestWithContext(ctx, "removeMyProfilePhoto", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -3880,6 +4030,54 @@ func (bot *Bot) ReplaceStickerInSetWithContext(ctx context.Context, userId int64
 	return b, json.Unmarshal(r, &b)
 }
 
+// RepostStoryOpts is the set of optional fields for Bot.RepostStory and Bot.RepostStoryWithContext.
+type RepostStoryOpts struct {
+	// Pass True to keep the story accessible after it expires
+	PostToChatPage bool
+	// Pass True if the content of the story must be protected from forwarding and screenshotting
+	ProtectContent bool
+	// RequestOpts are an additional optional field to configure timeouts for individual requests
+	RequestOpts *RequestOpts
+}
+
+// RepostStory (https://core.telegram.org/bots/api#repoststory)
+//
+// Reposts a story on behalf of a business account from another business account. Both business accounts must be managed by the same bot, and the story on the source account must have been posted (or reposted) by the bot. Requires the can_manage_stories business bot right for both business accounts. Returns Story on success.
+//   - businessConnectionId (type string): Unique identifier of the business connection
+//   - fromChatId (type int64): Unique identifier of the chat which posted the story that should be reposted
+//   - fromStoryId (type int64): Unique identifier of the story that should be reposted
+//   - activePeriod (type int64): Period after which the story is moved to the archive, in seconds; must be one of 6 * 3600, 12 * 3600, 86400, or 2 * 86400
+//   - opts (type RepostStoryOpts): All optional parameters.
+func (bot *Bot) RepostStory(businessConnectionId string, fromChatId int64, fromStoryId int64, activePeriod int64, opts *RepostStoryOpts) (*Story, error) {
+	return bot.RepostStoryWithContext(context.Background(), businessConnectionId, fromChatId, fromStoryId, activePeriod, opts)
+}
+
+// RepostStoryWithContext is the same as Bot.RepostStory, but with a context.Context parameter
+func (bot *Bot) RepostStoryWithContext(ctx context.Context, businessConnectionId string, fromChatId int64, fromStoryId int64, activePeriod int64, opts *RepostStoryOpts) (*Story, error) {
+	v := map[string]any{}
+	v["business_connection_id"] = businessConnectionId
+	v["from_chat_id"] = fromChatId
+	v["from_story_id"] = fromStoryId
+	v["active_period"] = activePeriod
+	if opts != nil {
+		addIfValueNotZero(v, "post_to_chat_page", opts.PostToChatPage, opts.PostToChatPage == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+	}
+
+	var reqOpts *RequestOpts
+	if opts != nil {
+		reqOpts = opts.RequestOpts
+	}
+
+	r, err := bot.RequestWithContext(ctx, "repostStory", v, reqOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	var s Story
+	return &s, json.Unmarshal(r, &s)
+}
+
 // RestrictChatMemberOpts is the set of optional fields for Bot.RestrictChatMember and Bot.RestrictChatMemberWithContext.
 type RestrictChatMemberOpts struct {
 	// Pass True if chat permissions are set independently. Otherwise, the can_send_other_messages and can_add_web_page_previews permissions will imply the can_send_messages, can_send_audios, can_send_documents, can_send_photos, can_send_videos, can_send_video_notes, and can_send_voice_notes permissions; the can_send_polls permission will imply the can_send_messages permission.
@@ -3908,8 +4106,8 @@ func (bot *Bot) RestrictChatMemberWithContext(ctx context.Context, chatId int64,
 	v["user_id"] = userId
 	v["permissions"] = permissions
 	if opts != nil {
-		v["use_independent_chat_permissions"] = opts.UseIndependentChatPermissions
-		v["until_date"] = opts.UntilDate
+		addIfValueNotZero(v, "use_independent_chat_permissions", opts.UseIndependentChatPermissions, opts.UseIndependentChatPermissions == false)
+		addIfValueNotZero(v, "until_date", opts.UntilDate, opts.UntilDate == 0)
 	}
 
 	var reqOpts *RequestOpts
@@ -3992,10 +4190,10 @@ func (bot *Bot) SavePreparedInlineMessageWithContext(ctx context.Context, userId
 	v["user_id"] = userId
 	v["result"] = result
 	if opts != nil {
-		v["allow_user_chats"] = opts.AllowUserChats
-		v["allow_bot_chats"] = opts.AllowBotChats
-		v["allow_group_chats"] = opts.AllowGroupChats
-		v["allow_channel_chats"] = opts.AllowChannelChats
+		addIfValueNotZero(v, "allow_user_chats", opts.AllowUserChats, opts.AllowUserChats == false)
+		addIfValueNotZero(v, "allow_bot_chats", opts.AllowBotChats, opts.AllowBotChats == false)
+		addIfValueNotZero(v, "allow_group_chats", opts.AllowGroupChats, opts.AllowGroupChats == false)
+		addIfValueNotZero(v, "allow_channel_chats", opts.AllowChannelChats, opts.AllowChannelChats == false)
 	}
 
 	var reqOpts *RequestOpts
@@ -4016,7 +4214,7 @@ func (bot *Bot) SavePreparedInlineMessageWithContext(ctx context.Context, userId
 type SendAnimationOpts struct {
 	// Unique identifier of the business connection on behalf of which the message will be sent
 	BusinessConnectionId string
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
 	DirectMessagesTopicId int64
@@ -4070,39 +4268,27 @@ func (bot *Bot) SendAnimation(chatId int64, animation InputFileOrString, opts *S
 func (bot *Bot) SendAnimationWithContext(ctx context.Context, chatId int64, animation InputFileOrString, opts *SendAnimationOpts) (*Message, error) {
 	v := map[string]any{}
 	v["chat_id"] = chatId
-	if animation != nil {
-		v["animation"] = animation
-	}
+	v["animation"] = animation
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		v["duration"] = opts.Duration
-		v["width"] = opts.Width
-		v["height"] = opts.Height
-		if opts.Thumbnail != nil {
-			v["thumbnail"] = opts.Thumbnail
-		}
-		v["caption"] = opts.Caption
-		v["parse_mode"] = opts.ParseMode
-		if opts.CaptionEntities != nil {
-			v["caption_entities"] = opts.CaptionEntities
-		}
-		v["show_caption_above_media"] = opts.ShowCaptionAboveMedia
-		v["has_spoiler"] = opts.HasSpoiler
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
-		v["message_effect_id"] = opts.MessageEffectId
-		if opts.SuggestedPostParameters != nil {
-			v["suggested_post_parameters"] = opts.SuggestedPostParameters
-		}
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
-		if opts.ReplyMarkup != nil {
-			v["reply_markup"] = opts.ReplyMarkup
-		}
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		addIfValueNotZero(v, "duration", opts.Duration, opts.Duration == 0)
+		addIfValueNotZero(v, "width", opts.Width, opts.Width == 0)
+		addIfValueNotZero(v, "height", opts.Height, opts.Height == 0)
+		v["thumbnail"] = opts.Thumbnail
+		addIfValueNotZero(v, "caption", opts.Caption, opts.Caption == "")
+		addIfValueNotZero(v, "parse_mode", opts.ParseMode, opts.ParseMode == "")
+		addIfValueNotZero(v, "caption_entities", opts.CaptionEntities, opts.CaptionEntities == nil)
+		addIfValueNotZero(v, "show_caption_above_media", opts.ShowCaptionAboveMedia, opts.ShowCaptionAboveMedia == false)
+		addIfValueNotZero(v, "has_spoiler", opts.HasSpoiler, opts.HasSpoiler == false)
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "allow_paid_broadcast", opts.AllowPaidBroadcast, opts.AllowPaidBroadcast == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "suggested_post_parameters", opts.SuggestedPostParameters, opts.SuggestedPostParameters == nil)
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
+		addIfValueNotZero(v, "reply_markup", opts.ReplyMarkup, opts.ReplyMarkup == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -4123,7 +4309,7 @@ func (bot *Bot) SendAnimationWithContext(ctx context.Context, chatId int64, anim
 type SendAudioOpts struct {
 	// Unique identifier of the business connection on behalf of which the message will be sent
 	BusinessConnectionId string
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
 	DirectMessagesTopicId int64
@@ -4174,37 +4360,25 @@ func (bot *Bot) SendAudio(chatId int64, audio InputFileOrString, opts *SendAudio
 func (bot *Bot) SendAudioWithContext(ctx context.Context, chatId int64, audio InputFileOrString, opts *SendAudioOpts) (*Message, error) {
 	v := map[string]any{}
 	v["chat_id"] = chatId
-	if audio != nil {
-		v["audio"] = audio
-	}
+	v["audio"] = audio
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		v["caption"] = opts.Caption
-		v["parse_mode"] = opts.ParseMode
-		if opts.CaptionEntities != nil {
-			v["caption_entities"] = opts.CaptionEntities
-		}
-		v["duration"] = opts.Duration
-		v["performer"] = opts.Performer
-		v["title"] = opts.Title
-		if opts.Thumbnail != nil {
-			v["thumbnail"] = opts.Thumbnail
-		}
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
-		v["message_effect_id"] = opts.MessageEffectId
-		if opts.SuggestedPostParameters != nil {
-			v["suggested_post_parameters"] = opts.SuggestedPostParameters
-		}
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
-		if opts.ReplyMarkup != nil {
-			v["reply_markup"] = opts.ReplyMarkup
-		}
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		addIfValueNotZero(v, "caption", opts.Caption, opts.Caption == "")
+		addIfValueNotZero(v, "parse_mode", opts.ParseMode, opts.ParseMode == "")
+		addIfValueNotZero(v, "caption_entities", opts.CaptionEntities, opts.CaptionEntities == nil)
+		addIfValueNotZero(v, "duration", opts.Duration, opts.Duration == 0)
+		addIfValueNotZero(v, "performer", opts.Performer, opts.Performer == "")
+		addIfValueNotZero(v, "title", opts.Title, opts.Title == "")
+		v["thumbnail"] = opts.Thumbnail
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "allow_paid_broadcast", opts.AllowPaidBroadcast, opts.AllowPaidBroadcast == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "suggested_post_parameters", opts.SuggestedPostParameters, opts.SuggestedPostParameters == nil)
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
+		addIfValueNotZero(v, "reply_markup", opts.ReplyMarkup, opts.ReplyMarkup == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -4225,7 +4399,7 @@ func (bot *Bot) SendAudioWithContext(ctx context.Context, chatId int64, audio In
 type SendChatActionOpts struct {
 	// Unique identifier of the business connection on behalf of which the action will be sent
 	BusinessConnectionId string
-	// Unique identifier for the target message thread; for supergroups only
+	// Unique identifier for the target message thread or topic of a forum; for supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// RequestOpts are an additional optional field to configure timeouts for individual requests
 	RequestOpts *RequestOpts
@@ -4248,8 +4422,8 @@ func (bot *Bot) SendChatActionWithContext(ctx context.Context, chatId int64, act
 	v["chat_id"] = chatId
 	v["action"] = action
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["message_thread_id"] = opts.MessageThreadId
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
 	}
 
 	var reqOpts *RequestOpts
@@ -4300,12 +4474,10 @@ func (bot *Bot) SendChecklistWithContext(ctx context.Context, businessConnection
 	v["chat_id"] = chatId
 	v["checklist"] = checklist
 	if opts != nil {
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["message_effect_id"] = opts.MessageEffectId
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
 		v["reply_markup"] = opts.ReplyMarkup
 	}
 
@@ -4327,7 +4499,7 @@ func (bot *Bot) SendChecklistWithContext(ctx context.Context, businessConnection
 type SendContactOpts struct {
 	// Unique identifier of the business connection on behalf of which the message will be sent
 	BusinessConnectionId string
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
 	DirectMessagesTopicId int64
@@ -4371,24 +4543,18 @@ func (bot *Bot) SendContactWithContext(ctx context.Context, chatId int64, phoneN
 	v["phone_number"] = phoneNumber
 	v["first_name"] = firstName
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		v["last_name"] = opts.LastName
-		v["vcard"] = opts.Vcard
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
-		v["message_effect_id"] = opts.MessageEffectId
-		if opts.SuggestedPostParameters != nil {
-			v["suggested_post_parameters"] = opts.SuggestedPostParameters
-		}
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
-		if opts.ReplyMarkup != nil {
-			v["reply_markup"] = opts.ReplyMarkup
-		}
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		addIfValueNotZero(v, "last_name", opts.LastName, opts.LastName == "")
+		addIfValueNotZero(v, "vcard", opts.Vcard, opts.Vcard == "")
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "allow_paid_broadcast", opts.AllowPaidBroadcast, opts.AllowPaidBroadcast == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "suggested_post_parameters", opts.SuggestedPostParameters, opts.SuggestedPostParameters == nil)
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
+		addIfValueNotZero(v, "reply_markup", opts.ReplyMarkup, opts.ReplyMarkup == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -4409,7 +4575,7 @@ func (bot *Bot) SendContactWithContext(ctx context.Context, chatId int64, phoneN
 type SendDiceOpts struct {
 	// Unique identifier of the business connection on behalf of which the message will be sent
 	BusinessConnectionId string
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
 	DirectMessagesTopicId int64
@@ -4447,23 +4613,17 @@ func (bot *Bot) SendDiceWithContext(ctx context.Context, chatId int64, opts *Sen
 	v := map[string]any{}
 	v["chat_id"] = chatId
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		v["emoji"] = opts.Emoji
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
-		v["message_effect_id"] = opts.MessageEffectId
-		if opts.SuggestedPostParameters != nil {
-			v["suggested_post_parameters"] = opts.SuggestedPostParameters
-		}
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
-		if opts.ReplyMarkup != nil {
-			v["reply_markup"] = opts.ReplyMarkup
-		}
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		addIfValueNotZero(v, "emoji", opts.Emoji, opts.Emoji == "")
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "allow_paid_broadcast", opts.AllowPaidBroadcast, opts.AllowPaidBroadcast == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "suggested_post_parameters", opts.SuggestedPostParameters, opts.SuggestedPostParameters == nil)
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
+		addIfValueNotZero(v, "reply_markup", opts.ReplyMarkup, opts.ReplyMarkup == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -4484,7 +4644,7 @@ func (bot *Bot) SendDiceWithContext(ctx context.Context, chatId int64, opts *Sen
 type SendDocumentOpts struct {
 	// Unique identifier of the business connection on behalf of which the message will be sent
 	BusinessConnectionId string
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
 	DirectMessagesTopicId int64
@@ -4530,35 +4690,23 @@ func (bot *Bot) SendDocument(chatId int64, document InputFileOrString, opts *Sen
 func (bot *Bot) SendDocumentWithContext(ctx context.Context, chatId int64, document InputFileOrString, opts *SendDocumentOpts) (*Message, error) {
 	v := map[string]any{}
 	v["chat_id"] = chatId
-	if document != nil {
-		v["document"] = document
-	}
+	v["document"] = document
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		if opts.Thumbnail != nil {
-			v["thumbnail"] = opts.Thumbnail
-		}
-		v["caption"] = opts.Caption
-		v["parse_mode"] = opts.ParseMode
-		if opts.CaptionEntities != nil {
-			v["caption_entities"] = opts.CaptionEntities
-		}
-		v["disable_content_type_detection"] = opts.DisableContentTypeDetection
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
-		v["message_effect_id"] = opts.MessageEffectId
-		if opts.SuggestedPostParameters != nil {
-			v["suggested_post_parameters"] = opts.SuggestedPostParameters
-		}
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
-		if opts.ReplyMarkup != nil {
-			v["reply_markup"] = opts.ReplyMarkup
-		}
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		v["thumbnail"] = opts.Thumbnail
+		addIfValueNotZero(v, "caption", opts.Caption, opts.Caption == "")
+		addIfValueNotZero(v, "parse_mode", opts.ParseMode, opts.ParseMode == "")
+		addIfValueNotZero(v, "caption_entities", opts.CaptionEntities, opts.CaptionEntities == nil)
+		addIfValueNotZero(v, "disable_content_type_detection", opts.DisableContentTypeDetection, opts.DisableContentTypeDetection == false)
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "allow_paid_broadcast", opts.AllowPaidBroadcast, opts.AllowPaidBroadcast == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "suggested_post_parameters", opts.SuggestedPostParameters, opts.SuggestedPostParameters == nil)
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
+		addIfValueNotZero(v, "reply_markup", opts.ReplyMarkup, opts.ReplyMarkup == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -4579,7 +4727,7 @@ func (bot *Bot) SendDocumentWithContext(ctx context.Context, chatId int64, docum
 type SendGameOpts struct {
 	// Unique identifier of the business connection on behalf of which the message will be sent
 	BusinessConnectionId string
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Sends the message silently. Users will receive a notification with no sound.
 	DisableNotification bool
@@ -4613,15 +4761,13 @@ func (bot *Bot) SendGameWithContext(ctx context.Context, chatId int64, gameShort
 	v["chat_id"] = chatId
 	v["game_short_name"] = gameShortName
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["message_thread_id"] = opts.MessageThreadId
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
-		v["message_effect_id"] = opts.MessageEffectId
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "allow_paid_broadcast", opts.AllowPaidBroadcast, opts.AllowPaidBroadcast == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
 		v["reply_markup"] = opts.ReplyMarkup
 	}
 
@@ -4660,7 +4806,7 @@ type SendGiftOpts struct {
 // SendGift (https://core.telegram.org/bots/api#sendgift)
 //
 // Sends a gift to the given user or channel chat. The gift can't be converted to Telegram Stars by the receiver. Returns True on success.
-//   - giftId (type string): Identifier of the gift
+//   - giftId (type string): Identifier of the gift; limited gifts can't be sent to channel chats
 //   - opts (type SendGiftOpts): All optional parameters.
 func (bot *Bot) SendGift(giftId string, opts *SendGiftOpts) (bool, error) {
 	return bot.SendGiftWithContext(context.Background(), giftId, opts)
@@ -4671,14 +4817,12 @@ func (bot *Bot) SendGiftWithContext(ctx context.Context, giftId string, opts *Se
 	v := map[string]any{}
 	v["gift_id"] = giftId
 	if opts != nil {
-		v["user_id"] = opts.UserId
-		v["chat_id"] = opts.ChatId
-		v["pay_for_upgrade"] = opts.PayForUpgrade
-		v["text"] = opts.Text
-		v["text_parse_mode"] = opts.TextParseMode
-		if opts.TextEntities != nil {
-			v["text_entities"] = opts.TextEntities
-		}
+		addIfValueNotZero(v, "user_id", opts.UserId, opts.UserId == 0)
+		addIfValueNotZero(v, "chat_id", opts.ChatId, opts.ChatId == 0)
+		addIfValueNotZero(v, "pay_for_upgrade", opts.PayForUpgrade, opts.PayForUpgrade == false)
+		addIfValueNotZero(v, "text", opts.Text, opts.Text == "")
+		addIfValueNotZero(v, "text_parse_mode", opts.TextParseMode, opts.TextParseMode == "")
+		addIfValueNotZero(v, "text_entities", opts.TextEntities, opts.TextEntities == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -4697,7 +4841,7 @@ func (bot *Bot) SendGiftWithContext(ctx context.Context, giftId string, opts *Se
 
 // SendInvoiceOpts is the set of optional fields for Bot.SendInvoice and Bot.SendInvoiceWithContext.
 type SendInvoiceOpts struct {
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
 	DirectMessagesTopicId int64
@@ -4773,40 +4917,32 @@ func (bot *Bot) SendInvoiceWithContext(ctx context.Context, chatId int64, title 
 	v["description"] = description
 	v["payload"] = payload
 	v["currency"] = currency
-	if prices != nil {
-		v["prices"] = prices
-	}
+	v["prices"] = prices
 	if opts != nil {
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		v["provider_token"] = opts.ProviderToken
-		v["max_tip_amount"] = opts.MaxTipAmount
-		if opts.SuggestedTipAmounts != nil {
-			v["suggested_tip_amounts"] = opts.SuggestedTipAmounts
-		}
-		v["start_parameter"] = opts.StartParameter
-		v["provider_data"] = opts.ProviderData
-		v["photo_url"] = opts.PhotoUrl
-		v["photo_size"] = opts.PhotoSize
-		v["photo_width"] = opts.PhotoWidth
-		v["photo_height"] = opts.PhotoHeight
-		v["need_name"] = opts.NeedName
-		v["need_phone_number"] = opts.NeedPhoneNumber
-		v["need_email"] = opts.NeedEmail
-		v["need_shipping_address"] = opts.NeedShippingAddress
-		v["send_phone_number_to_provider"] = opts.SendPhoneNumberToProvider
-		v["send_email_to_provider"] = opts.SendEmailToProvider
-		v["is_flexible"] = opts.IsFlexible
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
-		v["message_effect_id"] = opts.MessageEffectId
-		if opts.SuggestedPostParameters != nil {
-			v["suggested_post_parameters"] = opts.SuggestedPostParameters
-		}
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		addIfValueNotZero(v, "provider_token", opts.ProviderToken, opts.ProviderToken == "")
+		addIfValueNotZero(v, "max_tip_amount", opts.MaxTipAmount, opts.MaxTipAmount == 0)
+		addIfValueNotZero(v, "suggested_tip_amounts", opts.SuggestedTipAmounts, opts.SuggestedTipAmounts == nil)
+		addIfValueNotZero(v, "start_parameter", opts.StartParameter, opts.StartParameter == "")
+		addIfValueNotZero(v, "provider_data", opts.ProviderData, opts.ProviderData == "")
+		addIfValueNotZero(v, "photo_url", opts.PhotoUrl, opts.PhotoUrl == "")
+		addIfValueNotZero(v, "photo_size", opts.PhotoSize, opts.PhotoSize == 0)
+		addIfValueNotZero(v, "photo_width", opts.PhotoWidth, opts.PhotoWidth == 0)
+		addIfValueNotZero(v, "photo_height", opts.PhotoHeight, opts.PhotoHeight == 0)
+		addIfValueNotZero(v, "need_name", opts.NeedName, opts.NeedName == false)
+		addIfValueNotZero(v, "need_phone_number", opts.NeedPhoneNumber, opts.NeedPhoneNumber == false)
+		addIfValueNotZero(v, "need_email", opts.NeedEmail, opts.NeedEmail == false)
+		addIfValueNotZero(v, "need_shipping_address", opts.NeedShippingAddress, opts.NeedShippingAddress == false)
+		addIfValueNotZero(v, "send_phone_number_to_provider", opts.SendPhoneNumberToProvider, opts.SendPhoneNumberToProvider == false)
+		addIfValueNotZero(v, "send_email_to_provider", opts.SendEmailToProvider, opts.SendEmailToProvider == false)
+		addIfValueNotZero(v, "is_flexible", opts.IsFlexible, opts.IsFlexible == false)
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "allow_paid_broadcast", opts.AllowPaidBroadcast, opts.AllowPaidBroadcast == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "suggested_post_parameters", opts.SuggestedPostParameters, opts.SuggestedPostParameters == nil)
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
 		v["reply_markup"] = opts.ReplyMarkup
 	}
 
@@ -4828,7 +4964,7 @@ func (bot *Bot) SendInvoiceWithContext(ctx context.Context, chatId int64, title 
 type SendLocationOpts struct {
 	// Unique identifier of the business connection on behalf of which the message will be sent
 	BusinessConnectionId string
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
 	DirectMessagesTopicId int64
@@ -4876,26 +5012,20 @@ func (bot *Bot) SendLocationWithContext(ctx context.Context, chatId int64, latit
 	v["latitude"] = latitude
 	v["longitude"] = longitude
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		v["horizontal_accuracy"] = opts.HorizontalAccuracy
-		v["live_period"] = opts.LivePeriod
-		v["heading"] = opts.Heading
-		v["proximity_alert_radius"] = opts.ProximityAlertRadius
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
-		v["message_effect_id"] = opts.MessageEffectId
-		if opts.SuggestedPostParameters != nil {
-			v["suggested_post_parameters"] = opts.SuggestedPostParameters
-		}
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
-		if opts.ReplyMarkup != nil {
-			v["reply_markup"] = opts.ReplyMarkup
-		}
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		addIfValueNotZero(v, "horizontal_accuracy", opts.HorizontalAccuracy, opts.HorizontalAccuracy == 0.0)
+		addIfValueNotZero(v, "live_period", opts.LivePeriod, opts.LivePeriod == 0)
+		addIfValueNotZero(v, "heading", opts.Heading, opts.Heading == 0)
+		addIfValueNotZero(v, "proximity_alert_radius", opts.ProximityAlertRadius, opts.ProximityAlertRadius == 0)
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "allow_paid_broadcast", opts.AllowPaidBroadcast, opts.AllowPaidBroadcast == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "suggested_post_parameters", opts.SuggestedPostParameters, opts.SuggestedPostParameters == nil)
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
+		addIfValueNotZero(v, "reply_markup", opts.ReplyMarkup, opts.ReplyMarkup == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -4916,7 +5046,7 @@ func (bot *Bot) SendLocationWithContext(ctx context.Context, chatId int64, latit
 type SendMediaGroupOpts struct {
 	// Unique identifier of the business connection on behalf of which the message will be sent
 	BusinessConnectionId string
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the messages will be sent; required if the messages are sent to a direct messages chat
 	DirectMessagesTopicId int64
@@ -4948,20 +5078,16 @@ func (bot *Bot) SendMediaGroup(chatId int64, media []InputMedia, opts *SendMedia
 func (bot *Bot) SendMediaGroupWithContext(ctx context.Context, chatId int64, media []InputMedia, opts *SendMediaGroupOpts) ([]Message, error) {
 	v := map[string]any{}
 	v["chat_id"] = chatId
-	if media != nil {
-		v["media"] = media
-	}
+	v["media"] = media
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
-		v["message_effect_id"] = opts.MessageEffectId
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "allow_paid_broadcast", opts.AllowPaidBroadcast, opts.AllowPaidBroadcast == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -4982,7 +5108,7 @@ func (bot *Bot) SendMediaGroupWithContext(ctx context.Context, chatId int64, med
 type SendMessageOpts struct {
 	// Unique identifier of the business connection on behalf of which the message will be sent
 	BusinessConnectionId string
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
 	DirectMessagesTopicId int64
@@ -5026,29 +5152,19 @@ func (bot *Bot) SendMessageWithContext(ctx context.Context, chatId int64, text s
 	v["chat_id"] = chatId
 	v["text"] = text
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		v["parse_mode"] = opts.ParseMode
-		if opts.Entities != nil {
-			v["entities"] = opts.Entities
-		}
-		if opts.LinkPreviewOptions != nil {
-			v["link_preview_options"] = opts.LinkPreviewOptions
-		}
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
-		v["message_effect_id"] = opts.MessageEffectId
-		if opts.SuggestedPostParameters != nil {
-			v["suggested_post_parameters"] = opts.SuggestedPostParameters
-		}
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
-		if opts.ReplyMarkup != nil {
-			v["reply_markup"] = opts.ReplyMarkup
-		}
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		addIfValueNotZero(v, "parse_mode", opts.ParseMode, opts.ParseMode == "")
+		addIfValueNotZero(v, "entities", opts.Entities, opts.Entities == nil)
+		addIfValueNotZero(v, "link_preview_options", opts.LinkPreviewOptions, opts.LinkPreviewOptions == nil)
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "allow_paid_broadcast", opts.AllowPaidBroadcast, opts.AllowPaidBroadcast == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "suggested_post_parameters", opts.SuggestedPostParameters, opts.SuggestedPostParameters == nil)
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
+		addIfValueNotZero(v, "reply_markup", opts.ReplyMarkup, opts.ReplyMarkup == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -5065,11 +5181,60 @@ func (bot *Bot) SendMessageWithContext(ctx context.Context, chatId int64, text s
 	return &m, json.Unmarshal(r, &m)
 }
 
+// SendMessageDraftOpts is the set of optional fields for Bot.SendMessageDraft and Bot.SendMessageDraftWithContext.
+type SendMessageDraftOpts struct {
+	// Unique identifier for the target message thread
+	MessageThreadId int64
+	// Mode for parsing entities in the message text. See formatting options for more details.
+	ParseMode string
+	// A JSON-serialized list of special entities that appear in message text, which can be specified instead of parse_mode
+	Entities []MessageEntity
+	// RequestOpts are an additional optional field to configure timeouts for individual requests
+	RequestOpts *RequestOpts
+}
+
+// SendMessageDraft (https://core.telegram.org/bots/api#sendmessagedraft)
+//
+// Use this method to stream a partial message to a user while the message is being generated; supported only for bots with forum topic mode enabled. Returns True on success.
+//   - chatId (type int64): Unique identifier for the target private chat
+//   - draftId (type int64): Unique identifier of the message draft; must be non-zero. Changes of drafts with the same identifier are animated
+//   - text (type string): Text of the message to be sent, 1-4096 characters after entities parsing
+//   - opts (type SendMessageDraftOpts): All optional parameters.
+func (bot *Bot) SendMessageDraft(chatId int64, draftId int64, text string, opts *SendMessageDraftOpts) (bool, error) {
+	return bot.SendMessageDraftWithContext(context.Background(), chatId, draftId, text, opts)
+}
+
+// SendMessageDraftWithContext is the same as Bot.SendMessageDraft, but with a context.Context parameter
+func (bot *Bot) SendMessageDraftWithContext(ctx context.Context, chatId int64, draftId int64, text string, opts *SendMessageDraftOpts) (bool, error) {
+	v := map[string]any{}
+	v["chat_id"] = chatId
+	v["draft_id"] = draftId
+	v["text"] = text
+	if opts != nil {
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "parse_mode", opts.ParseMode, opts.ParseMode == "")
+		addIfValueNotZero(v, "entities", opts.Entities, opts.Entities == nil)
+	}
+
+	var reqOpts *RequestOpts
+	if opts != nil {
+		reqOpts = opts.RequestOpts
+	}
+
+	r, err := bot.RequestWithContext(ctx, "sendMessageDraft", v, reqOpts)
+	if err != nil {
+		return false, err
+	}
+
+	var b bool
+	return b, json.Unmarshal(r, &b)
+}
+
 // SendPaidMediaOpts is the set of optional fields for Bot.SendPaidMedia and Bot.SendPaidMediaWithContext.
 type SendPaidMediaOpts struct {
 	// Unique identifier of the business connection on behalf of which the message will be sent
 	BusinessConnectionId string
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
 	DirectMessagesTopicId int64
@@ -5103,7 +5268,7 @@ type SendPaidMediaOpts struct {
 //
 // Use this method to send paid media. On success, the sent Message is returned.
 //   - chatId (type int64): Unique identifier for the target chat. If the chat is a channel, all Telegram Star proceeds from this media will be credited to the chat's balance. Otherwise, they will be credited to the bot's balance.
-//   - starCount (type int64): The number of Telegram Stars that must be paid to buy access to the media; 1-10000
+//   - starCount (type int64): The number of Telegram Stars that must be paid to buy access to the media; 1-25000
 //   - media (type []InputPaidMedia): A JSON-serialized array describing the media to be sent; up to 10 items
 //   - opts (type SendPaidMediaOpts): All optional parameters.
 func (bot *Bot) SendPaidMedia(chatId int64, starCount int64, media []InputPaidMedia, opts *SendPaidMediaOpts) (*Message, error) {
@@ -5115,32 +5280,22 @@ func (bot *Bot) SendPaidMediaWithContext(ctx context.Context, chatId int64, star
 	v := map[string]any{}
 	v["chat_id"] = chatId
 	v["star_count"] = starCount
-	if media != nil {
-		v["media"] = media
-	}
+	v["media"] = media
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		v["payload"] = opts.Payload
-		v["caption"] = opts.Caption
-		v["parse_mode"] = opts.ParseMode
-		if opts.CaptionEntities != nil {
-			v["caption_entities"] = opts.CaptionEntities
-		}
-		v["show_caption_above_media"] = opts.ShowCaptionAboveMedia
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
-		if opts.SuggestedPostParameters != nil {
-			v["suggested_post_parameters"] = opts.SuggestedPostParameters
-		}
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
-		if opts.ReplyMarkup != nil {
-			v["reply_markup"] = opts.ReplyMarkup
-		}
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		addIfValueNotZero(v, "payload", opts.Payload, opts.Payload == "")
+		addIfValueNotZero(v, "caption", opts.Caption, opts.Caption == "")
+		addIfValueNotZero(v, "parse_mode", opts.ParseMode, opts.ParseMode == "")
+		addIfValueNotZero(v, "caption_entities", opts.CaptionEntities, opts.CaptionEntities == nil)
+		addIfValueNotZero(v, "show_caption_above_media", opts.ShowCaptionAboveMedia, opts.ShowCaptionAboveMedia == false)
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "allow_paid_broadcast", opts.AllowPaidBroadcast, opts.AllowPaidBroadcast == false)
+		addIfValueNotZero(v, "suggested_post_parameters", opts.SuggestedPostParameters, opts.SuggestedPostParameters == nil)
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
+		addIfValueNotZero(v, "reply_markup", opts.ReplyMarkup, opts.ReplyMarkup == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -5161,7 +5316,7 @@ func (bot *Bot) SendPaidMediaWithContext(ctx context.Context, chatId int64, star
 type SendPhotoOpts struct {
 	// Unique identifier of the business connection on behalf of which the message will be sent
 	BusinessConnectionId string
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
 	DirectMessagesTopicId int64
@@ -5207,33 +5362,23 @@ func (bot *Bot) SendPhoto(chatId int64, photo InputFileOrString, opts *SendPhoto
 func (bot *Bot) SendPhotoWithContext(ctx context.Context, chatId int64, photo InputFileOrString, opts *SendPhotoOpts) (*Message, error) {
 	v := map[string]any{}
 	v["chat_id"] = chatId
-	if photo != nil {
-		v["photo"] = photo
-	}
+	v["photo"] = photo
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		v["caption"] = opts.Caption
-		v["parse_mode"] = opts.ParseMode
-		if opts.CaptionEntities != nil {
-			v["caption_entities"] = opts.CaptionEntities
-		}
-		v["show_caption_above_media"] = opts.ShowCaptionAboveMedia
-		v["has_spoiler"] = opts.HasSpoiler
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
-		v["message_effect_id"] = opts.MessageEffectId
-		if opts.SuggestedPostParameters != nil {
-			v["suggested_post_parameters"] = opts.SuggestedPostParameters
-		}
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
-		if opts.ReplyMarkup != nil {
-			v["reply_markup"] = opts.ReplyMarkup
-		}
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		addIfValueNotZero(v, "caption", opts.Caption, opts.Caption == "")
+		addIfValueNotZero(v, "parse_mode", opts.ParseMode, opts.ParseMode == "")
+		addIfValueNotZero(v, "caption_entities", opts.CaptionEntities, opts.CaptionEntities == nil)
+		addIfValueNotZero(v, "show_caption_above_media", opts.ShowCaptionAboveMedia, opts.ShowCaptionAboveMedia == false)
+		addIfValueNotZero(v, "has_spoiler", opts.HasSpoiler, opts.HasSpoiler == false)
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "allow_paid_broadcast", opts.AllowPaidBroadcast, opts.AllowPaidBroadcast == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "suggested_post_parameters", opts.SuggestedPostParameters, opts.SuggestedPostParameters == nil)
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
+		addIfValueNotZero(v, "reply_markup", opts.ReplyMarkup, opts.ReplyMarkup == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -5254,14 +5399,14 @@ func (bot *Bot) SendPhotoWithContext(ctx context.Context, chatId int64, photo In
 type SendPollOpts struct {
 	// Unique identifier of the business connection on behalf of which the message will be sent
 	BusinessConnectionId string
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Mode for parsing entities in the question. See formatting options for more details. Currently, only custom emoji entities are allowed
 	QuestionParseMode string
 	// A JSON-serialized list of special entities that appear in the poll question. It can be specified instead of question_parse_mode
 	QuestionEntities []MessageEntity
 	// True, if the poll needs to be anonymous, defaults to True
-	IsAnonymous bool
+	IsAnonymous *bool
 	// Poll type, "quiz" or "regular", defaults to "regular"
 	Type string
 	// True, if the poll allows multiple answers, ignored for polls in quiz mode, defaults to False
@@ -5312,41 +5457,31 @@ func (bot *Bot) SendPollWithContext(ctx context.Context, chatId int64, question 
 	v := map[string]any{}
 	v["chat_id"] = chatId
 	v["question"] = question
-	if options != nil {
-		v["options"] = options
-	}
+	v["options"] = options
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["message_thread_id"] = opts.MessageThreadId
-		v["question_parse_mode"] = opts.QuestionParseMode
-		if opts.QuestionEntities != nil {
-			v["question_entities"] = opts.QuestionEntities
-		}
-		v["is_anonymous"] = opts.IsAnonymous
-		v["type"] = opts.Type
-		v["allows_multiple_answers"] = opts.AllowsMultipleAnswers
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "question_parse_mode", opts.QuestionParseMode, opts.QuestionParseMode == "")
+		addIfValueNotZero(v, "question_entities", opts.QuestionEntities, opts.QuestionEntities == nil)
+		addIfValueNotZero(v, "is_anonymous", opts.IsAnonymous, opts.IsAnonymous == nil)
+		addIfValueNotZero(v, "type", opts.Type, opts.Type == "")
+		addIfValueNotZero(v, "allows_multiple_answers", opts.AllowsMultipleAnswers, opts.AllowsMultipleAnswers == false)
 		if opts.Type == "quiz" {
-			// correct_option_id should always be set when the type is "quiz" - it doesnt need to be set for type "regular".
+			// correct_option_id should always be set when the type is "quiz" - it doesn't need to be set for type "regular".
 			v["correct_option_id"] = opts.CorrectOptionId
 		}
-		v["explanation"] = opts.Explanation
-		v["explanation_parse_mode"] = opts.ExplanationParseMode
-		if opts.ExplanationEntities != nil {
-			v["explanation_entities"] = opts.ExplanationEntities
-		}
-		v["open_period"] = opts.OpenPeriod
-		v["close_date"] = opts.CloseDate
-		v["is_closed"] = opts.IsClosed
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
-		v["message_effect_id"] = opts.MessageEffectId
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
-		if opts.ReplyMarkup != nil {
-			v["reply_markup"] = opts.ReplyMarkup
-		}
+		addIfValueNotZero(v, "explanation", opts.Explanation, opts.Explanation == "")
+		addIfValueNotZero(v, "explanation_parse_mode", opts.ExplanationParseMode, opts.ExplanationParseMode == "")
+		addIfValueNotZero(v, "explanation_entities", opts.ExplanationEntities, opts.ExplanationEntities == nil)
+		addIfValueNotZero(v, "open_period", opts.OpenPeriod, opts.OpenPeriod == 0)
+		addIfValueNotZero(v, "close_date", opts.CloseDate, opts.CloseDate == 0)
+		addIfValueNotZero(v, "is_closed", opts.IsClosed, opts.IsClosed == false)
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "allow_paid_broadcast", opts.AllowPaidBroadcast, opts.AllowPaidBroadcast == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
+		addIfValueNotZero(v, "reply_markup", opts.ReplyMarkup, opts.ReplyMarkup == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -5367,7 +5502,7 @@ func (bot *Bot) SendPollWithContext(ctx context.Context, chatId int64, question 
 type SendStickerOpts struct {
 	// Unique identifier of the business connection on behalf of which the message will be sent
 	BusinessConnectionId string
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
 	DirectMessagesTopicId int64
@@ -5405,27 +5540,19 @@ func (bot *Bot) SendSticker(chatId int64, sticker InputFileOrString, opts *SendS
 func (bot *Bot) SendStickerWithContext(ctx context.Context, chatId int64, sticker InputFileOrString, opts *SendStickerOpts) (*Message, error) {
 	v := map[string]any{}
 	v["chat_id"] = chatId
-	if sticker != nil {
-		v["sticker"] = sticker
-	}
+	v["sticker"] = sticker
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		v["emoji"] = opts.Emoji
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
-		v["message_effect_id"] = opts.MessageEffectId
-		if opts.SuggestedPostParameters != nil {
-			v["suggested_post_parameters"] = opts.SuggestedPostParameters
-		}
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
-		if opts.ReplyMarkup != nil {
-			v["reply_markup"] = opts.ReplyMarkup
-		}
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		addIfValueNotZero(v, "emoji", opts.Emoji, opts.Emoji == "")
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "allow_paid_broadcast", opts.AllowPaidBroadcast, opts.AllowPaidBroadcast == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "suggested_post_parameters", opts.SuggestedPostParameters, opts.SuggestedPostParameters == nil)
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
+		addIfValueNotZero(v, "reply_markup", opts.ReplyMarkup, opts.ReplyMarkup == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -5446,7 +5573,7 @@ func (bot *Bot) SendStickerWithContext(ctx context.Context, chatId int64, sticke
 type SendVenueOpts struct {
 	// Unique identifier of the business connection on behalf of which the message will be sent
 	BusinessConnectionId string
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
 	DirectMessagesTopicId int64
@@ -5498,26 +5625,20 @@ func (bot *Bot) SendVenueWithContext(ctx context.Context, chatId int64, latitude
 	v["title"] = title
 	v["address"] = address
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		v["foursquare_id"] = opts.FoursquareId
-		v["foursquare_type"] = opts.FoursquareType
-		v["google_place_id"] = opts.GooglePlaceId
-		v["google_place_type"] = opts.GooglePlaceType
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
-		v["message_effect_id"] = opts.MessageEffectId
-		if opts.SuggestedPostParameters != nil {
-			v["suggested_post_parameters"] = opts.SuggestedPostParameters
-		}
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
-		if opts.ReplyMarkup != nil {
-			v["reply_markup"] = opts.ReplyMarkup
-		}
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		addIfValueNotZero(v, "foursquare_id", opts.FoursquareId, opts.FoursquareId == "")
+		addIfValueNotZero(v, "foursquare_type", opts.FoursquareType, opts.FoursquareType == "")
+		addIfValueNotZero(v, "google_place_id", opts.GooglePlaceId, opts.GooglePlaceId == "")
+		addIfValueNotZero(v, "google_place_type", opts.GooglePlaceType, opts.GooglePlaceType == "")
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "allow_paid_broadcast", opts.AllowPaidBroadcast, opts.AllowPaidBroadcast == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "suggested_post_parameters", opts.SuggestedPostParameters, opts.SuggestedPostParameters == nil)
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
+		addIfValueNotZero(v, "reply_markup", opts.ReplyMarkup, opts.ReplyMarkup == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -5538,7 +5659,7 @@ func (bot *Bot) SendVenueWithContext(ctx context.Context, chatId int64, latitude
 type SendVideoOpts struct {
 	// Unique identifier of the business connection on behalf of which the message will be sent
 	BusinessConnectionId string
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
 	DirectMessagesTopicId int64
@@ -5598,44 +5719,30 @@ func (bot *Bot) SendVideo(chatId int64, video InputFileOrString, opts *SendVideo
 func (bot *Bot) SendVideoWithContext(ctx context.Context, chatId int64, video InputFileOrString, opts *SendVideoOpts) (*Message, error) {
 	v := map[string]any{}
 	v["chat_id"] = chatId
-	if video != nil {
-		v["video"] = video
-	}
+	v["video"] = video
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		v["duration"] = opts.Duration
-		v["width"] = opts.Width
-		v["height"] = opts.Height
-		if opts.Thumbnail != nil {
-			v["thumbnail"] = opts.Thumbnail
-		}
-		if opts.Cover != nil {
-			v["cover"] = opts.Cover
-		}
-		v["start_timestamp"] = opts.StartTimestamp
-		v["caption"] = opts.Caption
-		v["parse_mode"] = opts.ParseMode
-		if opts.CaptionEntities != nil {
-			v["caption_entities"] = opts.CaptionEntities
-		}
-		v["show_caption_above_media"] = opts.ShowCaptionAboveMedia
-		v["has_spoiler"] = opts.HasSpoiler
-		v["supports_streaming"] = opts.SupportsStreaming
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
-		v["message_effect_id"] = opts.MessageEffectId
-		if opts.SuggestedPostParameters != nil {
-			v["suggested_post_parameters"] = opts.SuggestedPostParameters
-		}
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
-		if opts.ReplyMarkup != nil {
-			v["reply_markup"] = opts.ReplyMarkup
-		}
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		addIfValueNotZero(v, "duration", opts.Duration, opts.Duration == 0)
+		addIfValueNotZero(v, "width", opts.Width, opts.Width == 0)
+		addIfValueNotZero(v, "height", opts.Height, opts.Height == 0)
+		v["thumbnail"] = opts.Thumbnail
+		addIfValueNotZero(v, "cover", opts.Cover, opts.Cover == nil)
+		addIfValueNotZero(v, "start_timestamp", opts.StartTimestamp, opts.StartTimestamp == 0)
+		addIfValueNotZero(v, "caption", opts.Caption, opts.Caption == "")
+		addIfValueNotZero(v, "parse_mode", opts.ParseMode, opts.ParseMode == "")
+		addIfValueNotZero(v, "caption_entities", opts.CaptionEntities, opts.CaptionEntities == nil)
+		addIfValueNotZero(v, "show_caption_above_media", opts.ShowCaptionAboveMedia, opts.ShowCaptionAboveMedia == false)
+		addIfValueNotZero(v, "has_spoiler", opts.HasSpoiler, opts.HasSpoiler == false)
+		addIfValueNotZero(v, "supports_streaming", opts.SupportsStreaming, opts.SupportsStreaming == false)
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "allow_paid_broadcast", opts.AllowPaidBroadcast, opts.AllowPaidBroadcast == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "suggested_post_parameters", opts.SuggestedPostParameters, opts.SuggestedPostParameters == nil)
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
+		addIfValueNotZero(v, "reply_markup", opts.ReplyMarkup, opts.ReplyMarkup == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -5656,7 +5763,7 @@ func (bot *Bot) SendVideoWithContext(ctx context.Context, chatId int64, video In
 type SendVideoNoteOpts struct {
 	// Unique identifier of the business connection on behalf of which the message will be sent
 	BusinessConnectionId string
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
 	DirectMessagesTopicId int64
@@ -5698,31 +5805,21 @@ func (bot *Bot) SendVideoNote(chatId int64, videoNote InputFileOrString, opts *S
 func (bot *Bot) SendVideoNoteWithContext(ctx context.Context, chatId int64, videoNote InputFileOrString, opts *SendVideoNoteOpts) (*Message, error) {
 	v := map[string]any{}
 	v["chat_id"] = chatId
-	if videoNote != nil {
-		v["video_note"] = videoNote
-	}
+	v["video_note"] = videoNote
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		v["duration"] = opts.Duration
-		v["length"] = opts.Length
-		if opts.Thumbnail != nil {
-			v["thumbnail"] = opts.Thumbnail
-		}
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
-		v["message_effect_id"] = opts.MessageEffectId
-		if opts.SuggestedPostParameters != nil {
-			v["suggested_post_parameters"] = opts.SuggestedPostParameters
-		}
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
-		if opts.ReplyMarkup != nil {
-			v["reply_markup"] = opts.ReplyMarkup
-		}
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		addIfValueNotZero(v, "duration", opts.Duration, opts.Duration == 0)
+		addIfValueNotZero(v, "length", opts.Length, opts.Length == 0)
+		v["thumbnail"] = opts.Thumbnail
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "allow_paid_broadcast", opts.AllowPaidBroadcast, opts.AllowPaidBroadcast == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "suggested_post_parameters", opts.SuggestedPostParameters, opts.SuggestedPostParameters == nil)
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
+		addIfValueNotZero(v, "reply_markup", opts.ReplyMarkup, opts.ReplyMarkup == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -5743,7 +5840,7 @@ func (bot *Bot) SendVideoNoteWithContext(ctx context.Context, chatId int64, vide
 type SendVoiceOpts struct {
 	// Unique identifier of the business connection on behalf of which the message will be sent
 	BusinessConnectionId string
-	// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	// Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only
 	MessageThreadId int64
 	// Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat
 	DirectMessagesTopicId int64
@@ -5787,32 +5884,22 @@ func (bot *Bot) SendVoice(chatId int64, voice InputFileOrString, opts *SendVoice
 func (bot *Bot) SendVoiceWithContext(ctx context.Context, chatId int64, voice InputFileOrString, opts *SendVoiceOpts) (*Message, error) {
 	v := map[string]any{}
 	v["chat_id"] = chatId
-	if voice != nil {
-		v["voice"] = voice
-	}
+	v["voice"] = voice
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["message_thread_id"] = opts.MessageThreadId
-		v["direct_messages_topic_id"] = opts.DirectMessagesTopicId
-		v["caption"] = opts.Caption
-		v["parse_mode"] = opts.ParseMode
-		if opts.CaptionEntities != nil {
-			v["caption_entities"] = opts.CaptionEntities
-		}
-		v["duration"] = opts.Duration
-		v["disable_notification"] = opts.DisableNotification
-		v["protect_content"] = opts.ProtectContent
-		v["allow_paid_broadcast"] = opts.AllowPaidBroadcast
-		v["message_effect_id"] = opts.MessageEffectId
-		if opts.SuggestedPostParameters != nil {
-			v["suggested_post_parameters"] = opts.SuggestedPostParameters
-		}
-		if opts.ReplyParameters != nil {
-			v["reply_parameters"] = opts.ReplyParameters
-		}
-		if opts.ReplyMarkup != nil {
-			v["reply_markup"] = opts.ReplyMarkup
-		}
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "message_thread_id", opts.MessageThreadId, opts.MessageThreadId == 0)
+		addIfValueNotZero(v, "direct_messages_topic_id", opts.DirectMessagesTopicId, opts.DirectMessagesTopicId == 0)
+		addIfValueNotZero(v, "caption", opts.Caption, opts.Caption == "")
+		addIfValueNotZero(v, "parse_mode", opts.ParseMode, opts.ParseMode == "")
+		addIfValueNotZero(v, "caption_entities", opts.CaptionEntities, opts.CaptionEntities == nil)
+		addIfValueNotZero(v, "duration", opts.Duration, opts.Duration == 0)
+		addIfValueNotZero(v, "disable_notification", opts.DisableNotification, opts.DisableNotification == false)
+		addIfValueNotZero(v, "protect_content", opts.ProtectContent, opts.ProtectContent == false)
+		addIfValueNotZero(v, "allow_paid_broadcast", opts.AllowPaidBroadcast, opts.AllowPaidBroadcast == false)
+		addIfValueNotZero(v, "message_effect_id", opts.MessageEffectId, opts.MessageEffectId == "")
+		addIfValueNotZero(v, "suggested_post_parameters", opts.SuggestedPostParameters, opts.SuggestedPostParameters == nil)
+		addIfValueNotZero(v, "reply_parameters", opts.ReplyParameters, opts.ReplyParameters == nil)
+		addIfValueNotZero(v, "reply_markup", opts.ReplyMarkup, opts.ReplyMarkup == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -5851,7 +5938,7 @@ func (bot *Bot) SetBusinessAccountBioWithContext(ctx context.Context, businessCo
 	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
 	if opts != nil {
-		v["bio"] = opts.Bio
+		addIfValueNotZero(v, "bio", opts.Bio, opts.Bio == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -5930,7 +6017,7 @@ func (bot *Bot) SetBusinessAccountNameWithContext(ctx context.Context, businessC
 	v["business_connection_id"] = businessConnectionId
 	v["first_name"] = firstName
 	if opts != nil {
-		v["last_name"] = opts.LastName
+		addIfValueNotZero(v, "last_name", opts.LastName, opts.LastName == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -5971,7 +6058,7 @@ func (bot *Bot) SetBusinessAccountProfilePhotoWithContext(ctx context.Context, b
 	v["business_connection_id"] = businessConnectionId
 	v["photo"] = photo
 	if opts != nil {
-		v["is_public"] = opts.IsPublic
+		addIfValueNotZero(v, "is_public", opts.IsPublic, opts.IsPublic == false)
 	}
 
 	var reqOpts *RequestOpts
@@ -6010,7 +6097,7 @@ func (bot *Bot) SetBusinessAccountUsernameWithContext(ctx context.Context, busin
 	v := map[string]any{}
 	v["business_connection_id"] = businessConnectionId
 	if opts != nil {
-		v["username"] = opts.Username
+		addIfValueNotZero(v, "username", opts.Username, opts.Username == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -6087,7 +6174,7 @@ func (bot *Bot) SetChatDescriptionWithContext(ctx context.Context, chatId int64,
 	v := map[string]any{}
 	v["chat_id"] = chatId
 	if opts != nil {
-		v["description"] = opts.Description
+		addIfValueNotZero(v, "description", opts.Description, opts.Description == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -6126,9 +6213,7 @@ func (bot *Bot) SetChatMenuButton(opts *SetChatMenuButtonOpts) (bool, error) {
 func (bot *Bot) SetChatMenuButtonWithContext(ctx context.Context, opts *SetChatMenuButtonOpts) (bool, error) {
 	v := map[string]any{}
 	if opts != nil {
-		if opts.ChatId != nil {
-			v["chat_id"] = opts.ChatId
-		}
+		addIfValueNotZero(v, "chat_id", opts.ChatId, opts.ChatId == nil)
 		v["menu_button"] = opts.MenuButton
 	}
 
@@ -6170,7 +6255,7 @@ func (bot *Bot) SetChatPermissionsWithContext(ctx context.Context, chatId int64,
 	v["chat_id"] = chatId
 	v["permissions"] = permissions
 	if opts != nil {
-		v["use_independent_chat_permissions"] = opts.UseIndependentChatPermissions
+		addIfValueNotZero(v, "use_independent_chat_permissions", opts.UseIndependentChatPermissions, opts.UseIndependentChatPermissions == false)
 	}
 
 	var reqOpts *RequestOpts
@@ -6207,9 +6292,7 @@ func (bot *Bot) SetChatPhoto(chatId int64, photo InputFile, opts *SetChatPhotoOp
 func (bot *Bot) SetChatPhotoWithContext(ctx context.Context, chatId int64, photo InputFile, opts *SetChatPhotoOpts) (bool, error) {
 	v := map[string]any{}
 	v["chat_id"] = chatId
-	if photo != nil {
-		v["photo"] = photo
-	}
+	v["photo"] = photo
 
 	var reqOpts *RequestOpts
 	if opts != nil {
@@ -6319,7 +6402,7 @@ func (bot *Bot) SetCustomEmojiStickerSetThumbnailWithContext(ctx context.Context
 	v := map[string]any{}
 	v["name"] = name
 	if opts != nil {
-		v["custom_emoji_id"] = opts.CustomEmojiId
+		addIfValueNotZero(v, "custom_emoji_id", opts.CustomEmojiId, opts.CustomEmojiId == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -6368,11 +6451,11 @@ func (bot *Bot) SetGameScoreWithContext(ctx context.Context, userId int64, score
 	v["user_id"] = userId
 	v["score"] = score
 	if opts != nil {
-		v["force"] = opts.Force
-		v["disable_edit_message"] = opts.DisableEditMessage
-		v["chat_id"] = opts.ChatId
-		v["message_id"] = opts.MessageId
-		v["inline_message_id"] = opts.InlineMessageId
+		addIfValueNotZero(v, "force", opts.Force, opts.Force == false)
+		addIfValueNotZero(v, "disable_edit_message", opts.DisableEditMessage, opts.DisableEditMessage == false)
+		addIfValueNotZero(v, "chat_id", opts.ChatId, opts.ChatId == 0)
+		addIfValueNotZero(v, "message_id", opts.MessageId, opts.MessageId == 0)
+		addIfValueNotZero(v, "inline_message_id", opts.InlineMessageId, opts.InlineMessageId == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -6423,10 +6506,8 @@ func (bot *Bot) SetMessageReactionWithContext(ctx context.Context, chatId int64,
 	v["chat_id"] = chatId
 	v["message_id"] = messageId
 	if opts != nil {
-		if opts.Reaction != nil {
-			v["reaction"] = opts.Reaction
-		}
-		v["is_big"] = opts.IsBig
+		addIfValueNotZero(v, "reaction", opts.Reaction, opts.Reaction == nil)
+		addIfValueNotZero(v, "is_big", opts.IsBig, opts.IsBig == false)
 	}
 
 	var reqOpts *RequestOpts
@@ -6465,12 +6546,10 @@ func (bot *Bot) SetMyCommands(commands []BotCommand, opts *SetMyCommandsOpts) (b
 // SetMyCommandsWithContext is the same as Bot.SetMyCommands, but with a context.Context parameter
 func (bot *Bot) SetMyCommandsWithContext(ctx context.Context, commands []BotCommand, opts *SetMyCommandsOpts) (bool, error) {
 	v := map[string]any{}
-	if commands != nil {
-		v["commands"] = commands
-	}
+	v["commands"] = commands
 	if opts != nil {
 		v["scope"] = opts.Scope
-		v["language_code"] = opts.LanguageCode
+		addIfValueNotZero(v, "language_code", opts.LanguageCode, opts.LanguageCode == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -6509,10 +6588,8 @@ func (bot *Bot) SetMyDefaultAdministratorRights(opts *SetMyDefaultAdministratorR
 func (bot *Bot) SetMyDefaultAdministratorRightsWithContext(ctx context.Context, opts *SetMyDefaultAdministratorRightsOpts) (bool, error) {
 	v := map[string]any{}
 	if opts != nil {
-		if opts.Rights != nil {
-			v["rights"] = opts.Rights
-		}
-		v["for_channels"] = opts.ForChannels
+		addIfValueNotZero(v, "rights", opts.Rights, opts.Rights == nil)
+		addIfValueNotZero(v, "for_channels", opts.ForChannels, opts.ForChannels == false)
 	}
 
 	var reqOpts *RequestOpts
@@ -6551,8 +6628,8 @@ func (bot *Bot) SetMyDescription(opts *SetMyDescriptionOpts) (bool, error) {
 func (bot *Bot) SetMyDescriptionWithContext(ctx context.Context, opts *SetMyDescriptionOpts) (bool, error) {
 	v := map[string]any{}
 	if opts != nil {
-		v["description"] = opts.Description
-		v["language_code"] = opts.LanguageCode
+		addIfValueNotZero(v, "description", opts.Description, opts.Description == "")
+		addIfValueNotZero(v, "language_code", opts.LanguageCode, opts.LanguageCode == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -6591,8 +6668,8 @@ func (bot *Bot) SetMyName(opts *SetMyNameOpts) (bool, error) {
 func (bot *Bot) SetMyNameWithContext(ctx context.Context, opts *SetMyNameOpts) (bool, error) {
 	v := map[string]any{}
 	if opts != nil {
-		v["name"] = opts.Name
-		v["language_code"] = opts.LanguageCode
+		addIfValueNotZero(v, "name", opts.Name, opts.Name == "")
+		addIfValueNotZero(v, "language_code", opts.LanguageCode, opts.LanguageCode == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -6601,6 +6678,40 @@ func (bot *Bot) SetMyNameWithContext(ctx context.Context, opts *SetMyNameOpts) (
 	}
 
 	r, err := bot.RequestWithContext(ctx, "setMyName", v, reqOpts)
+	if err != nil {
+		return false, err
+	}
+
+	var b bool
+	return b, json.Unmarshal(r, &b)
+}
+
+// SetMyProfilePhotoOpts is the set of optional fields for Bot.SetMyProfilePhoto and Bot.SetMyProfilePhotoWithContext.
+type SetMyProfilePhotoOpts struct {
+	// RequestOpts are an additional optional field to configure timeouts for individual requests
+	RequestOpts *RequestOpts
+}
+
+// SetMyProfilePhoto (https://core.telegram.org/bots/api#setmyprofilephoto)
+//
+// Changes the profile photo of the bot. Returns True on success.
+//   - photo (type InputProfilePhoto): The new profile photo to set
+//   - opts (type SetMyProfilePhotoOpts): All optional parameters.
+func (bot *Bot) SetMyProfilePhoto(photo InputProfilePhoto, opts *SetMyProfilePhotoOpts) (bool, error) {
+	return bot.SetMyProfilePhotoWithContext(context.Background(), photo, opts)
+}
+
+// SetMyProfilePhotoWithContext is the same as Bot.SetMyProfilePhoto, but with a context.Context parameter
+func (bot *Bot) SetMyProfilePhotoWithContext(ctx context.Context, photo InputProfilePhoto, opts *SetMyProfilePhotoOpts) (bool, error) {
+	v := map[string]any{}
+	v["photo"] = photo
+
+	var reqOpts *RequestOpts
+	if opts != nil {
+		reqOpts = opts.RequestOpts
+	}
+
+	r, err := bot.RequestWithContext(ctx, "setMyProfilePhoto", v, reqOpts)
 	if err != nil {
 		return false, err
 	}
@@ -6631,8 +6742,8 @@ func (bot *Bot) SetMyShortDescription(opts *SetMyShortDescriptionOpts) (bool, er
 func (bot *Bot) SetMyShortDescriptionWithContext(ctx context.Context, opts *SetMyShortDescriptionOpts) (bool, error) {
 	v := map[string]any{}
 	if opts != nil {
-		v["short_description"] = opts.ShortDescription
-		v["language_code"] = opts.LanguageCode
+		addIfValueNotZero(v, "short_description", opts.ShortDescription, opts.ShortDescription == "")
+		addIfValueNotZero(v, "language_code", opts.LanguageCode, opts.LanguageCode == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -6670,9 +6781,7 @@ func (bot *Bot) SetPassportDataErrors(userId int64, errors []PassportElementErro
 func (bot *Bot) SetPassportDataErrorsWithContext(ctx context.Context, userId int64, errors []PassportElementError, opts *SetPassportDataErrorsOpts) (bool, error) {
 	v := map[string]any{}
 	v["user_id"] = userId
-	if errors != nil {
-		v["errors"] = errors
-	}
+	v["errors"] = errors
 
 	var reqOpts *RequestOpts
 	if opts != nil {
@@ -6707,12 +6816,8 @@ func (bot *Bot) SetStickerEmojiList(sticker InputFileOrString, emojiList []strin
 // SetStickerEmojiListWithContext is the same as Bot.SetStickerEmojiList, but with a context.Context parameter
 func (bot *Bot) SetStickerEmojiListWithContext(ctx context.Context, sticker InputFileOrString, emojiList []string, opts *SetStickerEmojiListOpts) (bool, error) {
 	v := map[string]any{}
-	if sticker != nil {
-		v["sticker"] = sticker
-	}
-	if emojiList != nil {
-		v["emoji_list"] = emojiList
-	}
+	v["sticker"] = sticker
+	v["emoji_list"] = emojiList
 
 	var reqOpts *RequestOpts
 	if opts != nil {
@@ -6748,13 +6853,9 @@ func (bot *Bot) SetStickerKeywords(sticker InputFileOrString, opts *SetStickerKe
 // SetStickerKeywordsWithContext is the same as Bot.SetStickerKeywords, but with a context.Context parameter
 func (bot *Bot) SetStickerKeywordsWithContext(ctx context.Context, sticker InputFileOrString, opts *SetStickerKeywordsOpts) (bool, error) {
 	v := map[string]any{}
-	if sticker != nil {
-		v["sticker"] = sticker
-	}
+	v["sticker"] = sticker
 	if opts != nil {
-		if opts.Keywords != nil {
-			v["keywords"] = opts.Keywords
-		}
+		addIfValueNotZero(v, "keywords", opts.Keywords, opts.Keywords == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -6791,13 +6892,9 @@ func (bot *Bot) SetStickerMaskPosition(sticker InputFileOrString, opts *SetStick
 // SetStickerMaskPositionWithContext is the same as Bot.SetStickerMaskPosition, but with a context.Context parameter
 func (bot *Bot) SetStickerMaskPositionWithContext(ctx context.Context, sticker InputFileOrString, opts *SetStickerMaskPositionOpts) (bool, error) {
 	v := map[string]any{}
-	if sticker != nil {
-		v["sticker"] = sticker
-	}
+	v["sticker"] = sticker
 	if opts != nil {
-		if opts.MaskPosition != nil {
-			v["mask_position"] = opts.MaskPosition
-		}
+		addIfValueNotZero(v, "mask_position", opts.MaskPosition, opts.MaskPosition == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -6833,9 +6930,7 @@ func (bot *Bot) SetStickerPositionInSet(sticker InputFileOrString, position int6
 // SetStickerPositionInSetWithContext is the same as Bot.SetStickerPositionInSet, but with a context.Context parameter
 func (bot *Bot) SetStickerPositionInSetWithContext(ctx context.Context, sticker InputFileOrString, position int64, opts *SetStickerPositionInSetOpts) (bool, error) {
 	v := map[string]any{}
-	if sticker != nil {
-		v["sticker"] = sticker
-	}
+	v["sticker"] = sticker
 	v["position"] = position
 
 	var reqOpts *RequestOpts
@@ -6878,9 +6973,7 @@ func (bot *Bot) SetStickerSetThumbnailWithContext(ctx context.Context, name stri
 	v["user_id"] = userId
 	v["format"] = format
 	if opts != nil {
-		if opts.Thumbnail != nil {
-			v["thumbnail"] = opts.Thumbnail
-		}
+		v["thumbnail"] = opts.Thumbnail
 	}
 
 	var reqOpts *RequestOpts
@@ -6957,8 +7050,8 @@ func (bot *Bot) SetUserEmojiStatusWithContext(ctx context.Context, userId int64,
 	v := map[string]any{}
 	v["user_id"] = userId
 	if opts != nil {
-		v["emoji_status_custom_emoji_id"] = opts.EmojiStatusCustomEmojiId
-		v["emoji_status_expiration_date"] = opts.EmojiStatusExpirationDate
+		addIfValueNotZero(v, "emoji_status_custom_emoji_id", opts.EmojiStatusCustomEmojiId, opts.EmojiStatusCustomEmojiId == "")
+		addIfValueNotZero(v, "emoji_status_expiration_date", opts.EmojiStatusExpirationDate, opts.EmojiStatusExpirationDate == 0)
 	}
 
 	var reqOpts *RequestOpts
@@ -7008,16 +7101,12 @@ func (bot *Bot) SetWebhookWithContext(ctx context.Context, url string, opts *Set
 	v := map[string]any{}
 	v["url"] = url
 	if opts != nil {
-		if opts.Certificate != nil {
-			v["certificate"] = opts.Certificate
-		}
-		v["ip_address"] = opts.IpAddress
-		v["max_connections"] = opts.MaxConnections
-		if opts.AllowedUpdates != nil {
-			v["allowed_updates"] = opts.AllowedUpdates
-		}
-		v["drop_pending_updates"] = opts.DropPendingUpdates
-		v["secret_token"] = opts.SecretToken
+		v["certificate"] = opts.Certificate
+		addIfValueNotZero(v, "ip_address", opts.IpAddress, opts.IpAddress == "")
+		addIfValueNotZero(v, "max_connections", opts.MaxConnections, opts.MaxConnections == 0)
+		addIfValueNotZero(v, "allowed_updates", opts.AllowedUpdates, opts.AllowedUpdates == nil)
+		addIfValueNotZero(v, "drop_pending_updates", opts.DropPendingUpdates, opts.DropPendingUpdates == false)
+		addIfValueNotZero(v, "secret_token", opts.SecretToken, opts.SecretToken == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -7062,10 +7151,10 @@ func (bot *Bot) StopMessageLiveLocation(opts *StopMessageLiveLocationOpts) (*Mes
 func (bot *Bot) StopMessageLiveLocationWithContext(ctx context.Context, opts *StopMessageLiveLocationOpts) (*Message, bool, error) {
 	v := map[string]any{}
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		v["chat_id"] = opts.ChatId
-		v["message_id"] = opts.MessageId
-		v["inline_message_id"] = opts.InlineMessageId
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "chat_id", opts.ChatId, opts.ChatId == 0)
+		addIfValueNotZero(v, "message_id", opts.MessageId, opts.MessageId == 0)
+		addIfValueNotZero(v, "inline_message_id", opts.InlineMessageId, opts.InlineMessageId == "")
 		v["reply_markup"] = opts.ReplyMarkup
 	}
 
@@ -7117,7 +7206,7 @@ func (bot *Bot) StopPollWithContext(ctx context.Context, chatId int64, messageId
 	v["chat_id"] = chatId
 	v["message_id"] = messageId
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
 		v["reply_markup"] = opts.ReplyMarkup
 	}
 
@@ -7197,7 +7286,7 @@ func (bot *Bot) TransferGiftWithContext(ctx context.Context, businessConnectionI
 	v["owned_gift_id"] = ownedGiftId
 	v["new_owner_chat_id"] = newOwnerChatId
 	if opts != nil {
-		v["star_count"] = opts.StarCount
+		addIfValueNotZero(v, "star_count", opts.StarCount, opts.StarCount == 0)
 	}
 
 	var reqOpts *RequestOpts
@@ -7238,7 +7327,7 @@ func (bot *Bot) UnbanChatMemberWithContext(ctx context.Context, chatId int64, us
 	v["chat_id"] = chatId
 	v["user_id"] = userId
 	if opts != nil {
-		v["only_if_banned"] = opts.OnlyIfBanned
+		addIfValueNotZero(v, "only_if_banned", opts.OnlyIfBanned, opts.OnlyIfBanned == false)
 	}
 
 	var reqOpts *RequestOpts
@@ -7367,7 +7456,7 @@ type UnpinAllForumTopicMessagesOpts struct {
 
 // UnpinAllForumTopicMessages (https://core.telegram.org/bots/api#unpinallforumtopicmessages)
 //
-// Use this method to clear the list of pinned messages in a forum topic. The bot must be an administrator in the chat for this to work and must have the can_pin_messages administrator right in the supergroup. Returns True on success.
+// Use this method to clear the list of pinned messages in a forum topic in a forum supergroup chat or a private chat with a user. In the case of a supergroup chat the bot must be an administrator in the chat for this to work and must have the can_pin_messages administrator right in the supergroup. Returns True on success.
 //   - chatId (type int64): Unique identifier for the target chat
 //   - messageThreadId (type int64): Unique identifier for the target message thread of the forum topic
 //   - opts (type UnpinAllForumTopicMessagesOpts): All optional parameters.
@@ -7453,10 +7542,8 @@ func (bot *Bot) UnpinChatMessageWithContext(ctx context.Context, chatId int64, o
 	v := map[string]any{}
 	v["chat_id"] = chatId
 	if opts != nil {
-		v["business_connection_id"] = opts.BusinessConnectionId
-		if opts.MessageId != nil {
-			v["message_id"] = opts.MessageId
-		}
+		addIfValueNotZero(v, "business_connection_id", opts.BusinessConnectionId, opts.BusinessConnectionId == "")
+		addIfValueNotZero(v, "message_id", opts.MessageId, opts.MessageId == nil)
 	}
 
 	var reqOpts *RequestOpts
@@ -7499,8 +7586,8 @@ func (bot *Bot) UpgradeGiftWithContext(ctx context.Context, businessConnectionId
 	v["business_connection_id"] = businessConnectionId
 	v["owned_gift_id"] = ownedGiftId
 	if opts != nil {
-		v["keep_original_details"] = opts.KeepOriginalDetails
-		v["star_count"] = opts.StarCount
+		addIfValueNotZero(v, "keep_original_details", opts.KeepOriginalDetails, opts.KeepOriginalDetails == false)
+		addIfValueNotZero(v, "star_count", opts.StarCount, opts.StarCount == 0)
 	}
 
 	var reqOpts *RequestOpts
@@ -7538,9 +7625,7 @@ func (bot *Bot) UploadStickerFile(userId int64, sticker InputFile, stickerFormat
 func (bot *Bot) UploadStickerFileWithContext(ctx context.Context, userId int64, sticker InputFile, stickerFormat string, opts *UploadStickerFileOpts) (*File, error) {
 	v := map[string]any{}
 	v["user_id"] = userId
-	if sticker != nil {
-		v["sticker"] = sticker
-	}
+	v["sticker"] = sticker
 	v["sticker_format"] = stickerFormat
 
 	var reqOpts *RequestOpts
@@ -7579,7 +7664,7 @@ func (bot *Bot) VerifyChatWithContext(ctx context.Context, chatId int64, opts *V
 	v := map[string]any{}
 	v["chat_id"] = chatId
 	if opts != nil {
-		v["custom_description"] = opts.CustomDescription
+		addIfValueNotZero(v, "custom_description", opts.CustomDescription, opts.CustomDescription == "")
 	}
 
 	var reqOpts *RequestOpts
@@ -7618,7 +7703,7 @@ func (bot *Bot) VerifyUserWithContext(ctx context.Context, userId int64, opts *V
 	v := map[string]any{}
 	v["user_id"] = userId
 	if opts != nil {
-		v["custom_description"] = opts.CustomDescription
+		addIfValueNotZero(v, "custom_description", opts.CustomDescription, opts.CustomDescription == "")
 	}
 
 	var reqOpts *RequestOpts

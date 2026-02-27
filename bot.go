@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+//go:generate go run ./scripts/generate
+
 var (
 	ErrNilBotClient       = errors.New("nil BotClient")
 	ErrInvalidTokenFormat = errors.New("invalid token format")
