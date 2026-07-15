@@ -1,13 +1,13 @@
 # Golang Telegram Bot Framework
 
 [![Test](https://github.com/kbgod/lumex/actions/workflows/test.yml/badge.svg)](https://github.com/kbgod/lumex/actions/workflows/test.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/kbgod/lumex)](https://goreportcard.com/report/github.com/kbgod/lumex)
-[![Telegram Bot API Version](https://img.shields.io/static/v1?label=Supported%20Telegram%20Bot%20API&color=29a1d4&logo=telegram&message=v9.4)](https://core.telegram.org/bots/api#august-15-2025)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kbgod/lumex/v2)](https://goreportcard.com/report/github.com/kbgod/lumex/v2)
+[![Telegram Bot API Version](https://img.shields.io/static/v1?label=Supported%20Telegram%20Bot%20API&color=29a1d4&logo=telegram&message=v10.2)](https://core.telegram.org/bots/api)
 [![codecov](https://codecov.io/gh/kbgod/lumex/branch/main/graph/badge.svg)](https://codecov.io/gh/kbgod/lumex)
 
-Based on [paulsonoflars/gotgbot](https://github.com/paulsonoflars/gotgbot) types generation and inspired by [mr-linch/go-tg](https://github.com/mr-linch/go-tg).
+Inspired by [paulsonoflars/gotgbot](https://github.com/paulsonoflars/gotgbot) and [mr-linch/go-tg](https://github.com/mr-linch/go-tg).
 
-All Telegram types and methods are generated from a [bot API spec](https://github.com/PaulSonOfLars/telegram-bot-api-spec) and reside in `gen_*.go` files.
+All Telegram types and methods are produced by lumex's own stdlib-only generator (`internal/gen`) straight from the official [Bot API docs](https://core.telegram.org/bots/api) into `types.go`, `requests.go`, `methods.go`, `constants.go` and `helpers.go`. Bumping the API version is a single `go run ./cmd/gen`.
 
 ---
 
@@ -17,8 +17,8 @@ All Telegram types and methods are generated from a [bot API spec](https://githu
   - Guaranteed to match the official documentation
   - Easy to update to new API versions
   - Self-documenting (reuses existing Telegram docs)
-- **Type-safe** — no `interface{}` magic; all types match the bot API exactly
-- **Zero third-party dependencies** — only the standard library is used
+- **Type-safe** — no `interface{}` magic; polymorphic types are sealed interfaces with typed decoders and `As<Variant>()` accessors
+- **Dependency-free core** — the generated client and runtime use only the standard library (the optional `zerolog` log adapter and `testify` mocks pull their own)
 - **Concurrent update processing** — each update is handled in its own goroutine, keeping the bot responsive
 - **Automatic panic recovery** — panics are caught and logged to prevent unexpected downtime
 - **FSM support** — built-in finite state machine for multi-step flows
@@ -34,7 +34,7 @@ All Telegram types and methods are generated from a [bot API spec](https://githu
 Install the library using the standard `go get` command:
 
 ```bash
-go get github.com/kbgod/lumex
+go get github.com/kbgod/lumex/v2
 ```
 
 ---
@@ -49,20 +49,19 @@ The simplest way to use the library — just call Telegram Bot API methods direc
 package main
 
 import (
-    "os"
+  "context"
+  "os"
 
-    "github.com/kbgod/lumex"
+  "github.com/kbgod/lumex/v2"
 )
 
 func main() {
-    bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"), nil)
-    if err != nil {
-        panic(err)
-    }
+  bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"))
+  if err != nil {
+    panic(err)
+  }
 
-    message, err := bot.SendMessage(123, "hello", nil)
-    _ = message
-    _ = err
+  message, err := bot.SendMessage(context.Background(), 123, "hello")
 }
 ```
 
@@ -83,9 +82,9 @@ import (
     "syscall"
     "time"
 
-    "github.com/kbgod/lumex"
-    "github.com/kbgod/lumex/dispatcher"
-    "github.com/kbgod/lumex/router"
+    "github.com/kbgod/lumex/v2"
+    "github.com/kbgod/lumex/v2/dispatcher"
+    "github.com/kbgod/lumex/v2/router"
 )
 
 func main() {
@@ -94,7 +93,7 @@ func main() {
 
     log := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-    bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"), nil)
+    bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"))
     if err != nil {
         log.Error("failed to create bot", "error", err)
         return
@@ -114,7 +113,7 @@ func main() {
     d := dispatcher.New(bot, r)
 
     go func() {
-        if err := d.StartPolling(100, nil); err != nil {
+        if err := d.StartPolling(100); err != nil {
             log.Error("failed to start dispatcher", "error", err)
             os.Exit(1)
         }
@@ -146,7 +145,7 @@ Use middleware to attach arbitrary data (e.g. a database user) to the context so
 const userCtxKey = "user"
 
 func UserMiddleware(ctx *router.Context) error {
-    user := getUserFromDB(ctx.Sender().Id)
+    user := getUserFromDB(ctx.Sender().ID)
     ctx.SetContext(context.WithValue(ctx.Context(), userCtxKey, user))
     return ctx.Next()
 }
@@ -167,7 +166,7 @@ menu.Row().TextBtn("1")
 return ctx.ReplyWithMenuVoid("keyboard", menu)
 
 // Or send directly via bot:
-ctx.Bot.SendMessage(ctx.ChatID(), "test", &lumex.SendMessageOpts{
+ctx.Bot.SendMessage(ctx.Context(), ctx.ChatID(), "test", lumex.SendMessageOpts{
     ReplyMarkup: menu,
 })
 ```
@@ -193,7 +192,7 @@ menu.Row().CopyBtn("copy", "copied value")
 return ctx.ReplyWithMenuVoid("Inline keyboard", menu)
 
 // Or send directly via bot:
-ctx.Bot.SendMessage(ctx.ChatID(), "test", &lumex.SendMessageOpts{
+ctx.Bot.SendMessage(ctx.Context(), ctx.ChatID(), "test", lumex.SendMessageOpts{
     ReplyMarkup: menu,
 })
 ```
@@ -245,7 +244,7 @@ Lumex lets you define handlers that are active only in a specific state, alongsi
 
 ```go
 r.Use(func(ctx *router.Context) error {
-    state := loadStateFromDB(ctx.Sender().Id)
+    state := loadStateFromDB(ctx.Sender().ID)
     if state != nil {
         ctx.SetState(state)
     }
@@ -307,15 +306,15 @@ typingGroup.OnMessage(processMessageViaAI)
 ## Example Bots
 
 - [@CircloBot](https://t.me/CircloBot)
-- [@FruitCoinBot](https://t.me/FruitCoinBot)
+- [@ShpygunchikBot](https://t.me/ShpygunchikBot)
 - [@AnonInboxBot](https://t.me/AnonInboxBot)
 
 ---
 
 ## Docs
 
-- Raw Telegram methods — [pkg.go.dev/github.com/kbgod/lumex](https://pkg.go.dev/github.com/kbgod/lumex)
-- Router & Context — [pkg.go.dev/github.com/kbgod/lumex/router](https://pkg.go.dev/github.com/kbgod/lumex/router)
+- Raw Telegram methods — [pkg.go.dev/github.com/kbgod/lumex/v2](https://pkg.go.dev/github.com/kbgod/lumex/v2)
+- Router & Context — [pkg.go.dev/github.com/kbgod/lumex/v2/router](https://pkg.go.dev/github.com/kbgod/lumex/v2/router)
 
 ---
 
