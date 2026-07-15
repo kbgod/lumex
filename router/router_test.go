@@ -5,14 +5,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/kbgod/lumex"
+	"github.com/kbgod/lumex/v2"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRouterNew(t *testing.T) {
-	bot, err := lumex.NewBot("123:test", &lumex.BotOpts{
-		DisableTokenCheck: true,
-	})
+	bot, err := lumex.NewBot("123:test", lumex.WithoutTokenCheck())
 	assert.Nil(t, err, "lumex.NewBot() = %v; want <nil>", err)
 
 	router := New(bot)
@@ -316,7 +314,7 @@ func TestRouter_HandleUpdate(t *testing.T) {
 	t.Run("bot injected from context", func(t *testing.T) {
 		bot := &lumex.Bot{
 			User: lumex.User{
-				Id: 123,
+				ID: 123,
 			},
 		}
 
@@ -795,7 +793,7 @@ func TestRouter_Events(t *testing.T) {
 
 		err := router.HandleUpdate(context.Background(), &lumex.Update{
 			Message: &lumex.Message{
-				ForwardOrigin: &lumex.MergedMessageOrigin{
+				ForwardOrigin: &lumex.MessageOriginChannel{
 					Type: "channel",
 				},
 			},

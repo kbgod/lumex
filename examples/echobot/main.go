@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kbgod/lumex"
-	zerologAdapter "github.com/kbgod/lumex/log/adapter/zerolog"
-	"github.com/kbgod/lumex/middleware"
-	"github.com/kbgod/lumex/router"
+	"github.com/kbgod/lumex/v2"
+	zerologAdapter "github.com/kbgod/lumex/v2/log/adapter/zerolog"
+	"github.com/kbgod/lumex/v2/middleware"
+	"github.com/kbgod/lumex/v2/router"
 	"github.com/rs/zerolog"
 )
 
@@ -24,7 +24,7 @@ var logger = zerolog.New(
 ).With().Timestamp().Logger()
 
 func main() {
-	bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"), nil)
+	bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"))
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to create bot")
 	}
@@ -92,13 +92,10 @@ func main() {
 
 	ctx := context.Background()
 
-	r.Listen(ctx, interrupt, 5*time.Second, 100, &lumex.GetUpdatesChanOpts{
-		Buffer: 100,
-		GetUpdatesOpts: &lumex.GetUpdatesOpts{
+	r.Listen(ctx, interrupt, 5*time.Second, 100,
+		lumex.WithPoolSize(100),
+		lumex.WithGetUpdatesOpts(lumex.GetUpdatesOpts{
 			Timeout: 600,
-			RequestOpts: &lumex.RequestOpts{
-				Timeout: 600 * time.Second,
-			},
 			AllowedUpdates: []string{
 				"message",
 				"callback_query",
@@ -108,11 +105,11 @@ func main() {
 				"chosen_inline_result",
 				"chat_join_request",
 			},
-		},
-		ErrorHandler: func(err error) {
+		}),
+		lumex.WithUnhandledErrFunc(func(err error) {
 			logger.Error().Err(err).Msg("get updates error")
-		},
-	})
+		}),
+	)
 
 	logger.Info().Str("username", bot.User.Username).Msg("bot stopped")
 }

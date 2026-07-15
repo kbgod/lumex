@@ -8,8 +8,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kbgod/lumex"
-	"github.com/kbgod/lumex/router"
+	"github.com/kbgod/lumex/v2"
+	"github.com/kbgod/lumex/v2/router"
 	"github.com/rs/zerolog"
 )
 
@@ -23,7 +23,7 @@ var logger = zerolog.New(
 var stateStore = make(map[int64]string)
 
 func stateMiddleware(ctx *router.Context) error {
-	state, ok := stateStore[ctx.Sender().Id]
+	state, ok := stateStore[ctx.Sender().ID]
 	if ok {
 		ctx.SetState(state)
 	}
@@ -32,7 +32,7 @@ func stateMiddleware(ctx *router.Context) error {
 }
 
 func main() {
-	bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"), nil)
+	bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"))
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to create bot")
 	}
@@ -48,7 +48,7 @@ func main() {
 	r.OnStart(mainMenu)
 	r.Use(mainMiddleware) // called also for /start command
 	r.OnCommand("admin", func(ctx *router.Context) error {
-		stateStore[ctx.Sender().Id] = "admin"
+		stateStore[ctx.Sender().ID] = "admin"
 
 		return adminMenu(ctx)
 	})
@@ -73,7 +73,7 @@ func main() {
 		return ctx.ReplyVoid("user banned")
 	}) // this command will be available only in admin state
 	adminRouter.OnCommand("exit", func(ctx *router.Context) error {
-		delete(stateStore, ctx.Sender().Id)
+		delete(stateStore, ctx.Sender().ID)
 		return mainMenu(ctx)
 	}) // this command will be available only in admin state
 	adminRouter.OnMessage(adminMenu)
@@ -87,7 +87,7 @@ func main() {
 
 	ctx := context.Background()
 
-	r.Listen(ctx, interrupt, 5*time.Second, 100, nil)
+	r.Listen(ctx, interrupt, 5*time.Second, 100)
 
 	logger.Info().Str("username", bot.User.Username).Msg("bot stopped")
 }
@@ -122,7 +122,7 @@ func mainMiddleware(ctx *router.Context) error {
 }
 
 func typingMiddleware(ctx *router.Context) error {
-	ctx.Bot.SendChatAction(ctx.ChatID(), lumex.ChatActionTyping, nil)
+	ctx.Bot.SendChatAction(ctx.Context(), ctx.ChatID(), lumex.ChatActionTyping)
 
 	return ctx.Next()
 }

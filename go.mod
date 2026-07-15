@@ -1,8 +1,6 @@
-module github.com/kbgod/lumex
+module github.com/kbgod/lumex/v2
 
-go 1.23
-
-toolchain go1.23.4
+go 1.26.1
 
 require (
 	github.com/rs/zerolog v1.31.0

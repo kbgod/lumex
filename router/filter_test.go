@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/kbgod/lumex"
+	"github.com/kbgod/lumex/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -346,7 +346,7 @@ func TestForwardedChannelMessage(t *testing.T) {
 	r := New(&lumex.Bot{})
 	if !ForwardedChannelMessage()(r.acquireContext(context.Background(), &lumex.Update{
 		Message: &lumex.Message{
-			ForwardOrigin: &lumex.MergedMessageOrigin{
+			ForwardOrigin: &lumex.MessageOriginChannel{
 				Type: "channel",
 			},
 		},

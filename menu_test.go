@@ -213,7 +213,7 @@ func TestMenu_WebAppBtn(t *testing.T) {
 	if menu.Keyboard[0][0].Text != "test" {
 		t.Error("Menu.WebAppBtn failed")
 	}
-	if menu.Keyboard[0][0].WebApp.Url != "test" {
+	if menu.Keyboard[0][0].WebApp.URL != "test" {
 		t.Error("Menu.WebAppBtn failed")
 	}
 }
@@ -350,7 +350,7 @@ func TestInlineMenu_URLBtn(t *testing.T) {
 	if menu.InlineKeyboard[0][0].Text != "test" {
 		t.Error("InlineMenu.URLBtn failed")
 	}
-	if menu.InlineKeyboard[0][0].Url != "test" {
+	if menu.InlineKeyboard[0][0].URL != "test" {
 		t.Error("InlineMenu.URLBtn failed")
 	}
 }
@@ -367,7 +367,7 @@ func TestInlineMenu_LoginBtn(t *testing.T) {
 	if menu.InlineKeyboard[0][0].Text != "test" {
 		t.Error("InlineMenu.LoginBtn failed")
 	}
-	if menu.InlineKeyboard[0][0].LoginUrl.Url != "test" {
+	if menu.InlineKeyboard[0][0].LoginURL.URL != "test" {
 		t.Error("InlineMenu.LoginBtn failed")
 	}
 }
@@ -384,7 +384,7 @@ func TestInlineMenu_SwitchInlineBtn(t *testing.T) {
 	if menu.InlineKeyboard[0][0].Text != "test" {
 		t.Error("InlineMenu.SwitchInlineBtn failed")
 	}
-	if *menu.InlineKeyboard[0][0].SwitchInlineQuery != "test" {
+	if menu.InlineKeyboard[0][0].SwitchInlineQuery != "test" {
 		t.Error("InlineMenu.SwitchInlineBtn failed")
 	}
 }
@@ -401,7 +401,7 @@ func TestInlineMenu_SwitchInlineCurrentBtn(t *testing.T) {
 	if menu.InlineKeyboard[0][0].Text != "test" {
 		t.Error("InlineMenu.SwitchInlineCurrentBtn failed")
 	}
-	if *menu.InlineKeyboard[0][0].SwitchInlineQueryCurrentChat != "test" {
+	if menu.InlineKeyboard[0][0].SwitchInlineQueryCurrentChat != "test" {
 		t.Error("InlineMenu.SwitchInlineCurrentBtn failed")
 	}
 }
@@ -418,7 +418,7 @@ func TestInlineMenu_SwitchInlineChosenChatBtn(t *testing.T) {
 	if menu.InlineKeyboard[0][0].Text != "test" {
 		t.Error("InlineMenu.SwitchInlineChosenChatBtn failed")
 	}
-	if menu.InlineKeyboard[0][0].SwitchInlineQueryCurrentChat != nil {
+	if menu.InlineKeyboard[0][0].SwitchInlineQueryCurrentChat != "" {
 		t.Error("InlineMenu.SwitchInlineChosenChatBtn failed")
 	}
 }

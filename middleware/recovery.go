@@ -3,8 +3,8 @@ package middleware
 import (
 	"runtime/debug"
 
-	"github.com/kbgod/lumex/log"
-	"github.com/kbgod/lumex/router"
+	"github.com/kbgod/lumex/v2/log"
+	"github.com/kbgod/lumex/v2/router"
 )
 
 func RecoveryMiddleware(log log.Logger) router.Handler {

@@ -1,12 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"os"
 
-	"github.com/kbgod/lumex"
-	"github.com/kbgod/lumex/router"
+	"github.com/kbgod/lumex/v2"
+	"github.com/kbgod/lumex/v2/router"
 )
 
 type handler struct {
@@ -29,12 +30,12 @@ func (h *handler) webhookHandler(rw http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"), nil)
+	bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"))
 	if err != nil {
 		panic(err)
 	}
 
-	if ok, err := bot.SetWebhook(os.Getenv("WEBHOOK_URL"), nil); err != nil || !ok {
+	if ok, err := bot.SetWebhook(context.Background(), os.Getenv("WEBHOOK_URL")); err != nil || !ok {
 		panic(err)
 	}
 

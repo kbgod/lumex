@@ -3,7 +3,7 @@ package std
 import (
 	stdlog "log"
 
-	"github.com/kbgod/lumex/log"
+	"github.com/kbgod/lumex/v2/log"
 )
 
 type LogLevel int

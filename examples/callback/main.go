@@ -8,8 +8,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kbgod/lumex"
-	"github.com/kbgod/lumex/router"
+	"github.com/kbgod/lumex/v2"
+	"github.com/kbgod/lumex/v2/router"
 	"github.com/rs/zerolog"
 )
 
@@ -21,7 +21,7 @@ var logger = zerolog.New(
 ).With().Timestamp().Logger()
 
 func main() {
-	bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"), nil)
+	bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"))
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to create bot")
 	}
@@ -61,7 +61,7 @@ func main() {
 
 	ctx := context.Background()
 
-	r.Listen(ctx, interrupt, 5*time.Second, 100, nil)
+	r.Listen(ctx, interrupt, 5*time.Second, 100)
 
 	logger.Info().Str("username", bot.User.Username).Msg("bot stopped")
 }

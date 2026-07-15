@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/kbgod/lumex"
-	"github.com/kbgod/lumex/mocks"
-	"github.com/kbgod/lumex/router"
+	"github.com/kbgod/lumex/v2"
+	"github.com/kbgod/lumex/v2/mocks"
+	"github.com/kbgod/lumex/v2/router"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -6,8 +6,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/kbgod/lumex"
-	"github.com/kbgod/lumex/router"
+	"github.com/kbgod/lumex/v2"
+	"github.com/kbgod/lumex/v2/router"
 )
 
 var (
@@ -31,7 +31,7 @@ func New(bot *lumex.Bot, router *router.Router) *Dispatcher {
 	}
 }
 
-func (d *Dispatcher) StartPolling(poolSize int, opts *lumex.GetUpdatesChanOpts) error {
+func (d *Dispatcher) StartPolling(poolSize int, pollOpts ...lumex.PollingOption) error {
 	if !d.started.CompareAndSwap(false, true) {
 		return ErrDispatcherAlreadyStarted
 	}
@@ -40,7 +40,7 @@ func (d *Dispatcher) StartPolling(poolSize int, opts *lumex.GetUpdatesChanOpts) 
 
 	ctx, d.cancel = context.WithCancel(context.Background())
 
-	updates := d.bot.GetUpdatesChanWithContext(ctx, opts)
+	updates := d.bot.GetUpdatesChan(ctx, pollOpts...)
 
 	d.wg.Add(poolSize)
 

@@ -1,7 +1,7 @@
 package zerolog
 
 import (
-	"github.com/kbgod/lumex/log"
+	"github.com/kbgod/lumex/v2/log"
 	"github.com/rs/zerolog"
 )
 

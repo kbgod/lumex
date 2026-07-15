@@ -31,7 +31,7 @@ func NewMenu(options ...MenuOption) *Menu {
 }
 
 func (m *Menu) Unwrap() ReplyMarkup {
-	return m.ReplyKeyboardMarkup
+	return &m.ReplyKeyboardMarkup
 }
 
 func (m *Menu) SetPersistent(isPersistent bool) *Menu {
@@ -117,7 +117,7 @@ func (m *Menu) Btn(btn KeyboardButton) *Menu {
 	return m
 }
 
-func (m *Menu) TextBtn(text string, style ...string) *Menu {
+func (m *Menu) TextBtn(text string, style ...KeyboardButtonStyle) *Menu {
 	m.Keyboard[m.rowIndex] = append(m.Keyboard[m.rowIndex], KeyboardButton{
 		Text:  text,
 		Style: firstOrZero(style),
@@ -126,7 +126,7 @@ func (m *Menu) TextBtn(text string, style ...string) *Menu {
 	return m
 }
 
-func (m *Menu) RequestQuizBtn(text string, style ...string) *Menu {
+func (m *Menu) RequestQuizBtn(text string, style ...KeyboardButtonStyle) *Menu {
 	m.Keyboard[m.rowIndex] = append(m.Keyboard[m.rowIndex], KeyboardButton{
 		Text: text,
 		RequestPoll: &KeyboardButtonPollType{
@@ -137,7 +137,7 @@ func (m *Menu) RequestQuizBtn(text string, style ...string) *Menu {
 	return m
 }
 
-func (m *Menu) RequestPollBtn(text string, style ...string) *Menu {
+func (m *Menu) RequestPollBtn(text string, style ...KeyboardButtonStyle) *Menu {
 	m.Keyboard[m.rowIndex] = append(m.Keyboard[m.rowIndex], KeyboardButton{
 		Text: text,
 		RequestPoll: &KeyboardButtonPollType{
@@ -149,7 +149,7 @@ func (m *Menu) RequestPollBtn(text string, style ...string) *Menu {
 	return m
 }
 
-func (m *Menu) ContactBtn(text string, style ...string) *Menu {
+func (m *Menu) ContactBtn(text string, style ...KeyboardButtonStyle) *Menu {
 	m.Keyboard[m.rowIndex] = append(m.Keyboard[m.rowIndex], KeyboardButton{
 		Text:           text,
 		RequestContact: true,
@@ -159,7 +159,7 @@ func (m *Menu) ContactBtn(text string, style ...string) *Menu {
 	return m
 }
 
-func (m *Menu) LocationBtn(text string, style ...string) *Menu {
+func (m *Menu) LocationBtn(text string, style ...KeyboardButtonStyle) *Menu {
 	m.Keyboard[m.rowIndex] = append(m.Keyboard[m.rowIndex], KeyboardButton{
 		Text:            text,
 		RequestLocation: true,
@@ -169,11 +169,11 @@ func (m *Menu) LocationBtn(text string, style ...string) *Menu {
 	return m
 }
 
-func (m *Menu) WebAppBtn(text, url string, style ...string) *Menu {
+func (m *Menu) WebAppBtn(text, url string, style ...KeyboardButtonStyle) *Menu {
 	m.Keyboard[m.rowIndex] = append(m.Keyboard[m.rowIndex], KeyboardButton{
 		Text: text,
 		WebApp: &WebAppInfo{
-			Url: url,
+			URL: url,
 		},
 		Style: firstOrZero(style),
 	})
@@ -181,7 +181,7 @@ func (m *Menu) WebAppBtn(text, url string, style ...string) *Menu {
 	return m
 }
 
-func (m *Menu) RequestChatBtn(text string, req *KeyboardButtonRequestChat, style ...string) *Menu {
+func (m *Menu) RequestChatBtn(text string, req *KeyboardButtonRequestChat, style ...KeyboardButtonStyle) *Menu {
 	m.Keyboard[m.rowIndex] = append(m.Keyboard[m.rowIndex], KeyboardButton{
 		Text:        text,
 		RequestChat: req,
@@ -191,7 +191,7 @@ func (m *Menu) RequestChatBtn(text string, req *KeyboardButtonRequestChat, style
 	return m
 }
 
-func (m *Menu) RequestUserBtn(text string, req *KeyboardButtonRequestUsers, style ...string) *Menu {
+func (m *Menu) RequestUserBtn(text string, req *KeyboardButtonRequestUsers, style ...KeyboardButtonStyle) *Menu {
 	m.Keyboard[m.rowIndex] = append(m.Keyboard[m.rowIndex], KeyboardButton{
 		Text:         text,
 		RequestUsers: req,
@@ -217,7 +217,7 @@ func NewInlineMenu() *InlineMenu {
 }
 
 func (m *InlineMenu) Unwrap() ReplyMarkup {
-	return m.InlineKeyboardMarkup
+	return &m.InlineKeyboardMarkup
 }
 
 func (m *InlineMenu) Row(buttons ...InlineKeyboardButton) *InlineMenu {
@@ -249,7 +249,7 @@ func (m *InlineMenu) Btn(btn InlineKeyboardButton) *InlineMenu {
 	return m
 }
 
-func (m *InlineMenu) CallbackBtn(text, data string, style ...string) *InlineMenu {
+func (m *InlineMenu) CallbackBtn(text, data string, style ...InlineKeyboardButtonStyle) *InlineMenu {
 	m.InlineKeyboard[m.rowIndex] = append(m.InlineKeyboard[m.rowIndex], InlineKeyboardButton{
 		Text:         text,
 		CallbackData: data,
@@ -259,21 +259,21 @@ func (m *InlineMenu) CallbackBtn(text, data string, style ...string) *InlineMenu
 	return m
 }
 
-func (m *InlineMenu) URLBtn(text, url string, style ...string) *InlineMenu {
+func (m *InlineMenu) URLBtn(text, url string, style ...InlineKeyboardButtonStyle) *InlineMenu {
 	m.InlineKeyboard[m.rowIndex] = append(m.InlineKeyboard[m.rowIndex], InlineKeyboardButton{
 		Text:  text,
-		Url:   url,
+		URL:   url,
 		Style: firstOrZero(style),
 	})
 
 	return m
 }
 
-func (m *InlineMenu) LoginBtn(text, loginURL string, style ...string) *InlineMenu {
+func (m *InlineMenu) LoginBtn(text, loginURL string, style ...InlineKeyboardButtonStyle) *InlineMenu {
 	m.InlineKeyboard[m.rowIndex] = append(m.InlineKeyboard[m.rowIndex], InlineKeyboardButton{
 		Text: text,
-		LoginUrl: &LoginUrl{
-			Url: loginURL,
+		LoginURL: &LoginURL{
+			URL: loginURL,
 		},
 		Style: firstOrZero(style),
 	})
@@ -281,20 +281,20 @@ func (m *InlineMenu) LoginBtn(text, loginURL string, style ...string) *InlineMen
 	return m
 }
 
-func (m *InlineMenu) SwitchInlineQueryBtn(text, query string, style ...string) *InlineMenu {
+func (m *InlineMenu) SwitchInlineQueryBtn(text, query string, style ...InlineKeyboardButtonStyle) *InlineMenu {
 	m.InlineKeyboard[m.rowIndex] = append(m.InlineKeyboard[m.rowIndex], InlineKeyboardButton{
 		Text:              text,
-		SwitchInlineQuery: &query,
+		SwitchInlineQuery: query,
 		Style:             firstOrZero(style),
 	})
 
 	return m
 }
 
-func (m *InlineMenu) SwitchInlineCurrentChatBtn(text, query string, style ...string) *InlineMenu {
+func (m *InlineMenu) SwitchInlineCurrentChatBtn(text, query string, style ...InlineKeyboardButtonStyle) *InlineMenu {
 	m.InlineKeyboard[m.rowIndex] = append(m.InlineKeyboard[m.rowIndex], InlineKeyboardButton{
 		Text:                         text,
-		SwitchInlineQueryCurrentChat: &query,
+		SwitchInlineQueryCurrentChat: query,
 		Style:                        firstOrZero(style),
 	})
 
@@ -302,7 +302,7 @@ func (m *InlineMenu) SwitchInlineCurrentChatBtn(text, query string, style ...str
 }
 
 func (m *InlineMenu) SwitchInlineChosenChatBtn(
-	text string, query *SwitchInlineQueryChosenChat, style ...string,
+	text string, query *SwitchInlineQueryChosenChat, style ...InlineKeyboardButtonStyle,
 ) *InlineMenu {
 	m.InlineKeyboard[m.rowIndex] = append(m.InlineKeyboard[m.rowIndex], InlineKeyboardButton{
 		Text:                        text,
@@ -313,7 +313,7 @@ func (m *InlineMenu) SwitchInlineChosenChatBtn(
 	return m
 }
 
-func (m *InlineMenu) GameBtn(text string, style ...string) *InlineMenu {
+func (m *InlineMenu) GameBtn(text string, style ...InlineKeyboardButtonStyle) *InlineMenu {
 	m.InlineKeyboard[m.rowIndex] = append(m.InlineKeyboard[m.rowIndex], InlineKeyboardButton{
 		Text:         text,
 		CallbackGame: &CallbackGame{},
@@ -323,7 +323,7 @@ func (m *InlineMenu) GameBtn(text string, style ...string) *InlineMenu {
 	return m
 }
 
-func (m *InlineMenu) PayBtn(text string, style ...string) *InlineMenu {
+func (m *InlineMenu) PayBtn(text string, style ...InlineKeyboardButtonStyle) *InlineMenu {
 	m.InlineKeyboard[m.rowIndex] = append(m.InlineKeyboard[m.rowIndex], InlineKeyboardButton{
 		Text:  text,
 		Pay:   true,
@@ -333,11 +333,11 @@ func (m *InlineMenu) PayBtn(text string, style ...string) *InlineMenu {
 	return m
 }
 
-func (m *InlineMenu) WebAppBtn(text, url string, style ...string) *InlineMenu {
+func (m *InlineMenu) WebAppBtn(text, url string, style ...InlineKeyboardButtonStyle) *InlineMenu {
 	m.InlineKeyboard[m.rowIndex] = append(m.InlineKeyboard[m.rowIndex], InlineKeyboardButton{
 		Text: text,
 		WebApp: &WebAppInfo{
-			Url: url,
+			URL: url,
 		},
 		Style: firstOrZero(style),
 	})
@@ -345,7 +345,7 @@ func (m *InlineMenu) WebAppBtn(text, url string, style ...string) *InlineMenu {
 	return m
 }
 
-func (m *InlineMenu) CopyBtn(text, copyText string, style ...string) *InlineMenu {
+func (m *InlineMenu) CopyBtn(text, copyText string, style ...InlineKeyboardButtonStyle) *InlineMenu {
 	m.InlineKeyboard[m.rowIndex] = append(m.InlineKeyboard[m.rowIndex], InlineKeyboardButton{
 		Text: text,
 		CopyText: &CopyTextButton{

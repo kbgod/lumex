@@ -2,9 +2,14 @@ package router
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
-	"github.com/kbgod/lumex"
+	"github.com/kbgod/lumex/v2"
+)
+
+var (
+	ErrContextMessageIsNil = fmt.Errorf("context message is nil")
 )
 
 type BotContextKey = struct{}
@@ -86,26 +91,24 @@ func (ctx *Context) Message() *lumex.Message {
 		ctx.Update.EditedMessage,
 		ctx.Update.ChannelPost,
 		ctx.Update.EditedChannelPost,
+		ctx.Update.BusinessMessage,
+		ctx.Update.EditedBusinessMessage,
+		ctx.Update.GuestMessage,
 	); m != nil {
 		return m
 	}
 	if ctx.Update.CallbackQuery != nil && ctx.Update.CallbackQuery.Message != nil {
-		switch m := ctx.Update.CallbackQuery.Message.(type) {
-		case lumex.Message:
-			return &m
-		case *lumex.Message:
-			return m
-		case lumex.InaccessibleMessage:
+		msg := ctx.Update.CallbackQuery.Message.AsMessage()
+		if msg != nil {
+			return msg
+		}
+
+		inaccessibleMessage := ctx.Update.CallbackQuery.Message.AsInaccessibleMessage()
+		if inaccessibleMessage != nil {
 			return &lumex.Message{
-				Chat:      m.GetChat(),
-				MessageId: m.MessageId,
-				Date:      m.Date,
-			}
-		case *lumex.InaccessibleMessage:
-			return &lumex.Message{
-				Chat:      m.GetChat(),
-				MessageId: m.MessageId,
-				Date:      m.Date,
+				Chat:      inaccessibleMessage.GetChat(),
+				MessageID: inaccessibleMessage.MessageID,
+				Date:      inaccessibleMessage.Date,
 			}
 		}
 	}
@@ -117,25 +120,38 @@ func (ctx *Context) Message() *lumex.Message {
 //
 // returns sender from any type of update
 func (ctx *Context) Sender() *lumex.User {
+	msg := ctx.Message()
 	switch {
 	case ctx.Update.CallbackQuery != nil:
-		return &ctx.Update.CallbackQuery.From
-	case ctx.Message() != nil:
-		return ctx.Message().From
+		return ctx.Update.CallbackQuery.From
+	case msg != nil:
+		return msg.From
 	case ctx.Update.InlineQuery != nil:
-		return &ctx.Update.InlineQuery.From
+		return ctx.Update.InlineQuery.From
+	case ctx.Update.ChosenInlineResult != nil:
+		return ctx.Update.ChosenInlineResult.From
 	case ctx.Update.ShippingQuery != nil:
-		return &ctx.Update.ShippingQuery.From
+		return ctx.Update.ShippingQuery.From
 	case ctx.Update.PreCheckoutQuery != nil:
-		return &ctx.Update.PreCheckoutQuery.From
+		return ctx.Update.PreCheckoutQuery.From
+	case ctx.Update.PurchasedPaidMedia != nil: // ← додано
+		return ctx.Update.PurchasedPaidMedia.From
 	case ctx.Update.PollAnswer != nil:
 		return ctx.Update.PollAnswer.User
 	case ctx.Update.MyChatMember != nil:
-		return &ctx.Update.MyChatMember.From
+		return ctx.Update.MyChatMember.From
 	case ctx.Update.ChatMember != nil:
-		return &ctx.Update.ChatMember.From
+		return ctx.Update.ChatMember.From
 	case ctx.Update.ChatJoinRequest != nil:
-		return &ctx.Update.ChatJoinRequest.From
+		return ctx.Update.ChatJoinRequest.From
+	case ctx.Update.BusinessConnection != nil: // ← додано
+		return ctx.Update.BusinessConnection.User
+	case ctx.Update.MessageReaction != nil: // ← додано (може бути nil, якщо actor_chat)
+		return ctx.Update.MessageReaction.User
+	case ctx.Update.ManagedBot != nil: // ← додано
+		return ctx.Update.ManagedBot.User
+	case ctx.Update.Subscription != nil: // ← нове в 10.2
+		return ctx.Update.Subscription.User
 	default:
 		return nil
 	}
@@ -145,14 +161,26 @@ func (ctx *Context) Sender() *lumex.User {
 //
 // returns chat from any type of update
 func (ctx *Context) Chat() *lumex.Chat {
-	if m := ctx.Message(); m != nil {
-		return &m.Chat
-	} else if ctx.Update.MyChatMember != nil {
-		return &ctx.Update.MyChatMember.Chat
-	} else if ctx.Update.ChatMember != nil {
-		return &ctx.Update.ChatMember.Chat
-	} else if ctx.Update.ChatJoinRequest != nil {
-		return &ctx.Update.ChatJoinRequest.Chat
+	msg := ctx.Message()
+	switch {
+	case msg != nil:
+		return msg.Chat
+	case ctx.Update.MyChatMember != nil:
+		return ctx.Update.MyChatMember.Chat
+	case ctx.Update.ChatMember != nil:
+		return ctx.Update.ChatMember.Chat
+	case ctx.Update.ChatJoinRequest != nil:
+		return ctx.Update.ChatJoinRequest.Chat
+	case ctx.Update.MessageReaction != nil: // ← додано
+		return ctx.Update.MessageReaction.Chat
+	case ctx.Update.MessageReactionCount != nil: // ← додано
+		return ctx.Update.MessageReactionCount.Chat
+	case ctx.Update.ChatBoost != nil: // ← додано
+		return ctx.Update.ChatBoost.Chat
+	case ctx.Update.RemovedChatBoost != nil: // ← додано
+		return ctx.Update.RemovedChatBoost.Chat
+	case ctx.Update.DeletedBusinessMessages != nil: // ← додано
+		return ctx.Update.DeletedBusinessMessages.Chat
 	}
 
 	return nil
@@ -163,11 +191,11 @@ func (ctx *Context) Chat() *lumex.Chat {
 // returns chat id from any type of update
 func (ctx *Context) ChatID() int64 {
 	if c := ctx.Chat(); c != nil {
-		return c.Id
+		return c.ID
 	}
 
 	if s := ctx.Sender(); s != nil {
-		return s.Id
+		return s.ID
 	}
 
 	// impossible
@@ -205,7 +233,7 @@ func (ctx *Context) CallbackData() string {
 // returns callback id from callback query, empty string if not exists
 func (ctx *Context) CallbackID() string {
 	if ctx.Update.CallbackQuery != nil {
-		return ctx.Update.CallbackQuery.Id
+		return ctx.Update.CallbackQuery.ID
 	}
 
 	return ""
@@ -257,7 +285,7 @@ func (ctx *Context) Query() string {
 // returns inline query id from inline query update, empty string if not exists
 func (ctx *Context) QueryID() string {
 	if ctx.Update.InlineQuery != nil {
-		return ctx.Update.InlineQuery.Id
+		return ctx.Update.InlineQuery.ID
 	}
 
 	return ""
@@ -296,28 +324,22 @@ func (ctx *Context) ShiftInlineQuery(separator string, count ...int) string {
 // HELPER FUNCTIONS
 
 // Reply sends message to the chat from update
-func (ctx *Context) Reply(text string, opts ...*lumex.SendMessageOpts) (*lumex.Message, error) {
-	var opt *lumex.SendMessageOpts
+func (ctx *Context) Reply(text string, opts ...lumex.SendMessageOpts) (*lumex.Message, error) {
+	var opt lumex.SendMessageOpts
 
-	if len(opts) > 0 && opts[0] != nil {
+	if len(opts) > 0 {
 		opt = opts[0]
 	}
 
-	if ctx.parseMode != nil {
-		if opt == nil {
-			opt = &lumex.SendMessageOpts{
-				ParseMode: *ctx.parseMode,
-			}
-		} else if opt.ParseMode == "" {
-			opt.ParseMode = *ctx.parseMode
-		}
+	if ctx.parseMode != nil && opt.ParseMode == "" {
+		opt.ParseMode = *ctx.parseMode
 	}
 
-	return ctx.Bot.SendMessageWithContext(ctx.Context(), ctx.ChatID(), text, opt)
+	return ctx.Bot.SendMessage(ctx.Context(), ctx.ChatID(), text, opt)
 }
 
 // ReplyVoid sends message without returning result
-func (ctx *Context) ReplyVoid(text string, opts ...*lumex.SendMessageOpts) error {
+func (ctx *Context) ReplyVoid(text string, opts ...lumex.SendMessageOpts) error {
 	_, err := ctx.Reply(text, opts...)
 
 	return err
@@ -325,14 +347,12 @@ func (ctx *Context) ReplyVoid(text string, opts ...*lumex.SendMessageOpts) error
 
 // ReplyWithMenu sends message with menu
 func (ctx *Context) ReplyWithMenu(
-	text string, menu lumex.IMenu, opts ...*lumex.SendMessageOpts,
+	text string, menu lumex.IMenu, opts ...lumex.SendMessageOpts,
 ) (*lumex.Message, error) {
-	var opt *lumex.SendMessageOpts
+	var opt lumex.SendMessageOpts
 
-	if len(opts) > 0 && opts[0] != nil {
+	if len(opts) > 0 {
 		opt = opts[0]
-	} else {
-		opt = &lumex.SendMessageOpts{}
 	}
 
 	opt.ReplyMarkup = menu.Unwrap()
@@ -342,7 +362,7 @@ func (ctx *Context) ReplyWithMenu(
 
 // ReplyWithMenuVoid sends message with menu without returning result
 func (ctx *Context) ReplyWithMenuVoid(
-	text string, menu lumex.IMenu, opts ...*lumex.SendMessageOpts,
+	text string, menu lumex.IMenu, opts ...lumex.SendMessageOpts,
 ) error {
 	_, err := ctx.ReplyWithMenu(text, menu, opts...)
 
@@ -350,33 +370,29 @@ func (ctx *Context) ReplyWithMenuVoid(
 }
 
 // Answer sends answer to callback query from update
-func (ctx *Context) Answer(text string, opts ...*lumex.AnswerCallbackQueryOpts) (bool, error) {
-	var opt *lumex.AnswerCallbackQueryOpts
-	if len(opts) > 0 && opts[0] != nil {
+func (ctx *Context) Answer(text string, opts ...lumex.AnswerCallbackQueryOpts) (bool, error) {
+	var opt lumex.AnswerCallbackQueryOpts
+	if len(opts) > 0 {
 		opt = opts[0]
-	} else {
-		opt = &lumex.AnswerCallbackQueryOpts{}
 	}
 
 	opt.Text = text
 
-	return ctx.Bot.AnswerCallbackQueryWithContext(ctx.Context(), ctx.Update.CallbackQuery.Id, opt)
+	return ctx.Bot.AnswerCallbackQuery(ctx.Context(), ctx.Update.CallbackQuery.ID, opt)
 }
 
 // AnswerVoid sends answer to callback query without returning result
-func (ctx *Context) AnswerVoid(text string, opts ...*lumex.AnswerCallbackQueryOpts) error {
+func (ctx *Context) AnswerVoid(text string, opts ...lumex.AnswerCallbackQueryOpts) error {
 	_, err := ctx.Answer(text, opts...)
 
 	return err
 }
 
 // AnswerAlert sends answer to callback query from update with alert
-func (ctx *Context) AnswerAlert(text string, opts ...*lumex.AnswerCallbackQueryOpts) (bool, error) {
-	var opt *lumex.AnswerCallbackQueryOpts
-	if len(opts) > 0 && opts[0] != nil {
+func (ctx *Context) AnswerAlert(text string, opts ...lumex.AnswerCallbackQueryOpts) (bool, error) {
+	var opt lumex.AnswerCallbackQueryOpts
+	if len(opts) > 0 {
 		opt = opts[0]
-	} else {
-		opt = &lumex.AnswerCallbackQueryOpts{}
 	}
 
 	opt.ShowAlert = true
@@ -385,63 +401,69 @@ func (ctx *Context) AnswerAlert(text string, opts ...*lumex.AnswerCallbackQueryO
 }
 
 // AnswerAlertVoid sends answer to callback query with alert without returning result
-func (ctx *Context) AnswerAlertVoid(text string, opts ...*lumex.AnswerCallbackQueryOpts) error {
+func (ctx *Context) AnswerAlertVoid(text string, opts ...lumex.AnswerCallbackQueryOpts) error {
 	_, err := ctx.AnswerAlert(text, opts...)
 
 	return err
 }
 
-func (ctx *Context) AnswerQuery(results []lumex.InlineQueryResult, opts ...*lumex.AnswerInlineQueryOpts) (bool, error) {
-	var opt *lumex.AnswerInlineQueryOpts
+func (ctx *Context) AnswerQuery(results []lumex.InlineQueryResult, opts ...lumex.AnswerInlineQueryOpts) (bool, error) {
+	var opt lumex.AnswerInlineQueryOpts
 	if len(opts) > 0 {
 		opt = opts[0]
 	}
 
-	return ctx.Bot.AnswerInlineQueryWithContext(ctx.Context(), ctx.Update.InlineQuery.Id, results, opt)
+	return ctx.Bot.AnswerInlineQuery(ctx.Context(), ctx.Update.InlineQuery.ID, results, opt)
 }
 
-func (ctx *Context) AnswerQueryVoid(results []lumex.InlineQueryResult, opts ...*lumex.AnswerInlineQueryOpts) error {
+func (ctx *Context) AnswerQueryVoid(results []lumex.InlineQueryResult, opts ...lumex.AnswerInlineQueryOpts) error {
 	_, err := ctx.AnswerQuery(results, opts...)
 
 	return err
 }
 
 // DeleteMessage deletes message which is in update
-func (ctx *Context) DeleteMessage(opts ...*lumex.DeleteMessageOpts) (bool, error) {
-	var opt *lumex.DeleteMessageOpts
-	if len(opts) > 0 {
-		opt = opts[0]
+func (ctx *Context) DeleteMessage() (bool, error) {
+	msg := ctx.Message()
+	if msg == nil {
+		return false, fmt.Errorf("failed to delete context message: %w", ErrContextMessageIsNil)
 	}
 
-	return ctx.Bot.DeleteMessageWithContext(ctx.Context(), ctx.ChatID(), ctx.Message().MessageId, opt)
+	return ctx.Bot.DeleteMessage(ctx.Context(), ctx.ChatID(), msg.MessageID)
 }
 
 // DeleteMessageVoid deletes message which is in update without returning result
-func (ctx *Context) DeleteMessageVoid(opts ...*lumex.DeleteMessageOpts) error {
-	_, err := ctx.DeleteMessage(opts...)
+func (ctx *Context) DeleteMessageVoid() error {
+	_, err := ctx.DeleteMessage()
 
 	return err
 }
 
 // EditMessageText edits message text which is in update
-func (ctx *Context) EditMessageText(text string, opts ...*lumex.EditMessageTextOpts) (*lumex.Message, bool, error) {
-	opt := &lumex.EditMessageTextOpts{}
-	if len(opts) > 0 && opts[0] != nil {
+func (ctx *Context) EditMessageText(text string, opts ...lumex.EditMessageTextOpts) (*lumex.Message, bool, error) {
+	msg := ctx.Message()
+	if msg == nil {
+		return nil, false, fmt.Errorf("failed to edit context message: %w", ErrContextMessageIsNil)
+	}
+
+	var opt lumex.EditMessageTextOpts
+	if len(opts) > 0 {
 		opt = opts[0]
 	}
 
-	opt.ChatId = ctx.ChatID()
-	opt.MessageId = ctx.Message().MessageId
+	opt.Text = text
+	opt.ChatID = ctx.ChatID()
+	opt.MessageID = msg.MessageID
 
 	if ctx.parseMode != nil {
 		opt.ParseMode = *ctx.parseMode
 	}
 
-	return ctx.Bot.EditMessageTextWithContext(ctx.Context(), text, opt)
+	return ctx.Bot.EditMessageText(ctx.Context(), opt)
 }
 
 // EditMessageTextVoid edits message text which is in update without returning result
-func (ctx *Context) EditMessageTextVoid(text string, opts ...*lumex.EditMessageTextOpts) error {
+func (ctx *Context) EditMessageTextVoid(text string, opts ...lumex.EditMessageTextOpts) error {
 	_, _, err := ctx.EditMessageText(text, opts...)
 
 	return err
@@ -449,16 +471,20 @@ func (ctx *Context) EditMessageTextVoid(text string, opts ...*lumex.EditMessageT
 
 // ReplyEmojiReaction sends emoji reaction to message which is in update
 func (ctx *Context) ReplyEmojiReaction(emoji ...string) (bool, error) {
+	msg := ctx.Message()
+	if msg == nil {
+		return false, fmt.Errorf("failed to react to context message: %w", ErrContextMessageIsNil)
+	}
 	reactions := make([]lumex.ReactionType, len(emoji))
 	for i, e := range emoji {
-		reactions[i] = lumex.ReactionTypeEmoji{Emoji: e}
+		reactions[i] = &lumex.ReactionTypeEmoji{Emoji: e}
 	}
 
-	return ctx.Bot.SetMessageReactionWithContext(
+	return ctx.Bot.SetMessageReaction(
 		ctx.Context(),
 		ctx.ChatID(),
-		ctx.Message().MessageId,
-		&lumex.SetMessageReactionOpts{
+		msg.MessageID,
+		lumex.SetMessageReactionOpts{
 			Reaction: reactions,
 		})
 }
@@ -472,16 +498,21 @@ func (ctx *Context) ReplyEmojiReactionVoid(emoji ...string) error {
 
 // ReplyEmojiBigReaction sends big emoji reaction to message which is in update
 func (ctx *Context) ReplyEmojiBigReaction(emoji ...string) (bool, error) {
-	reactions := make([]lumex.ReactionType, 0, len(emoji))
-	for _, e := range emoji {
-		reactions = append(reactions, lumex.ReactionTypeEmoji{Emoji: e})
+	msg := ctx.Message()
+	if msg == nil {
+		return false, fmt.Errorf("failed to react to context message: %w", ErrContextMessageIsNil)
 	}
 
-	return ctx.Bot.SetMessageReactionWithContext(
+	reactions := make([]lumex.ReactionType, 0, len(emoji))
+	for _, e := range emoji {
+		reactions = append(reactions, &lumex.ReactionTypeEmoji{Emoji: e})
+	}
+
+	return ctx.Bot.SetMessageReaction(
 		ctx.Context(),
 		ctx.ChatID(),
-		ctx.Message().MessageId,
-		&lumex.SetMessageReactionOpts{
+		msg.MessageID,
+		lumex.SetMessageReactionOpts{
 			Reaction: reactions,
 			IsBig:    true,
 		})
@@ -494,41 +525,33 @@ func (ctx *Context) ReplyEmojiBigReactionVoid(emoji ...string) error {
 	return err
 }
 
-func (ctx *Context) ReplyPhoto(photo lumex.InputFileOrString, opts ...*lumex.SendPhotoOpts) (*lumex.Message, error) {
-	var opt *lumex.SendPhotoOpts
+func (ctx *Context) ReplyPhoto(photo *lumex.InputFile, opts ...lumex.SendPhotoOpts) (*lumex.Message, error) {
+	var opt lumex.SendPhotoOpts
 
-	if len(opts) > 0 && opts[0] != nil {
+	if len(opts) > 0 {
 		opt = opts[0]
 	}
 
-	if ctx.parseMode != nil {
-		if opt == nil {
-			opt = &lumex.SendPhotoOpts{
-				ParseMode: *ctx.parseMode,
-			}
-		} else if opt.ParseMode == "" {
-			opt.ParseMode = *ctx.parseMode
-		}
+	if ctx.parseMode != nil && opt.ParseMode == "" {
+		opt.ParseMode = *ctx.parseMode
 	}
 
-	return ctx.Bot.SendPhotoWithContext(ctx.Context(), ctx.ChatID(), photo, opt)
+	return ctx.Bot.SendPhoto(ctx.Context(), ctx.ChatID(), photo, opt)
 }
 
-func (ctx *Context) ReplyPhotoVoid(photo lumex.InputFileOrString, opts ...*lumex.SendPhotoOpts) error {
+func (ctx *Context) ReplyPhotoVoid(photo *lumex.InputFile, opts ...lumex.SendPhotoOpts) error {
 	_, err := ctx.ReplyPhoto(photo, opts...)
 
 	return err
 }
 
 func (ctx *Context) ReplyPhotoWithMenu(
-	photo lumex.InputFileOrString, menu lumex.IMenu, opts ...*lumex.SendPhotoOpts,
+	photo *lumex.InputFile, menu lumex.IMenu, opts ...lumex.SendPhotoOpts,
 ) (*lumex.Message, error) {
-	var opt *lumex.SendPhotoOpts
+	var opt lumex.SendPhotoOpts
 
-	if len(opts) > 0 && opts[0] != nil {
+	if len(opts) > 0 {
 		opt = opts[0]
-	} else {
-		opt = &lumex.SendPhotoOpts{}
 	}
 
 	opt.ReplyMarkup = menu.Unwrap()
@@ -537,48 +560,40 @@ func (ctx *Context) ReplyPhotoWithMenu(
 }
 
 func (ctx *Context) ReplyPhotoWithMenuVoid(
-	photo lumex.InputFileOrString, menu lumex.IMenu, opts ...*lumex.SendPhotoOpts,
+	photo *lumex.InputFile, menu lumex.IMenu, opts ...lumex.SendPhotoOpts,
 ) error {
 	_, err := ctx.ReplyPhotoWithMenu(photo, menu, opts...)
 
 	return err
 }
 
-func (ctx *Context) ReplyVideo(video lumex.InputFileOrString, opts ...*lumex.SendVideoOpts) (*lumex.Message, error) {
-	var opt *lumex.SendVideoOpts
+func (ctx *Context) ReplyVideo(video *lumex.InputFile, opts ...lumex.SendVideoOpts) (*lumex.Message, error) {
+	var opt lumex.SendVideoOpts
 
-	if len(opts) > 0 && opts[0] != nil {
+	if len(opts) > 0 {
 		opt = opts[0]
 	}
 
-	if ctx.parseMode != nil {
-		if opt == nil {
-			opt = &lumex.SendVideoOpts{
-				ParseMode: *ctx.parseMode,
-			}
-		} else if opt.ParseMode == "" {
-			opt.ParseMode = *ctx.parseMode
-		}
+	if ctx.parseMode != nil && opt.ParseMode == "" {
+		opt.ParseMode = *ctx.parseMode
 	}
 
-	return ctx.Bot.SendVideoWithContext(ctx.Context(), ctx.ChatID(), video, opt)
+	return ctx.Bot.SendVideo(ctx.Context(), ctx.ChatID(), video, opt)
 }
 
-func (ctx *Context) ReplyVideoVoid(video lumex.InputFileOrString, opts ...*lumex.SendVideoOpts) error {
+func (ctx *Context) ReplyVideoVoid(video *lumex.InputFile, opts ...lumex.SendVideoOpts) error {
 	_, err := ctx.ReplyVideo(video, opts...)
 
 	return err
 }
 
 func (ctx *Context) ReplyVideoWithMenu(
-	video lumex.InputFileOrString, menu lumex.IMenu, opts ...*lumex.SendVideoOpts,
+	video *lumex.InputFile, menu lumex.IMenu, opts ...lumex.SendVideoOpts,
 ) (*lumex.Message, error) {
-	var opt *lumex.SendVideoOpts
+	var opt lumex.SendVideoOpts
 
-	if len(opts) > 0 && opts[0] != nil {
+	if len(opts) > 0 {
 		opt = opts[0]
-	} else {
-		opt = &lumex.SendVideoOpts{}
 	}
 
 	opt.ReplyMarkup = menu.Unwrap()
@@ -587,7 +602,7 @@ func (ctx *Context) ReplyVideoWithMenu(
 }
 
 func (ctx *Context) ReplyVideoWithMenuVoid(
-	video lumex.InputFileOrString, menu lumex.IMenu, opts ...*lumex.SendVideoOpts,
+	video *lumex.InputFile, menu lumex.IMenu, opts ...lumex.SendVideoOpts,
 ) error {
 	_, err := ctx.ReplyVideoWithMenu(video, menu, opts...)
 

@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kbgod/lumex"
-	"github.com/kbgod/lumex/dispatcher"
-	"github.com/kbgod/lumex/router"
+	"github.com/kbgod/lumex/v2"
+	"github.com/kbgod/lumex/v2/dispatcher"
+	"github.com/kbgod/lumex/v2/router"
 )
 
 func main() {
@@ -21,7 +21,7 @@ func main() {
 
 	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"), nil)
+	bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"))
 	if err != nil {
 		log.Error("failed to create bot", "error", err)
 
@@ -49,7 +49,7 @@ func main() {
 	d := dispatcher.New(bot, r)
 
 	go func() {
-		if err := d.StartPolling(100, nil); err != nil {
+		if err := d.StartPolling(100); err != nil {
 			log.Error("failed to start dispatcher", "error", err)
 
 			os.Exit(1)

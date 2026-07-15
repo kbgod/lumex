@@ -6,8 +6,6 @@ import (
 	context "context"
 	json "encoding/json"
 
-	lumex "github.com/kbgod/lumex"
-
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -16,45 +14,9 @@ type BotClient struct {
 	mock.Mock
 }
 
-// FileURL provides a mock function with given fields: token, tgFilePath, opts
-func (_m *BotClient) FileURL(token string, tgFilePath string, opts *lumex.RequestOpts) string {
-	ret := _m.Called(token, tgFilePath, opts)
-
-	if len(ret) == 0 {
-		panic("no return value specified for FileURL")
-	}
-
-	var r0 string
-	if rf, ok := ret.Get(0).(func(string, string, *lumex.RequestOpts) string); ok {
-		r0 = rf(token, tgFilePath, opts)
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-
-	return r0
-}
-
-// GetAPIURL provides a mock function with given fields: opts
-func (_m *BotClient) GetAPIURL(opts *lumex.RequestOpts) string {
-	ret := _m.Called(opts)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetAPIURL")
-	}
-
-	var r0 string
-	if rf, ok := ret.Get(0).(func(*lumex.RequestOpts) string); ok {
-		r0 = rf(opts)
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-
-	return r0
-}
-
-// RequestWithContext provides a mock function with given fields: ctx, token, method, params, opts
-func (_m *BotClient) RequestWithContext(ctx context.Context, token string, method string, params map[string]interface{}, opts *lumex.RequestOpts) (json.RawMessage, error) {
-	ret := _m.Called(ctx, token, method, params, opts)
+// RequestWithContext provides a mock function with given fields: ctx, method, request
+func (_m *BotClient) RequestWithContext(ctx context.Context, method string, request any) (json.RawMessage, error) {
+	ret := _m.Called(ctx, method, request)
 
 	if len(ret) == 0 {
 		panic("no return value specified for RequestWithContext")
@@ -62,19 +24,19 @@ func (_m *BotClient) RequestWithContext(ctx context.Context, token string, metho
 
 	var r0 json.RawMessage
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, map[string]interface{}, *lumex.RequestOpts) (json.RawMessage, error)); ok {
-		return rf(ctx, token, method, params, opts)
+	if rf, ok := ret.Get(0).(func(context.Context, string, any) (json.RawMessage, error)); ok {
+		return rf(ctx, method, request)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, map[string]interface{}, *lumex.RequestOpts) json.RawMessage); ok {
-		r0 = rf(ctx, token, method, params, opts)
+	if rf, ok := ret.Get(0).(func(context.Context, string, any) json.RawMessage); ok {
+		r0 = rf(ctx, method, request)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(json.RawMessage)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, map[string]interface{}, *lumex.RequestOpts) error); ok {
-		r1 = rf(ctx, token, method, params, opts)
+	if rf, ok := ret.Get(1).(func(context.Context, string, any) error); ok {
+		r1 = rf(ctx, method, request)
 	} else {
 		r1 = ret.Error(1)
 	}

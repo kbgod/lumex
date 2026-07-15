@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kbgod/lumex"
-	"github.com/kbgod/lumex/log"
+	"github.com/kbgod/lumex/v2"
+	"github.com/kbgod/lumex/v2/log"
 )
 
 var (
@@ -292,7 +292,7 @@ func (r *Router) HandleUpdate(ctx context.Context, update *lumex.Update) error {
 	return err
 }
 
-// Listen starts getting updates using bot.GetUpdatesChanWithContext method.
+// Listen starts getting updates using the bot.GetUpdatesChan method.
 // Attention: this method blocks until interrupt signal received and all workers finished or timeout reached.
 //
 // Deprecated: Use dispatcher.New with StartPolling and Stop instead.
@@ -301,16 +301,16 @@ func (r *Router) Listen(
 	interrupt chan os.Signal,
 	timeout time.Duration,
 	poolSize int,
-	updatesOpts *lumex.GetUpdatesChanOpts,
+	pollOpts ...lumex.PollingOption,
 ) {
 	updatesCtx, updatesCancel := context.WithCancel(ctx)
-	updates := r.bot.GetUpdatesChanWithContext(updatesCtx, updatesOpts)
+	updates := r.bot.GetUpdatesChan(updatesCtx, pollOpts...)
 
 	var wg sync.WaitGroup
+	wg.Add(poolSize)
 	poolCtx, poolCancel := context.WithCancel(ctx)
 	for i := 0; i < poolSize; i++ {
 		go func(id int) {
-			wg.Add(1)
 			defer wg.Done()
 			for {
 				select {

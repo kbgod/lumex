@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kbgod/lumex"
-	"github.com/kbgod/lumex/router"
+	"github.com/kbgod/lumex/v2"
+	"github.com/kbgod/lumex/v2/router"
 	"github.com/rs/zerolog"
 )
 
@@ -23,7 +23,7 @@ var logger = zerolog.New(
 ).With().Timestamp().Logger()
 
 func main() {
-	bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"), nil)
+	bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"))
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to create bot")
 	}
@@ -46,12 +46,12 @@ func main() {
 		menu.Row().TextBtn("1")
 		menu.Row().RequestPollBtn("poll").RequestQuizBtn("quiz")
 		menu.Row().RequestChatBtn("chat", &lumex.KeyboardButtonRequestChat{
-			RequestId:    int64(rand.Int32()),
+			RequestID:    int64(rand.Int32()),
 			RequestPhoto: true,
 			// etc ...
 		})
 		menu.Row().RequestUserBtn("user", &lumex.KeyboardButtonRequestUsers{
-			RequestId:    int64(rand.Int32()),
+			RequestID:    int64(rand.Int32()),
 			RequestPhoto: true,
 			// etc ...
 		})
@@ -98,12 +98,12 @@ func main() {
 		return ctx.ReplyWithMenuVoid("Keyboard removed", menu)
 	})
 	r.OnChatShared(func(ctx *router.Context) error {
-		return ctx.ReplyVoid(prettyMarshalMessage(ctx), &lumex.SendMessageOpts{
+		return ctx.ReplyVoid(prettyMarshalMessage(ctx), lumex.SendMessageOpts{
 			ParseMode: lumex.ParseModeHTML,
 		})
 	})
 	r.OnUsersShared(func(ctx *router.Context) error {
-		return ctx.ReplyVoid(prettyMarshalMessage(ctx), &lumex.SendMessageOpts{
+		return ctx.ReplyVoid(prettyMarshalMessage(ctx), lumex.SendMessageOpts{
 			ParseMode: lumex.ParseModeHTML,
 		})
 	})
@@ -112,10 +112,10 @@ func main() {
 	})
 	r.OnInlineQuery(func(ctx *router.Context) error {
 		results := []lumex.InlineQueryResult{
-			lumex.InlineQueryResultArticle{
-				Id:    fmt.Sprintf("article-%d", rand.Int()),
+			&lumex.InlineQueryResultArticle{
+				ID:    fmt.Sprintf("article-%d", rand.Int()),
 				Title: "test title",
-				InputMessageContent: lumex.InputTextMessageContent{
+				InputMessageContent: &lumex.InputTextMessageContent{
 					MessageText: "Hello, world!",
 				},
 			},
@@ -129,7 +129,7 @@ func main() {
 
 	ctx := context.Background()
 
-	r.Listen(ctx, interrupt, 5*time.Second, 100, nil)
+	r.Listen(ctx, interrupt, 5*time.Second, 100)
 
 	logger.Info().Str("username", bot.User.Username).Msg("bot stopped")
 }

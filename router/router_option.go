@@ -1,6 +1,6 @@
 package router
 
-import "github.com/kbgod/lumex/log"
+import "github.com/kbgod/lumex/v2/log"
 
 type Option func(*Router)
 
