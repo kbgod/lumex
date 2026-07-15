@@ -43,7 +43,7 @@ func TestGetUpdatesChan(t *testing.T) {
 	ch := b.GetUpdatesChan(ctx)
 
 	var got []int64
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		select {
 		case u := <-ch:
 			got = append(got, u.UpdateID)

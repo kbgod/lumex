@@ -89,10 +89,7 @@ func (m *Menu) TextRow(buttons ...string) *Menu {
 
 func (m *Menu) Fill(perLine int, buttons ...KeyboardButton) *Menu {
 	for i := 0; i < len(buttons); i += perLine {
-		end := i + perLine
-		if end > len(buttons) {
-			end = len(buttons)
-		}
+		end := min(i+perLine, len(buttons))
 		m.Row(buttons[i:end]...)
 	}
 
@@ -233,10 +230,7 @@ func (m *InlineMenu) Row(buttons ...InlineKeyboardButton) *InlineMenu {
 
 func (m *InlineMenu) Fill(perLine int, buttons ...InlineKeyboardButton) *InlineMenu {
 	for i := 0; i < len(buttons); i += perLine {
-		end := i + perLine
-		if end > len(buttons) {
-			end = len(buttons)
-		}
+		end := min(i+perLine, len(buttons))
 		m.Row(buttons[i:end]...)
 	}
 
