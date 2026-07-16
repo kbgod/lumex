@@ -6,6 +6,23 @@ import (
 	"testing"
 )
 
+func TestScanUntyped(t *testing.T) {
+	// deterministic (no snapshot): a field typed `any` or `[]any` is reported as
+	// "Owner.Field"; a `map[string]any` in a method body (no json tag) is not.
+	files := map[string][]byte{
+		"types.go": []byte("type Foo struct {\n" +
+			"\tBar any `json:\"bar\"`\n" +
+			"\tBaz []any `json:\"baz,omitempty\"`\n" +
+			"\tOK  string `json:\"ok\"`\n}\n" +
+			"func (Foo) Fields() map[string]any { return nil }\n"),
+	}
+	got := scanUntyped(files)
+	want := []string{"Foo.Bar", "Foo.Baz"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("scanUntyped = %v; want %v", got, want)
+	}
+}
+
 func TestPatchUnionSubtypes(t *testing.T) {
 	g := newGenerator("lumex", "")
 	g.sections["InputMediaVoiceNote"] = "<h4>InputMediaVoiceNote</h4>" // type exists in the docs

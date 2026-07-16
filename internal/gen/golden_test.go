@@ -73,6 +73,22 @@ func TestGeneratedUpToDate(t *testing.T) {
 	}
 }
 
+// TestNoUntypedFields fails if generation left any field typed as `any` — the
+// signal that the generator could not map a documented type (e.g. a new union in
+// a fresh API version). Fix by teaching the generator a mapping, not by ignoring
+// it. Skips when the snapshot is absent.
+func TestNoUntypedFields(t *testing.T) {
+	src := readSnapshot(t)
+	_, stats, err := Generate(src, Config{Package: genPkg, Origin: testOrigin, Enums: true, Requests: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(stats.Untyped) > 0 {
+		t.Errorf("generation produced %d untyped `any` field(s): %v — teach the generator a typed mapping",
+			len(stats.Untyped), stats.Untyped)
+	}
+}
+
 // TestDeterministic checks that generating twice yields identical bytes (no map
 // iteration order or other nondeterminism leaks into the output).
 func TestDeterministic(t *testing.T) {

@@ -64,6 +64,16 @@ func main() {
 
 	fmt.Printf("generated %d object types, %d enums, %d unions, %d request structs, %d methods → %s/\n",
 		stats.ObjectTypes, stats.Enums, stats.Unions, stats.Requests, stats.Methods, *dir)
+
+	// Post-generation guard: flag any field that fell back to `any` (no typed
+	// mapping) so a new/unrecognised type in a fresh API version isn't missed.
+	if len(stats.Untyped) > 0 {
+		fmt.Fprintf(os.Stderr, "\nWARNING: %d field(s) fell back to `any` (no typed mapping):\n", len(stats.Untyped))
+		for _, f := range stats.Untyped {
+			fmt.Fprintf(os.Stderr, "  - %s\n", f)
+		}
+		fmt.Fprintln(os.Stderr, "Teach the generator a mapping (e.g. patchUnionSubtypes) or add a helper.")
+	}
 }
 
 // loadSource returns the HTML to parse and a human-readable origin for the file
