@@ -1,0 +1,13 @@
+{
+  "name": "lumex",
+  "owner": {
+    "name": "kbgod"
+  },
+  "plugins": [
+    {
+      "name": "lumex",
+      "source": "./",
+      "description": "How to build Telegram bots with the kbgod/lumex Go framework: router, Context helpers, filters/middleware/state, menu & rich-message builders, polling/webhook."
+    }
+  ]
+}
