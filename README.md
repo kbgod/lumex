@@ -5,7 +5,7 @@
 [![Telegram Bot API Version](https://img.shields.io/static/v1?label=Supported%20Telegram%20Bot%20API&color=29a1d4&logo=telegram&message=v10.2)](https://core.telegram.org/bots/api)
 [![codecov](https://codecov.io/gh/kbgod/lumex/branch/main/graph/badge.svg)](https://codecov.io/gh/kbgod/lumex)
 
-Inspired by [paulsonoflars/gotgbot](https://github.com/paulsonoflars/gotgbot) and [mr-linch/go-tg](https://github.com/mr-linch/go-tg).
+Inspired by [paulsonoflars/gotgbot](https://github.com/paulsonoflars/gotgbot).
 
 All Telegram types and methods are produced by lumex's own stdlib-only generator (`internal/gen`) straight from the official [Bot API docs](https://core.telegram.org/bots/api) into `types.go`, `requests.go`, `methods.go`, `constants.go` and `helpers.go`. Bumping the API version is a single `go run ./cmd/gen`.
 
@@ -298,6 +298,7 @@ typingGroup.OnMessage(processMessageViaAI)
 | [Echobot](/examples/echobot/main.go) | Minimal bot that echoes messages |
 | [Keyboards](/examples/keyboard/main.go) | Reply and inline keyboard usage |
 | [CallbackQuery](/examples/callback/main.go) | Handling callback queries |
+| [Rich message](/examples/richmessage/main.go) | Building rich messages: HTML, Markdown, media, and blocks |
 | [Webhook](/examples/webhook/main.go) | Single-bot webhook setup |
 | [Webhook (multi-bot)](/examples/webhook_many/main.go) | Webhook for multiple bots or mini-app builders |
 

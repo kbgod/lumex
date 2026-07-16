@@ -136,7 +136,7 @@ type SendMessageOpts struct {
 	DirectMessagesTopicID int64 `json:"direct_messages_topic_id,omitempty"`
 	// ReceiverUserID For outgoing ephemeral messages, unique identifier of the user who will receive the message; for group and supergroup chats only. It is not guaranteed that the user will receive the message, especially if they are offline. See ephemeral message sending for more details.
 	ReceiverUserID int64 `json:"receiver_user_id,omitempty"`
-	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggerred the message if any
+	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggered the message if any
 	CallbackQueryID string `json:"callback_query_id,omitempty"`
 	// ParseMode Mode for parsing entities in the message text. See formatting options for more details.
 	ParseMode string `json:"parse_mode,omitempty"`
@@ -317,7 +317,7 @@ type SendPhotoOpts struct {
 	DirectMessagesTopicID int64 `json:"direct_messages_topic_id,omitempty"`
 	// ReceiverUserID For outgoing ephemeral messages, unique identifier of the user who will receive the message; for group and supergroup chats only. It is not guaranteed that the user will receive the message, especially if they are offline. See ephemeral message sending for more details.
 	ReceiverUserID int64 `json:"receiver_user_id,omitempty"`
-	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggerred the message if any
+	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggered the message if any
 	CallbackQueryID string `json:"callback_query_id,omitempty"`
 	// Caption Photo caption (may also be used when resending photos by file_id), 0-1024 characters after entities parsing
 	Caption string `json:"caption,omitempty"`
@@ -433,7 +433,7 @@ type SendLivePhotoOpts struct {
 	DirectMessagesTopicID int64 `json:"direct_messages_topic_id,omitempty"`
 	// ReceiverUserID For outgoing ephemeral messages, unique identifier of the user who will receive the message; for group and supergroup chats only. It is not guaranteed that the user will receive the message, especially if they are offline. See ephemeral message sending for more details.
 	ReceiverUserID int64 `json:"receiver_user_id,omitempty"`
-	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggerred the message if any
+	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggered the message if any
 	CallbackQueryID string `json:"callback_query_id,omitempty"`
 	// Caption Video caption (may also be used when resending videos by file_id), 0-1024 characters after entities parsing
 	Caption string `json:"caption,omitempty"`
@@ -555,7 +555,7 @@ type SendAudioOpts struct {
 	DirectMessagesTopicID int64 `json:"direct_messages_topic_id,omitempty"`
 	// ReceiverUserID For outgoing ephemeral messages, unique identifier of the user who will receive the message; for group and supergroup chats only. It is not guaranteed that the user will receive the message, especially if they are offline. See ephemeral message sending for more details.
 	ReceiverUserID int64 `json:"receiver_user_id,omitempty"`
-	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggerred the message if any
+	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggered the message if any
 	CallbackQueryID string `json:"callback_query_id,omitempty"`
 	// Caption Audio caption, 0-1024 characters after entities parsing
 	Caption string `json:"caption,omitempty"`
@@ -686,7 +686,7 @@ type SendDocumentOpts struct {
 	DirectMessagesTopicID int64 `json:"direct_messages_topic_id,omitempty"`
 	// ReceiverUserID For outgoing ephemeral messages, unique identifier of the user who will receive the message; for group and supergroup chats only. It is not guaranteed that the user will receive the message, especially if they are offline. See ephemeral message sending for more details.
 	ReceiverUserID int64 `json:"receiver_user_id,omitempty"`
-	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggerred the message if any
+	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggered the message if any
 	CallbackQueryID string `json:"callback_query_id,omitempty"`
 	// Thumbnail Thumbnail of the file sent; can be ignored if thumbnail generation for the file is supported server-side. The thumbnail should be in JPEG format and less than 200 kB in size. A thumbnail's width and height should not exceed 320. Ignored if the file is not uploaded using multipart/form-data. Thumbnails can't be reused and can be only uploaded as a new file, so you can pass “attach://<file_attach_name>” if the thumbnail was uploaded using multipart/form-data under <file_attach_name>. More information on Sending Files »
 	Thumbnail *InputFile `json:"thumbnail,omitempty"`
@@ -806,7 +806,7 @@ type SendVideoOpts struct {
 	DirectMessagesTopicID int64 `json:"direct_messages_topic_id,omitempty"`
 	// ReceiverUserID For outgoing ephemeral messages, unique identifier of the user who will receive the message; for group and supergroup chats only. It is not guaranteed that the user will receive the message, especially if they are offline. See ephemeral message sending for more details.
 	ReceiverUserID int64 `json:"receiver_user_id,omitempty"`
-	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggerred the message if any
+	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggered the message if any
 	CallbackQueryID string `json:"callback_query_id,omitempty"`
 	// Duration Duration of sent video in seconds
 	Duration int64 `json:"duration,omitempty"`
@@ -965,7 +965,7 @@ type SendAnimationOpts struct {
 	DirectMessagesTopicID int64 `json:"direct_messages_topic_id,omitempty"`
 	// ReceiverUserID For outgoing ephemeral messages, unique identifier of the user who will receive the message; for group and supergroup chats only. It is not guaranteed that the user will receive the message, especially if they are offline. See ephemeral message sending for more details.
 	ReceiverUserID int64 `json:"receiver_user_id,omitempty"`
-	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggerred the message if any
+	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggered the message if any
 	CallbackQueryID string `json:"callback_query_id,omitempty"`
 	// Duration Duration of sent animation in seconds
 	Duration int64 `json:"duration,omitempty"`
@@ -1106,7 +1106,7 @@ type SendVoiceOpts struct {
 	DirectMessagesTopicID int64 `json:"direct_messages_topic_id,omitempty"`
 	// ReceiverUserID For outgoing ephemeral messages, unique identifier of the user who will receive the message; for group and supergroup chats only. It is not guaranteed that the user will receive the message, especially if they are offline. See ephemeral message sending for more details.
 	ReceiverUserID int64 `json:"receiver_user_id,omitempty"`
-	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggerred the message if any
+	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggered the message if any
 	CallbackQueryID string `json:"callback_query_id,omitempty"`
 	// Caption Voice message caption, 0-1024 characters after entities parsing
 	Caption string `json:"caption,omitempty"`
@@ -1221,7 +1221,7 @@ type SendVideoNoteOpts struct {
 	DirectMessagesTopicID int64 `json:"direct_messages_topic_id,omitempty"`
 	// ReceiverUserID For outgoing ephemeral messages, unique identifier of the user who will receive the message; for group and supergroup chats only. It is not guaranteed that the user will receive the message, especially if they are offline. See ephemeral message sending for more details.
 	ReceiverUserID int64 `json:"receiver_user_id,omitempty"`
-	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggerred the message if any
+	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggered the message if any
 	CallbackQueryID string `json:"callback_query_id,omitempty"`
 	// Duration Duration of sent video in seconds
 	Duration int64 `json:"duration,omitempty"`
@@ -1512,7 +1512,7 @@ type SendLocationOpts struct {
 	DirectMessagesTopicID int64 `json:"direct_messages_topic_id,omitempty"`
 	// ReceiverUserID For outgoing ephemeral messages, unique identifier of the user who will receive the message; for group and supergroup chats only. It is not guaranteed that the user will receive the message, especially if they are offline. See ephemeral message sending for more details.
 	ReceiverUserID int64 `json:"receiver_user_id,omitempty"`
-	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggerred the message if any
+	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggered the message if any
 	CallbackQueryID string `json:"callback_query_id,omitempty"`
 	// HorizontalAccuracy The radius of uncertainty for the location, measured in meters; 0-1500
 	HorizontalAccuracy float64 `json:"horizontal_accuracy,omitempty"`
@@ -1560,7 +1560,7 @@ type SendVenueOpts struct {
 	DirectMessagesTopicID int64 `json:"direct_messages_topic_id,omitempty"`
 	// ReceiverUserID For outgoing ephemeral messages, unique identifier of the user who will receive the message; for group and supergroup chats only. It is not guaranteed that the user will receive the message, especially if they are offline. See ephemeral message sending for more details.
 	ReceiverUserID int64 `json:"receiver_user_id,omitempty"`
-	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggerred the message if any
+	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggered the message if any
 	CallbackQueryID string `json:"callback_query_id,omitempty"`
 	// FoursquareID Foursquare identifier of the venue
 	FoursquareID string `json:"foursquare_id,omitempty"`
@@ -1612,7 +1612,7 @@ type SendContactOpts struct {
 	DirectMessagesTopicID int64 `json:"direct_messages_topic_id,omitempty"`
 	// ReceiverUserID For outgoing ephemeral messages, unique identifier of the user who will receive the message; for group and supergroup chats only. It is not guaranteed that the user will receive the message, especially if they are offline. See ephemeral message sending for more details.
 	ReceiverUserID int64 `json:"receiver_user_id,omitempty"`
-	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggerred the message if any
+	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggered the message if any
 	CallbackQueryID string `json:"callback_query_id,omitempty"`
 	// LastName Contact's last name
 	LastName string `json:"last_name,omitempty"`
@@ -4185,7 +4185,7 @@ type SendStickerOpts struct {
 	DirectMessagesTopicID int64 `json:"direct_messages_topic_id,omitempty"`
 	// ReceiverUserID For outgoing ephemeral messages, unique identifier of the user who will receive the message; for group and supergroup chats only. It is not guaranteed that the user will receive the message, especially if they are offline. See ephemeral message sending for more details.
 	ReceiverUserID int64 `json:"receiver_user_id,omitempty"`
-	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggerred the message if any
+	// CallbackQueryID For outgoing ephemeral messages, identifier of the callback query which triggered the message if any
 	CallbackQueryID string `json:"callback_query_id,omitempty"`
 	// Emoji Emoji associated with the sticker; only for just uploaded stickers
 	Emoji string `json:"emoji,omitempty"`

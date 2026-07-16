@@ -2,8 +2,47 @@ package gen
 
 import (
 	"reflect"
+	"slices"
 	"testing"
 )
+
+func TestPatchUnionSubtypes(t *testing.T) {
+	g := newGenerator("lumex", "")
+	g.sections["InputMediaVoiceNote"] = "<h4>InputMediaVoiceNote</h4>" // type exists in the docs
+
+	// Absent from the list → injected (works around the 10.2 docs gap).
+	got := g.patchUnionSubtypes("InputMedia", []string{"InputMediaPhoto"})
+	if !slices.Contains(got, "InputMediaVoiceNote") {
+		t.Errorf("InputMediaVoiceNote should be injected into InputMedia, got %v", got)
+	}
+
+	// Already listed → no duplicate (idempotent: guards against a future docs fix).
+	got = g.patchUnionSubtypes("InputMedia", []string{"InputMediaPhoto", "InputMediaVoiceNote"})
+	if n := count(got, "InputMediaVoiceNote"); n != 1 {
+		t.Errorf("expected exactly one InputMediaVoiceNote, got %d in %v", n, got)
+	}
+
+	// Other unions are untouched.
+	if got := g.patchUnionSubtypes("ChatMember", []string{"ChatMemberOwner"}); slices.Contains(got, "InputMediaVoiceNote") {
+		t.Errorf("non-InputMedia union must be untouched, got %v", got)
+	}
+
+	// No such type in the docs → no injection.
+	g.sections["InputMediaVoiceNote"] = ""
+	if got := g.patchUnionSubtypes("InputMedia", []string{"InputMediaPhoto"}); slices.Contains(got, "InputMediaVoiceNote") {
+		t.Errorf("without a type section there must be no injection, got %v", got)
+	}
+}
+
+func count(ss []string, s string) int {
+	n := 0
+	for _, x := range ss {
+		if x == s {
+			n++
+		}
+	}
+	return n
+}
 
 func TestGoTypeName(t *testing.T) {
 	cases := map[string]string{

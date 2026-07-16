@@ -218,6 +218,11 @@ func NewInputMediaVideo(media *InputFile) *InputMediaVideo {
 	return &InputMediaVideo{Media: media}
 }
 
+// NewInputMediaVoiceNote builds a *InputMediaVoiceNote from its required fields.
+func NewInputMediaVoiceNote(media *InputFile) *InputMediaVoiceNote {
+	return &InputMediaVoiceNote{Media: media}
+}
+
 // NewInputPaidMediaLivePhoto builds a *InputPaidMediaLivePhoto from its required fields.
 func NewInputPaidMediaLivePhoto(media *InputFile, photo *InputFile) *InputPaidMediaLivePhoto {
 	return &InputPaidMediaLivePhoto{Media: media, Photo: photo}

@@ -2,6 +2,7 @@ package gen
 
 import (
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -77,7 +78,7 @@ func (g *generator) analyzeUnions() {
 		if name == "InputFile" {
 			continue // provided by the runtime helpers
 		}
-		subtypes := subtypeList(section)
+		subtypes := g.patchUnionSubtypes(name, subtypeList(section))
 		if len(subtypes) == 0 {
 			g.emptyStruct[name] = true // ForumTopicClosed, CallbackGame, …
 			continue
@@ -168,6 +169,24 @@ func distinctValues(vs []unionVariant) bool {
 func hasFieldTable(section string) bool {
 	t := tableRe.FindStringSubmatch(section)
 	return t != nil && strings.Contains(t[1], "<th>Field</th>")
+}
+
+// patchUnionSubtypes works around known Bot API documentation gaps in a union's
+// "should be one of" list. It is idempotent: if a later docs release lists the
+// type itself, the guard makes this a no-op, so nothing is generated twice.
+//
+// As of Bot API 10.2 the InputMedia list omits InputMediaVoiceNote even though
+// the type exists ("Added the class InputMediaVoiceNote, representing a voice
+// message to be sent") and is used as an InputMedia value
+// (InputRichMessageMedia.media). Injecting it makes such fields type as
+// InputMedia instead of falling back to `any`.
+func (g *generator) patchUnionSubtypes(union string, subtypes []string) []string {
+	if union == "InputMedia" &&
+		g.sections["InputMediaVoiceNote"] != "" &&
+		!slices.Contains(subtypes, "InputMediaVoiceNote") {
+		subtypes = append(subtypes, "InputMediaVoiceNote")
+	}
+	return subtypes
 }
 
 func subtypeList(section string) []string {

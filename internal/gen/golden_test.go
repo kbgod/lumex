@@ -2,6 +2,7 @@ package gen
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"testing"
 )
@@ -10,14 +11,33 @@ import (
 // (loadSource returns the -url value as the origin even when reading -file).
 const testOrigin = "https://core.telegram.org/bots/api"
 
-// snapshotPath is a committed HTML copy of the Bot API docs, used for offline,
-// deterministic generation. It must be kept in sync with the generated package
-// at the repo root (regenerate with: go run ./cmd/gen -file internal/gen/testdata/api).
+// snapshotPath is a local HTML copy of the Bot API docs used for offline,
+// deterministic generation. It is deliberately git-ignored (it's an 800KB doc
+// blob), so the golden tests skip when it's absent — fetch it with:
+//
+//	curl -sSL -o internal/gen/testdata/api https://core.telegram.org/bots/api
+//
+// and keep it in sync with the generated root package
+// (go run ./cmd/gen -file internal/gen/testdata/api).
 const snapshotPath = "testdata/api"
 
 // genPkg is the package name cmd/gen writes into the generated files (its
 // -package default) — the golden output must be generated with the same name.
 const genPkg = "lumex"
+
+// readSnapshot loads the doc snapshot, skipping the test (rather than failing)
+// when it isn't present locally, since it is git-ignored.
+func readSnapshot(t *testing.T) string {
+	t.Helper()
+	src, err := os.ReadFile(snapshotPath)
+	if errors.Is(err, os.ErrNotExist) {
+		t.Skipf("snapshot %q not present (it is git-ignored); fetch it with:\n\tcurl -sSL -o internal/gen/%s %s", snapshotPath, snapshotPath, testOrigin)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(src)
+}
 
 // TestGeneratedUpToDate regenerates from the committed api snapshot and compares
 // the result byte-for-byte with the committed package at the repo root. It fails
@@ -25,12 +45,9 @@ const genPkg = "lumex"
 // regenerated — the guard against silent surprises.
 // Fix by running: go run ./cmd/gen -file internal/gen/testdata/api
 func TestGeneratedUpToDate(t *testing.T) {
-	src, err := os.ReadFile(snapshotPath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	src := readSnapshot(t)
 
-	files, stats, err := Generate(string(src), Config{
+	files, stats, err := Generate(src, Config{
 		Package:  genPkg,
 		Origin:   testOrigin,
 		Enums:    true,
@@ -59,17 +76,14 @@ func TestGeneratedUpToDate(t *testing.T) {
 // TestDeterministic checks that generating twice yields identical bytes (no map
 // iteration order or other nondeterminism leaks into the output).
 func TestDeterministic(t *testing.T) {
-	src, err := os.ReadFile(snapshotPath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	src := readSnapshot(t)
 	cfg := Config{Package: genPkg, Origin: testOrigin, Enums: true, Requests: true}
 
-	a, _, err := Generate(string(src), cfg)
+	a, _, err := Generate(src, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, _, err := Generate(string(src), cfg)
+	b, _, err := Generate(src, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -439,7 +439,7 @@ type Message struct {
 	WriteAccessAllowed *WriteAccessAllowed `json:"write_access_allowed,omitempty"`
 	// PassportData Optional. Telegram Passport data
 	PassportData *PassportData `json:"passport_data,omitempty"`
-	// ProximityAlertTriggered Optional. Service message. A user in the chat triggered another user's proximity alert while sharing Live Location.
+	// ProximityAlertTriggered Optional. Service message: a user in the chat triggered another user's proximity alert while sharing Live Location
 	ProximityAlertTriggered *ProximityAlertTriggered `json:"proximity_alert_triggered,omitempty"`
 	// BoostAdded Optional. Service message: user boosted the chat
 	BoostAdded *ChatBoostAdded `json:"boost_added,omitempty"`
@@ -3297,7 +3297,7 @@ func (m *InputMediaVideo) Files() []*InputFile {
 // InputMediaVoiceNote Represents a voice message file to be sent.
 type InputMediaVoiceNote struct {
 	// Type Type of the media, must be voice_note
-	Type string `json:"type"`
+	Type InputMediaType `json:"type"`
 	// Media File to send. Pass a file_id to send a file that exists on the Telegram servers (recommended), pass an HTTP URL for Telegram to get a file from the Internet, or pass "attach://<file_attach_name>" to upload a new one using multipart/form-data under <file_attach_name> name. More information on Sending Files »
 	Media *InputFile `json:"media"`
 	// Caption Optional. Caption of the voice message to be sent, 0-1024 characters after entities parsing
@@ -3311,10 +3311,10 @@ type InputMediaVoiceNote struct {
 }
 
 // Files returns the uploadable files nested in InputMediaVoiceNote.
-func (r InputMediaVoiceNote) Files() []*InputFile {
+func (m *InputMediaVoiceNote) Files() []*InputFile {
 	var fs []*InputFile
-	if r.Media != nil {
-		fs = append(fs, r.Media)
+	if m.Media != nil {
+		fs = append(fs, m.Media)
 	}
 	return fs
 }
@@ -3588,6 +3588,9 @@ func (r InputRichMessage) Files() []*InputFile {
 			fs = append(fs, x.Files()...)
 		}
 	}
+	for i := range r.Media {
+		fs = append(fs, r.Media[i].Files()...)
+	}
 	return fs
 }
 
@@ -3596,7 +3599,16 @@ type InputRichMessageMedia struct {
 	// ID Unique identifier of the media used in a tg://photo?id=, tg://video?id=, or tg://audio?id= link. 1-64 characters, only A-Z, a-z, 0-9, _ and - are allowed.
 	ID string `json:"id"`
 	// Media The media to be sent. Everything except the media itself and its properties is ignored.
-	Media any `json:"media"`
+	Media InputMedia `json:"media"`
+}
+
+// Files returns the uploadable files nested in InputRichMessageMedia.
+func (r InputRichMessageMedia) Files() []*InputFile {
+	var fs []*InputFile
+	if r.Media != nil {
+		fs = append(fs, r.Media.Files()...)
+	}
+	return fs
 }
 
 // RichTextBold A bold text.
@@ -6007,6 +6019,7 @@ const (
 	InputMediaTypeLivePhoto InputMediaType = "live_photo"
 	InputMediaTypePhoto     InputMediaType = "photo"
 	InputMediaTypeVideo     InputMediaType = "video"
+	InputMediaTypeVoiceNote InputMediaType = "voice_note"
 )
 
 // InputPaidMediaType enumerates the allowed values of the "type" field of InputPaidMedia.
@@ -7564,7 +7577,7 @@ func (m InlineQueryResultVoice) MarshalJSON() ([]byte, error) {
 }
 
 // InputMedia This object represents the content of a media message to be sent. It should be one of
-// It is implemented by: InputMediaAnimation, InputMediaAudio, InputMediaDocument, InputMediaLivePhoto, InputMediaPhoto, InputMediaVideo.
+// It is implemented by: InputMediaAnimation, InputMediaAudio, InputMediaDocument, InputMediaLivePhoto, InputMediaPhoto, InputMediaVideo, InputMediaVoiceNote.
 type InputMedia interface {
 	isInputMedia()
 	Files() []*InputFile
@@ -7577,6 +7590,7 @@ var (
 	_ InputMedia = (*InputMediaLivePhoto)(nil)
 	_ InputMedia = (*InputMediaPhoto)(nil)
 	_ InputMedia = (*InputMediaVideo)(nil)
+	_ InputMedia = (*InputMediaVoiceNote)(nil)
 )
 
 func (*InputMediaAnimation) isInputMedia() {}
@@ -7585,6 +7599,7 @@ func (*InputMediaDocument) isInputMedia()  {}
 func (*InputMediaLivePhoto) isInputMedia() {}
 func (*InputMediaPhoto) isInputMedia()     {}
 func (*InputMediaVideo) isInputMedia()     {}
+func (*InputMediaVoiceNote) isInputMedia() {}
 
 // MarshalJSON forces the "type" discriminator of InputMediaAnimation.
 func (m InputMediaAnimation) MarshalJSON() ([]byte, error) {
@@ -7640,6 +7655,15 @@ func (m InputMediaVideo) MarshalJSON() ([]byte, error) {
 	}{Type: InputMediaTypeVideo, alias: alias(m)})
 }
 
+// MarshalJSON forces the "type" discriminator of InputMediaVoiceNote.
+func (m InputMediaVoiceNote) MarshalJSON() ([]byte, error) {
+	type alias InputMediaVoiceNote
+	return json.Marshal(struct {
+		Type InputMediaType `json:"type"`
+		alias
+	}{Type: InputMediaTypeVoiceNote, alias: alias(m)})
+}
+
 // DecodeInputMedia decodes a JSON InputMedia into its concrete variant.
 func DecodeInputMedia(data []byte) (InputMedia, error) {
 	if len(data) == 0 || string(data) == "null" {
@@ -7674,6 +7698,10 @@ func DecodeInputMedia(data []byte) (InputMedia, error) {
 		return &v, err
 	case "video":
 		var v InputMediaVideo
+		err := json.Unmarshal(data, &v)
+		return &v, err
+	case "voice_note":
+		var v InputMediaVoiceNote
 		err := json.Unmarshal(data, &v)
 		return &v, err
 	default:
@@ -11009,6 +11037,25 @@ func (m *InputRichMessage) UnmarshalJSON(data []byte) error {
 			if m.Blocks[i], err = DecodeInputRichBlock(aux.Blocks[i]); err != nil {
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+// UnmarshalJSON decodes InputRichMessageMedia, resolving its polymorphic field(s).
+func (m *InputRichMessageMedia) UnmarshalJSON(data []byte) error {
+	type alias InputRichMessageMedia
+	aux := struct {
+		*alias
+		Media json.RawMessage `json:"media"`
+	}{alias: (*alias)(m)}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var err error
+	if len(aux.Media) > 0 {
+		if m.Media, err = DecodeInputMedia(aux.Media); err != nil {
+			return err
 		}
 	}
 	return nil

@@ -16,3 +16,7 @@ generate.go
 .glide/
 
 .idea/
+
+# Bot API docs snapshot used by the generator's golden tests — fetched on
+# demand, never committed (curl -sSL -o internal/gen/testdata/api https://core.telegram.org/bots/api)
+/internal/gen/testdata/api
