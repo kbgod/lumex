@@ -509,3 +509,34 @@ func TestUsersShared(t *testing.T) {
 		t.Error("UsersShared (empty update) failed")
 	}
 }
+
+func TestContentFilters(t *testing.T) {
+	r := New(&lumex.Bot{})
+	ctxOf := func(u *lumex.Update) *Context {
+		return r.acquireContext(context.Background(), u)
+	}
+	withText := &lumex.Update{Message: &lumex.Message{Text: "hi"}}
+	withCaption := &lumex.Update{Message: &lumex.Message{Caption: "cap"}}
+	plainMsg := &lumex.Update{Message: &lumex.Message{}}
+	empty := &lumex.Update{}
+
+	assert.True(t, Text()(ctxOf(withText)))
+	assert.False(t, Text()(ctxOf(withCaption)))
+	assert.False(t, Text()(ctxOf(empty)))
+
+	assert.True(t, Caption()(ctxOf(withCaption)))
+	assert.False(t, Caption()(ctxOf(withText)))
+	assert.False(t, Caption()(ctxOf(empty)))
+
+	assert.True(t, TextOrCaption()(ctxOf(withText)))
+	assert.True(t, TextOrCaption()(ctxOf(withCaption)))
+	assert.False(t, TextOrCaption()(ctxOf(plainMsg)))
+	assert.False(t, TextOrCaption()(ctxOf(empty)))
+
+	assert.True(t, GuestMessage()(ctxOf(&lumex.Update{GuestMessage: &lumex.Message{}})))
+	assert.False(t, GuestMessage()(ctxOf(empty)))
+
+	assert.True(t, RichMessage()(ctxOf(&lumex.Update{Message: &lumex.Message{RichMessage: &lumex.RichMessage{}}})))
+	assert.False(t, RichMessage()(ctxOf(plainMsg)))
+	assert.False(t, RichMessage()(ctxOf(empty)))
+}

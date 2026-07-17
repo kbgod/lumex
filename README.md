@@ -39,17 +39,18 @@ go get github.com/kbgod/lumex/v2
 
 ### Using with Claude Code
 
-This repo is also a [Claude Code](https://claude.com/claude-code) plugin — a skill
-that teaches the assistant how lumex works (Context helpers, router
-filters/middleware/state, keyboard & rich-message builders, polling/webhook wiring).
-Install it into your own bot project:
+This repo is also a [Claude Code](https://claude.com/claude-code) plugin that
+teaches the assistant how lumex works. Install it into your own bot project:
 
 ```
 /plugin marketplace add kbgod/lumex
 /plugin install lumex@lumex
 ```
 
-The skill source lives at [`skills/lumex/SKILL.md`](/skills/lumex/SKILL.md).
+It ships two skills: [`lumex`](/skills/lumex/SKILL.md) (framework reference —
+Context helpers, router filters/middleware/state, keyboard & rich-message
+builders, polling/webhook) and [`dialog-flows`](/skills/dialog-flows/SKILL.md)
+(best practices for multi-step conversation flows / wizards).
 
 ---
 

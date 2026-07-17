@@ -18,7 +18,7 @@ type GetUpdatesOpts struct {
 	// Timeout Timeout in seconds for long polling. Defaults to 0, i.e. usual short polling. Should be positive, short polling should be used for testing purposes only.
 	Timeout int64 `json:"timeout,omitempty"`
 	// AllowedUpdates A JSON-serialized list of the update types you want your bot to receive. For example, specify ["message", "edited_channel_post", "callback_query"] to only receive updates of these types. See Update for a complete list of available update types. Specify an empty list to receive all update types except chat_member, message_reaction, and message_reaction_count (default). If not specified, the previous setting will be used. Please note that this parameter doesn't affect updates created before the call to getUpdates, so unwanted updates may be received for a short period of time.
-	AllowedUpdates []string `json:"allowed_updates,omitempty"`
+	AllowedUpdates []string `json:"allowed_updates,omitzero"`
 }
 
 // GetUpdatesRequest holds the parameters of the "getUpdates" method. Use this method to receive
@@ -36,7 +36,7 @@ type SetWebhookOpts struct {
 	// MaxConnections The maximum allowed number of simultaneous HTTPS connections to the webhook for update delivery, 1-100. Defaults to 40. Use lower values to limit the load on your bot's server, and higher values to increase your bot's throughput.
 	MaxConnections int64 `json:"max_connections,omitempty"`
 	// AllowedUpdates A JSON-serialized list of the update types you want your bot to receive. For example, specify ["message", "edited_channel_post", "callback_query"] to only receive updates of these types. See Update for a complete list of available update types. Specify an empty list to receive all update types except chat_member, message_reaction, and message_reaction_count (default). If not specified, the previous setting will be used. Please note that this parameter doesn't affect updates created before the call to the setWebhook, so unwanted updates may be received for a short period of time.
-	AllowedUpdates []string `json:"allowed_updates,omitempty"`
+	AllowedUpdates []string `json:"allowed_updates,omitzero"`
 	// DropPendingUpdates Pass True to drop all pending updates
 	DropPendingUpdates bool `json:"drop_pending_updates,omitempty"`
 	// SecretToken A secret token to be sent in a header “X-Telegram-Bot-Api-Secret-Token” in every webhook request, 1-256 characters. Only characters A-Z, a-z, 0-9, _ and - are allowed. The header is useful to ensure that the request comes from a webhook set by you.

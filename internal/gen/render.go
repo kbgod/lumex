@@ -271,9 +271,22 @@ func renderField(b *strings.Builder, f field) {
 	}
 	tag := f.JSONName
 	if f.OmitEmpty {
-		tag += ",omitempty"
+		tag += omitOption(f.JSONName)
 	}
 	fmt.Fprintf(b, "\t%s %s `json:%q`\n", f.GoName, f.GoType, tag)
+}
+
+// omitOption chooses the JSON omit directive for an optional field. Almost all
+// use ",omitempty". allowed_updates is special: Telegram distinguishes an empty
+// list [] ("subscribe to all update types except a few") from an absent field
+// ("keep the previous setting"), so it must serialize an empty (non-nil) slice
+// as [] — that needs ",omitzero" (omits only nil), not ",omitempty" (which also
+// omits []). Requires Go 1.24+ and an encoding/json-compatible Marshaler.
+func omitOption(jsonName string) string {
+	if jsonName == "allowed_updates" {
+		return ",omitzero"
+	}
+	return ",omitempty"
 }
 
 func (g *generator) renderStruct(b *strings.Builder, td *typeDecl) {

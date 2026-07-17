@@ -6,6 +6,18 @@ import (
 	"testing"
 )
 
+func TestOmitOption(t *testing.T) {
+	// allowed_updates must serialize [] (omitzero); everything else uses omitempty.
+	if got := omitOption("allowed_updates"); got != ",omitzero" {
+		t.Errorf("omitOption(allowed_updates) = %q, want ,omitzero", got)
+	}
+	for _, name := range []string{"text", "chat_id", "photo", "reply_markup"} {
+		if got := omitOption(name); got != ",omitempty" {
+			t.Errorf("omitOption(%q) = %q, want ,omitempty", name, got)
+		}
+	}
+}
+
 func TestScanUntyped(t *testing.T) {
 	// deterministic (no snapshot): a field typed `any` or `[]any` is reported as
 	// "Owner.Field"; a `map[string]any` in a method body (no json tag) is not.

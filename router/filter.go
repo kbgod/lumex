@@ -29,6 +29,44 @@ func Message() RouteFilter {
 	}
 }
 
+// Text returns a filter that matches a message carrying non-empty text.
+func Text() RouteFilter {
+	return func(ctx *Context) bool {
+		return ctx.Update.Message != nil && ctx.Update.Message.Text != ""
+	}
+}
+
+// Caption returns a filter that matches a message carrying a non-empty caption
+// (e.g. a photo/video/document sent with a caption).
+func Caption() RouteFilter {
+	return func(ctx *Context) bool {
+		return ctx.Update.Message != nil && ctx.Update.Message.Caption != ""
+	}
+}
+
+// TextOrCaption returns a filter that matches a message carrying either text or
+// a caption.
+func TextOrCaption() RouteFilter {
+	return func(ctx *Context) bool {
+		return ctx.Update.Message != nil &&
+			(ctx.Update.Message.Text != "" || ctx.Update.Message.Caption != "")
+	}
+}
+
+// GuestMessage returns a filter that checks if the update is a guest message.
+func GuestMessage() RouteFilter {
+	return func(ctx *Context) bool {
+		return ctx.Update.GuestMessage != nil
+	}
+}
+
+// RichMessage returns a filter that matches a message that contains a rich message.
+func RichMessage() RouteFilter {
+	return func(ctx *Context) bool {
+		return ctx.Update.Message != nil && ctx.Update.Message.RichMessage != nil
+	}
+}
+
 // CommandWithAt returns a filter that checks if the message is a command with the given command name and username.
 // Possible use case is to handle commands that are sent to a specific bot instance in a group chat.
 func CommandWithAt(command string) RouteFilter {

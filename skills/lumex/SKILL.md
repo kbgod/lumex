@@ -30,6 +30,30 @@ import (
 
 ---
 
+## 0. Creating the bot
+
+`NewBot` takes the token plus **variadic functional options** — there is NO
+second `nil`/options-struct argument (that is the old v1 API). Pass nothing, or
+comma-separated `With…` options:
+
+```go
+bot, err := lumex.NewBot(token)                       // typical
+bot, err := lumex.NewBot(token, lumex.WithoutTokenCheck())
+bot, err := lumex.NewBot(token,
+    lumex.WithClientOptions(lumex.WithAPIHost("https://api.example.com")),
+    lumex.WithTokenCheckTimeout(3*time.Second),
+)
+```
+
+**DON'T write `lumex.NewBot(token, nil)`.** It's the old v1 signature; with the
+variadic options it compiles but **panics at runtime** (the `nil` gets invoked as
+an option). `BotOption`s: `WithClient`, `WithClientOptions`, `WithoutTokenCheck`,
+`WithTokenCheckTimeout`. The lower-level client mirrors this —
+`lumex.NewClient(token, ...ClientOption)` with `WithAPIHost`, `WithHTTPClient`,
+`WithMarshaler`, `WithUnmarshaler`. Functional options everywhere; **no options
+structs, never a trailing `nil`** — this applies to `NewBot`, `NewClient`, and
+`GetUpdatesChan(ctx, ...PollingOption)`.
+
 ## 1. Calling the Bot API
 
 Two ways, both fine:
@@ -79,6 +103,11 @@ ctx.Bot.SendChatAction(ctx.Context(), ctx.ChatID(), lumex.ChatActionTyping)
 
 A handler is `func(ctx *router.Context) error`. `Context` gives:
 
+**Raw fields** — `ctx.Update` is the full `*lumex.Update` Telegram sent, and
+`ctx.Bot` is the receiving `*lumex.Bot`. Everything about the current update is on
+`ctx`: to log or inspect the raw update, read `ctx.Update` — never open lumex's
+source to "find" the update, it's a plain exported field.
+
 **Getters** (work across update kinds, return nil/zero when absent):
 `ctx.Message()`, `ctx.Sender() *User`, `ctx.Chat() *Chat`, `ctx.ChatID() int64`,
 `ctx.CommandArgs() []string`, `ctx.CallbackData()`, `ctx.CallbackID()`,
@@ -117,9 +146,10 @@ r := router.New(bot, router.WithErrorHandler(func(ctx *router.Context, err error
 ```
 
 Register routes with `On(filter, handlers...)` or the `OnX` shortcuts
-(`OnStart`, `OnCommand`, `OnMessage`, `OnCallbackQuery`, `OnCallbackPrefix`,
-`OnInlineQuery`, `OnPhoto`, `OnMyChatMember`, `OnUpdate`, …). Each returns a
-`*Route` (chain `.Name("...")` for diagnostics).
+(`OnStart`, `OnCommand`, `OnMessage`, `OnText`, `OnCaption`, `OnTextOrCaption`,
+`OnCallbackQuery`, `OnCallbackPrefix`, `OnInlineQuery`, `OnPhoto`, `OnGuestMessage`,
+`OnRichMessage`, `OnMyChatMember`, `OnUpdate`, …). Each returns a `*Route` (chain
+`.Name("...")` for diagnostics).
 
 **How an update flows (know this cold):**
 
@@ -152,15 +182,15 @@ type ErrorHandler func(*Context, error)
 
 - **Global** — `r.Use(mw...)`. Runs for **every** update, before routing, always.
   Use for cross-cutting concerns: logging, loading the user, loading FSM state.
-  A global middleware controls flow with `ctx.Next()`:
+  A global middleware controls flow with `ctx.Next()`. **Logging every update is
+  just this** — the raw update is `ctx.Update`, no need to touch lumex internals:
   ```go
   r.Use(func(ctx *router.Context) error {
-      start := time.Now()
-      err := ctx.Next()           // run the rest of the pipeline
-      log.Info("handled", "dur", time.Since(start))
-      return err
+      log.Info("update", "id", ctx.Update.UpdateID, "payload", ctx.Update)
+      return ctx.Next()           // MUST call Next() or the update is dropped
   })
   ```
+  (To also time it: `start := time.Now(); err := ctx.Next(); log(time.Since(start)); return err`.)
 - **Per-route / group / pre-handler** — passed to `On`/`OnX`
   (`r.OnMessage(mw, handler)`) or to `r.Group(mw...)`. These live on the route
   and run **only if that route's filter matched**. Use for auth/validation that
@@ -201,10 +231,11 @@ Rules of thumb:
 
 ## 7. Custom filters
 
-Built-in filters live in `router` (`Command`, `Message`, `CallbackQuery`,
-`CallbackPrefix`, `TextPrefix`, `TextEquals`, `TextContains`, `Photo`, `Video`,
-`Document`, `MyChatMember`, `ForwardedChannelMessage`, …). When none fit, a
-filter is just a `func(*Context) bool` — write your own and pass it to `On`:
+Built-in filters live in `router` (`Command`, `Message`, `Text`, `Caption`,
+`TextOrCaption`, `CallbackQuery`, `CallbackPrefix`, `TextPrefix`, `TextEquals`,
+`TextContains`, `Photo`, `Video`, `Document`, `GuestMessage`, `RichMessage`,
+`MyChatMember`, `ForwardedChannelMessage`, …). When none fit, a filter is just a
+`func(*Context) bool` — write your own and pass it to `On`:
 
 ```go
 func FromAdmin(ids ...int64) router.RouteFilter {
@@ -265,12 +296,52 @@ age.OnMessage(finishSignup)
 
 Uses: wizard-style dialogs (each step is a state), and separating roles — set
 state `"admin"` in middleware for admins and hang admin routes under
-`r.UseState("admin")`. Remember first-match-wins still applies across stateless
-and state routes, so order them intentionally.
+`r.UseState("admin")`.
+
+**`UseState` is only an *extra filter* (the state must also match) — registration
+order still decides.** A stateless route registered *above* a state route with the
+same filter wins even when the user is in that state:
+
+```go
+r.OnCommand("test", stateless)   // ← fires for /test even while in "s"
+s := r.UseState("s")
+s.OnCommand("test", inState)     // shadowed by the line above; never runs
+```
+
+So order by intent:
+- **Global route** (must fire in *any* state, e.g. an escape hatch) → declare it
+  **at the top**: `r.OnCommand("exit", cancelFlow)` keeps `/exit` working
+  mid-dialog because it's checked before every state route.
+- **Fallback route** (the "nothing else matched" catch) → declare it **last**,
+  after every stateless *and* `UseState` route; it runs only if none matched.
+
+A `UseState` route only wins when its state matches AND no earlier (stateless or
+other-state) route already matched — exactly the same first-match rule as §6,
+with state as one more condition.
 
 ---
 
 ## 9. Running the bot
+
+**Pick your update types — `allowed_updates`.** By default Telegram delivers a
+*subset*: it does NOT send `chat_member`, `message_reaction`, or
+`message_reaction_count` unless you ask. Set `AllowedUpdates` on `GetUpdatesOpts`
+(polling) or `SetWebhookOpts` (webhook):
+
+- explicit list → receive exactly these:
+  `AllowedUpdates: []string{"message", "callback_query", "chat_member"}`
+- **empty non-nil slice → receive ALL types except the three above**:
+  `AllowedUpdates: make([]string, 0)` (or `[]string{}`)
+- `nil` / unset → keep the previous setting.
+
+```go
+d.StartPolling(100, lumex.WithGetUpdatesOpts(lumex.GetUpdatesOpts{
+    AllowedUpdates: []string{"message", "callback_query", "chat_member"},
+}))
+```
+The field is tagged `omitzero`, so an empty `[]string{}` is sent as `[]` (with
+plain `omitempty` it would be silently dropped). Honored by encoding/json on
+Go 1.24+; a custom `Marshaler` must support `omitzero`.
 
 **Long polling — use the dispatcher** (`router.Listen` is deprecated):
 ```go
@@ -317,9 +388,12 @@ or state sub-router returns `ErrGroupCannotHandleUpdates`.
 
 ## Quick do / don't
 
+- DO construct with `lumex.NewBot(token)` or `NewBot(token, opts...)`; DON'T write `NewBot(token, nil)` — variadic options, `nil` panics (same for `NewClient`, `GetUpdatesChan`).
 - DO use `ctx.Bot` in handlers; DON'T capture an outer `bot`.
+- DO read the raw update as `ctx.Update` (log/inspect it there); DON'T open lumex's source to access it — it's a public Context field.
 - DO call `ctx.Next()` in global middleware; forgetting it silently drops the update.
 - DO order routes specific→broad; DON'T put `OnUpdate`/broad prefixes first.
+- DO put always-on routes (e.g. `/exit`) above `UseState` routes and the fallback last; a stateless route above a state route shadows it even in that state (`UseState` is just an extra filter, order still wins).
 - DO persist FSM state in your own store; `ctx.SetState` alone doesn't survive to the next update.
 - DO handle `ErrRouteNotFound` (fallback route or error handler) if unmatched updates are expected.
 - DO reach for `menu`/`richmessage`/`InputFile*` builders before hand-writing structs.

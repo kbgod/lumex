@@ -141,6 +141,26 @@ func (r *Router) OnMessage(handlers ...Handler) *Route {
 	return r.On(Message(), handlers...)
 }
 
+func (r *Router) OnText(handlers ...Handler) *Route {
+	return r.On(Text(), handlers...)
+}
+
+func (r *Router) OnCaption(handlers ...Handler) *Route {
+	return r.On(Caption(), handlers...)
+}
+
+func (r *Router) OnTextOrCaption(handlers ...Handler) *Route {
+	return r.On(TextOrCaption(), handlers...)
+}
+
+func (r *Router) OnGuestMessage(handlers ...Handler) *Route {
+	return r.On(GuestMessage(), handlers...)
+}
+
+func (r *Router) OnRichMessage(handlers ...Handler) *Route {
+	return r.On(RichMessage(), handlers...)
+}
+
 func (r *Router) OnCommand(command string, handlers ...Handler) *Route {
 	return r.On(Command(command), handlers...)
 }
