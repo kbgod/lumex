@@ -64,6 +64,14 @@ func (m *Menu) SetSelective(selective bool) *Menu {
 	return m
 }
 
+// SetForceReply toggles force_reply (Bot API 10.3) on the reply keyboard — the
+// reply interface is shown as if the user had tapped 'Reply'.
+func (m *Menu) SetForceReply(forceReply bool) *Menu {
+	m.ForceReply = forceReply
+
+	return m
+}
+
 func (m *Menu) Row(buttons ...KeyboardButton) *Menu {
 	if len(m.Keyboard[m.rowIndex]) == 0 {
 		m.Keyboard[m.rowIndex] = buttons
@@ -347,6 +355,25 @@ func (m *InlineMenu) CopyBtn(text, copyText string, style ...InlineKeyboardButto
 		},
 		Style: firstOrZero(style),
 	})
+
+	return m
+}
+
+// DisabledBtn appends a disabled button (Bot API 10.3) — it stays visible but
+// does nothing.
+func (m *InlineMenu) DisabledBtn(text string) *InlineMenu {
+	m.InlineKeyboard[m.rowIndex] = append(m.InlineKeyboard[m.rowIndex], InlineKeyboardButton{
+		Text:     text,
+		Disabled: &DisabledButton{},
+	})
+
+	return m
+}
+
+// SetForceReply toggles force_reply (Bot API 10.3) on the inline keyboard — the
+// reply interface is shown as if the user had tapped 'Reply'.
+func (m *InlineMenu) SetForceReply(forceReply bool) *InlineMenu {
+	m.ForceReply = forceReply
 
 	return m
 }

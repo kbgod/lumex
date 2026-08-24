@@ -457,6 +457,36 @@ func TestInlineMenu_PayBtn(t *testing.T) {
 	}
 }
 
+func TestInlineMenu_DisabledBtn(t *testing.T) {
+	menu := NewInlineMenu().
+		CallbackBtn("on", "on").
+		DisabledBtn("off")
+	if len(menu.InlineKeyboard) != 1 || len(menu.InlineKeyboard[0]) != 2 {
+		t.Fatal("InlineMenu.DisabledBtn failed: wrong layout")
+	}
+	btn := menu.InlineKeyboard[0][1]
+	if btn.Text != "off" {
+		t.Error("InlineMenu.DisabledBtn failed: text")
+	}
+	if btn.Disabled == nil {
+		t.Error("InlineMenu.DisabledBtn failed: Disabled is nil")
+	}
+}
+
+func TestInlineMenu_SetForceReply(t *testing.T) {
+	menu := NewInlineMenu().SetForceReply(true)
+	if !menu.ForceReply {
+		t.Error("InlineMenu.SetForceReply failed")
+	}
+}
+
+func TestMenu_SetForceReply(t *testing.T) {
+	menu := NewMenu().SetForceReply(true)
+	if !menu.ForceReply {
+		t.Error("Menu.SetForceReply failed")
+	}
+}
+
 func TestCallbackBtn(t *testing.T) {
 	btn := CallbackBtn("test", "test")
 	if btn.Text != "test" {

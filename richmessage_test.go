@@ -1,6 +1,10 @@
 package lumex
 
-import "testing"
+import (
+	"encoding/json"
+	"strings"
+	"testing"
+)
 
 func TestRichMessageHelpers(t *testing.T) {
 	if m := HTMLRichMessage("<b>hi</b>"); m.HTML != "<b>hi</b>" {
@@ -49,5 +53,58 @@ func TestRichTextHelpers(t *testing.T) {
 	block := NewInputRichBlockParagraph(PlainText("body"))
 	if _, ok := block.Text.(*RichTextPlain); !ok {
 		t.Errorf("block.Text = %T; want *RichTextPlain", block.Text)
+	}
+}
+
+func TestRichMenu(t *testing.T) {
+	menu := NewRichMenu(WithRichMenuAlign(InputRichBlockButtonsAlignCenter)).
+		CallbackBtn("Yes", "yes", RichMessageButtonStyleSuccess).
+		URLBtn("Docs", "https://core.telegram.org").
+		Btn(RichMessageButton{Text: PlainText("raw"), CallbackData: "raw"})
+
+	if menu.Align != InputRichBlockButtonsAlignCenter {
+		t.Errorf("Align = %q; want center", menu.Align)
+	}
+	if len(menu.Buttons) != 3 {
+		t.Fatalf("len(Buttons) = %d; want 3", len(menu.Buttons))
+	}
+
+	// convenience helpers wrap the label as a *RichTextPlain and set the right field
+	first := menu.Buttons[0]
+	if p, ok := first.Text.(*RichTextPlain); !ok || string(*p) != "Yes" {
+		t.Errorf("Buttons[0].Text = %#v; want *RichTextPlain(\"Yes\")", first.Text)
+	}
+	if first.CallbackData != "yes" || first.Style != RichMessageButtonStyleSuccess {
+		t.Errorf("Buttons[0] = %+v; want callback yes / success style", first)
+	}
+	if menu.Buttons[1].URL != "https://core.telegram.org" {
+		t.Errorf("Buttons[1].URL = %q; want the docs URL", menu.Buttons[1].URL)
+	}
+
+	// SetAlign chains and mutates the same value
+	if menu.SetAlign(InputRichBlockButtonsAlignRight); menu.Align != InputRichBlockButtonsAlignRight {
+		t.Errorf("SetAlign did not update Align")
+	}
+
+	// Unwrap yields an InputRichBlock that marshals with the "buttons" discriminator
+	block := menu.Unwrap()
+	if _, ok := block.(*InputRichBlockButtons); !ok {
+		t.Fatalf("Unwrap() = %T; want *InputRichBlockButtons", block)
+	}
+	raw, err := json.Marshal(block)
+	if err != nil {
+		t.Fatalf("marshal block: %v", err)
+	}
+	if !strings.Contains(string(raw), `"type":"buttons"`) {
+		t.Errorf("marshaled block = %s; want a \"type\":\"buttons\" discriminator", raw)
+	}
+
+	// the block drops straight into a rich message alongside other blocks
+	msg := BlocksRichMessage(
+		NewInputRichBlockParagraph(PlainText("Confirm?")),
+		block,
+	)
+	if len(msg.Blocks) != 2 {
+		t.Errorf("len(msg.Blocks) = %d; want 2", len(msg.Blocks))
 	}
 }

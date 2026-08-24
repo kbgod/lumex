@@ -67,6 +67,57 @@ func RichMessage() RouteFilter {
 	}
 }
 
+// Contact returns a filter that matches a message carrying a contact — e.g. sent
+// by a "share phone number" keyboard button.
+func Contact() RouteFilter {
+	return func(ctx *Context) bool {
+		return ctx.Update.Message != nil && ctx.Update.Message.Contact != nil
+	}
+}
+
+// AnyCommand returns a filter that matches any command — a message whose text
+// starts with "/". A command is text too, so this is what stops a stray command
+// from being swallowed by a text route (see also NonCommandText).
+func AnyCommand() RouteFilter {
+	return func(ctx *Context) bool {
+		return ctx.Update.Message != nil && strings.HasPrefix(ctx.Update.Message.Text, "/")
+	}
+}
+
+// AnyCommandWithAt returns a filter that matches any command explicitly addressed
+// to this bot, e.g. "/foo@my_bot" — the form used in group chats.
+func AnyCommandWithAt() RouteFilter {
+	return func(ctx *Context) bool {
+		if ctx.Bot == nil {
+			return false
+		}
+		if ctx.Update.Message == nil {
+			return false
+		}
+		text := ctx.Update.Message.Text
+		if !strings.HasPrefix(text, "/") {
+			return false
+		}
+		cmd := text
+		if i := strings.IndexByte(cmd, ' '); i >= 0 {
+			cmd = cmd[:i]
+		}
+
+		return strings.HasSuffix(cmd, "@"+ctx.Bot.Username)
+	}
+}
+
+// NonCommandText returns a filter that matches non-empty text that is NOT a
+// command (does not start with "/"). Ideal as the input route of a wizard step:
+// a stray command won't be captured as the answer — it falls through to the
+// step's own fallback instead.
+func NonCommandText() RouteFilter {
+	return func(ctx *Context) bool {
+		m := ctx.Update.Message
+		return m != nil && m.Text != "" && !strings.HasPrefix(m.Text, "/")
+	}
+}
+
 // CommandWithAt returns a filter that checks if the message is a command with the given command name and username.
 // Possible use case is to handle commands that are sent to a specific bot instance in a group chat.
 func CommandWithAt(command string) RouteFilter {
@@ -161,6 +212,14 @@ func MyChatMember() RouteFilter {
 func ChatMember() RouteFilter {
 	return func(ctx *Context) bool {
 		return ctx.Update.ChatMember != nil
+	}
+}
+
+// ChatJoinRequest returns a filter that checks if the update is a request to join
+// a chat. The bot needs the can_invite_users administrator right to receive these.
+func ChatJoinRequest() RouteFilter {
+	return func(ctx *Context) bool {
+		return ctx.Update.ChatJoinRequest != nil
 	}
 }
 

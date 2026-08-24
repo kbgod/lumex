@@ -42,7 +42,9 @@ func Run(register func(r *router.Router)) {
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 
 	go func() {
-		if err := d.StartPolling(100); err != nil {
+		if err := d.StartPolling(100, lumex.WithWebhookDeletion(), lumex.WithUnhandledErrFunc(func(err error) {
+			log.Error("unhandled get updates error", "error", err)
+		})); err != nil {
 			log.Error("failed to start dispatcher", "error", err)
 			os.Exit(1)
 		}

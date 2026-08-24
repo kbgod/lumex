@@ -316,6 +316,18 @@ func TestChatMember(t *testing.T) {
 	}
 }
 
+func TestChatJoinRequest(t *testing.T) {
+	r := New(&lumex.Bot{})
+	if !ChatJoinRequest()(r.acquireContext(context.Background(), &lumex.Update{
+		ChatJoinRequest: &lumex.ChatJoinRequest{},
+	})) {
+		t.Error("ChatJoinRequest failed")
+	}
+	if ChatJoinRequest()(r.acquireContext(context.Background(), &lumex.Update{})) {
+		t.Error("ChatJoinRequest (empty update) failed")
+	}
+}
+
 func TestPreCheckoutQuery(t *testing.T) {
 	r := New(&lumex.Bot{})
 	if !PreCheckoutQuery()(r.acquireContext(context.Background(), &lumex.Update{
@@ -539,4 +551,37 @@ func TestContentFilters(t *testing.T) {
 	assert.True(t, RichMessage()(ctxOf(&lumex.Update{Message: &lumex.Message{RichMessage: &lumex.RichMessage{}}})))
 	assert.False(t, RichMessage()(ctxOf(plainMsg)))
 	assert.False(t, RichMessage()(ctxOf(empty)))
+}
+
+func TestCommandFilters(t *testing.T) {
+	r := New(&lumex.Bot{User: lumex.User{Username: "my_bot"}})
+	ctxOf := func(u *lumex.Update) *Context {
+		return r.acquireContext(context.Background(), u)
+	}
+	msg := func(text string) *lumex.Update {
+		return &lumex.Update{Message: &lumex.Message{Text: text}}
+	}
+	empty := &lumex.Update{}
+
+	assert.True(t, AnyCommand()(ctxOf(msg("/foo"))))
+	assert.True(t, AnyCommand()(ctxOf(msg("/foo@my_bot bar"))))
+	assert.False(t, AnyCommand()(ctxOf(msg("hello"))))
+	assert.False(t, AnyCommand()(ctxOf(empty)))
+
+	assert.True(t, AnyCommandWithAt()(ctxOf(msg("/foo@my_bot"))))
+	assert.True(t, AnyCommandWithAt()(ctxOf(msg("/foo@my_bot arg"))))
+	assert.False(t, AnyCommandWithAt()(ctxOf(msg("/foo@other_bot"))))
+	assert.False(t, AnyCommandWithAt()(ctxOf(msg("/foo"))))
+	assert.False(t, AnyCommandWithAt()(ctxOf(msg("hello"))))
+	assert.False(t, AnyCommandWithAt()(ctxOf(empty)))
+
+	// a stray command must NOT look like plain text input
+	assert.True(t, NonCommandText()(ctxOf(msg("hello"))))
+	assert.False(t, NonCommandText()(ctxOf(msg("/foo"))))
+	assert.False(t, NonCommandText()(ctxOf(msg(""))))
+	assert.False(t, NonCommandText()(ctxOf(empty)))
+
+	assert.True(t, Contact()(ctxOf(&lumex.Update{Message: &lumex.Message{Contact: &lumex.Contact{}}})))
+	assert.False(t, Contact()(ctxOf(msg("hello"))))
+	assert.False(t, Contact()(ctxOf(empty)))
 }

@@ -2,7 +2,7 @@
   "name": "lumex",
   "displayName": "lumex",
   "description": "How to build Telegram bots with the kbgod/lumex Go framework: router, Context helpers, filters/middleware/state, menu & rich-message builders, and polling/webhook wiring.",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": {
     "name": "Bohdan Koliesniev"
   },

@@ -37,7 +37,7 @@ func sendRichMessages(ctx *router.Context) error {
 		//    link; RichMedia binds that id to the media.
 		lumex.MarkdownRichMessage("A photo: ![](tg://photo?id=p1)").
 			AddMedia(lumex.RichMedia("p1", lumex.NewInputMediaPhoto(
-				lumex.InputFileURL("https://upload.wikimedia.org/wikipedia/commons/5/5c/Telegram_Messenger.png"),
+				lumex.InputFileURL("https://telegram.org/example/photo.jpg"),
 			))),
 
 		// 4. Structured content assembled from blocks; PlainText wraps the strings

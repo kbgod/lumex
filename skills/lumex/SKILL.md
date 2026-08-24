@@ -88,14 +88,28 @@ ctx.Bot.SendChatAction(ctx.Context(), ctx.ChatID(), lumex.ChatActionTyping)
   `SendMediaGroup` upload automatically; no reflection, nothing to implement.
 - **Keyboards** — `lumex.NewMenu()` / `lumex.NewInlineMenu()` build reply/inline
   keyboards fluently: `menu.Row().TextBtn(..)`, `.URLBtn`, `.CallbackBtn`,
-  `.WebAppBtn`, `.Fill(cols, buttons...)`, `.SetPlaceholder(..)`. Send with the
-  context menu helpers (§3) or pass `menu` as a `ReplyMarkup` in opts. Package
-  button ctor: `lumex.CallbackBtn(text, data)`.
+  `.WebAppBtn`, `.Fill(cols, buttons...)`, `.SetPlaceholder(..)`; on the inline
+  builder `.DisabledBtn(text)` (10.3) and `.SetForceReply(bool)` (10.3, also on
+  `Menu`). Send with the context menu helpers (§3) or pass `menu` as a
+  `ReplyMarkup` in opts. Package button ctor: `lumex.CallbackBtn(text, data)`.
 - **Rich messages** (Bot API 10.2) — `lumex.HTMLRichMessage(html)`,
   `MarkdownRichMessage(md)`, `BlocksRichMessage(blocks...)`, chained with
   `.RTL()`, `.SkipEntities()`, `.AddMedia(RichMedia(id, media))`; `PlainText(s)`
   / `RichSequence(parts...)` wrap strings as the `RichText` union for the block
   builders. Send with `bot.SendRichMessage(ctx, chatID, msg)`.
+  - **Referencing media from HTML/Markdown** — media attached with
+    `.AddMedia(RichMedia("id", media))` is referenced from the text by a
+    `tg://photo?id=id` / `tg://video?id=id` / `tg://audio?id=id` /
+    `tg://document?id=id` (the last new in 10.3) link. In **Markdown the syntax is
+    the image form `![](...)` and the square brackets MUST be empty** — a
+    description inside `[]` is not allowed. A caption goes as a **quoted string
+    after the URL**: `![](tg://document?id=d1 "Document caption")`. A direct URL
+    works the same way: `![](https://telegram.org/example/document.zip "Document caption")`.
+  - **Rich buttons** (Bot API 10.3) — `lumex.NewRichMenu()` builds the new buttons
+    block fluently: `.CallbackBtn`, `.URLBtn`, `.WebAppBtn`, `.LoginBtn`,
+    `.SwitchInlineQueryBtn`, each stylable via a `RichMessageButtonStyle*`
+    (danger/success/primary/link) arg; `.SetAlign(..)` / `WithRichMenuAlign(..)`;
+    `.Unwrap()` returns an `InputRichBlock` to drop into `BlocksRichMessage`.
 
 ---
 
@@ -146,10 +160,14 @@ r := router.New(bot, router.WithErrorHandler(func(ctx *router.Context, err error
 ```
 
 Register routes with `On(filter, handlers...)` or the `OnX` shortcuts
-(`OnStart`, `OnCommand`, `OnMessage`, `OnText`, `OnCaption`, `OnTextOrCaption`,
+(`OnStart`, `OnCommand`, `OnAnyCommand`, `OnAnyCommandWithAt`, `OnMessage`,
+`OnText`, `OnNonCommandText`, `OnCaption`, `OnTextOrCaption`, `OnContact`,
 `OnCallbackQuery`, `OnCallbackPrefix`, `OnInlineQuery`, `OnPhoto`, `OnGuestMessage`,
-`OnRichMessage`, `OnMyChatMember`, `OnUpdate`, …). Each returns a `*Route` (chain
-`.Name("...")` for diagnostics).
+`OnRichMessage`, `OnMyChatMember`, `OnChatMember`, `OnChatJoinRequest`,
+`OnUpdate`, …). Each returns a `*Route` (chain `.Name("...")` for diagnostics).
+
+**A command is text**, so `OnText` matches `/foo` too. When a route should take
+free-form text but not commands (wizard steps especially), use `OnNonCommandText`.
 
 **How an update flows (know this cold):**
 
@@ -231,10 +249,12 @@ Rules of thumb:
 
 ## 7. Custom filters
 
-Built-in filters live in `router` (`Command`, `Message`, `Text`, `Caption`,
-`TextOrCaption`, `CallbackQuery`, `CallbackPrefix`, `TextPrefix`, `TextEquals`,
+Built-in filters live in `router` (`Command`, `CommandWithAt`, `AnyCommand`,
+`AnyCommandWithAt`, `Message`, `Text`, `NonCommandText`, `Caption`, `TextOrCaption`,
+`Contact`, `CallbackQuery`, `CallbackPrefix`, `TextPrefix`, `TextEquals`,
 `TextContains`, `Photo`, `Video`, `Document`, `GuestMessage`, `RichMessage`,
-`MyChatMember`, `ForwardedChannelMessage`, …). When none fit, a filter is just a
+`MyChatMember`, `ChatMember`, `ChatJoinRequest`, `ForwardedChannelMessage`, …).
+When none fit, a filter is just a
 `func(*Context) bool` — write your own and pass it to `On`:
 
 ```go
