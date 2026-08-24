@@ -3,12 +3,12 @@
 //
 // It produces:
 //
-//   - types.go      object types, enumerations, and the polymorphic (union)
+//   - types_gen.go      object types, enumerations, and the polymorphic (union)
 //     types with generated JSON decoders/encoders;
-//   - requests.go   one request-payload struct per method (+ Uploadable methods);
-//   - methods.go    a typed method per Bot API method, hung off *Bot;
-//   - constants.go  update-type and parse-mode string constants;
-//   - helpers.go    the InputFile / ReplyMarkup helper types and constructors.
+//   - requests_gen.go   one request-payload struct per method (+ Uploadable methods);
+//   - methods_gen.go    a typed method per Bot API method, hung off *Bot;
+//   - constants_gen.go  update-type and parse-mode string constants;
+//   - helpers_gen.go    the InputFile / ReplyMarkup helper types and constructors.
 //
 // It depends only on the standard library.
 package gen
@@ -45,7 +45,7 @@ var (
 // object-type and request files, returning them as sorted "Owner.Field" names.
 func scanUntyped(files map[string][]byte) []string {
 	var out []string
-	for _, name := range []string{"types.go", "requests.go"} {
+	for _, name := range []string{"types_gen.go", "requests_gen.go"} {
 		src, ok := files[name]
 		if !ok {
 			continue
@@ -83,11 +83,11 @@ func Generate(src string, cfg Config) (map[string][]byte, Stats, error) {
 		fn   func() ([]byte, error)
 		emit bool
 	}{
-		{"types.go", g.renderTypes, true},
-		{"requests.go", g.renderRequests, len(g.requests) > 0},
-		{"methods.go", g.renderMethods, len(g.methods) > 0},
-		{"constants.go", g.renderConstants, true},
-		{"helpers.go", g.renderHelpers, true},
+		{"types_gen.go", g.renderTypes, true},
+		{"requests_gen.go", g.renderRequests, len(g.requests) > 0},
+		{"methods_gen.go", g.renderMethods, len(g.methods) > 0},
+		{"constants_gen.go", g.renderConstants, true},
+		{"helpers_gen.go", g.renderHelpers, true},
 	}
 	files := make(map[string][]byte)
 	for _, r := range renderers {

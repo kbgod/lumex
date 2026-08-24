@@ -145,6 +145,22 @@ func (r *Router) OnText(handlers ...Handler) *Route {
 	return r.On(Text(), handlers...)
 }
 
+func (r *Router) OnNonCommandText(handlers ...Handler) *Route {
+	return r.On(NonCommandText(), handlers...)
+}
+
+func (r *Router) OnAnyCommand(handlers ...Handler) *Route {
+	return r.On(AnyCommand(), handlers...)
+}
+
+func (r *Router) OnAnyCommandWithAt(handlers ...Handler) *Route {
+	return r.On(AnyCommandWithAt(), handlers...)
+}
+
+func (r *Router) OnContact(handlers ...Handler) *Route {
+	return r.On(Contact(), handlers...)
+}
+
 func (r *Router) OnCaption(handlers ...Handler) *Route {
 	return r.On(Caption(), handlers...)
 }
@@ -207,6 +223,10 @@ func (r *Router) OnMyChatMember(handlers ...Handler) *Route {
 
 func (r *Router) OnChatMember(handlers ...Handler) *Route {
 	return r.On(ChatMember(), handlers...)
+}
+
+func (r *Router) OnChatJoinRequest(handlers ...Handler) *Route {
+	return r.On(ChatJoinRequest(), handlers...)
 }
 
 func (r *Router) OnPreCheckoutQuery(handlers ...Handler) *Route {
@@ -329,7 +349,7 @@ func (r *Router) Listen(
 	var wg sync.WaitGroup
 	wg.Add(poolSize)
 	poolCtx, poolCancel := context.WithCancel(ctx)
-	for i := 0; i < poolSize; i++ {
+	for i := range poolSize {
 		go func(id int) {
 			defer wg.Done()
 			for {

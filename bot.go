@@ -13,7 +13,7 @@ var (
 )
 
 // Bot is the high-level entry point: it embeds a BotClient and exposes a typed
-// method for every Bot API call (generated in methods.go). Hand-written
+// method for every Bot API call (generated in methods_gen.go). Hand-written
 // convenience helpers and shorthands live in this file.
 type Bot struct {
 	// BotClient performs the actual requests. Embedded so RequestWithContext is

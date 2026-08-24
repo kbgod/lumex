@@ -2,12 +2,12 @@
 
 [![Test](https://github.com/kbgod/lumex/actions/workflows/test.yml/badge.svg)](https://github.com/kbgod/lumex/actions/workflows/test.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kbgod/lumex/v2)](https://goreportcard.com/report/github.com/kbgod/lumex/v2)
-[![Telegram Bot API Version](https://img.shields.io/static/v1?label=Supported%20Telegram%20Bot%20API&color=29a1d4&logo=telegram&message=v10.2)](https://core.telegram.org/bots/api)
-[![codecov](https://codecov.io/gh/kbgod/lumex/branch/main/graph/badge.svg)](https://codecov.io/gh/kbgod/lumex)
+[![Telegram Bot API Version](https://img.shields.io/static/v1?label=Supported%20Telegram%20Bot%20API&color=29a1d4&logo=telegram&message=v10.3)](https://core.telegram.org/bots/api)
+[![coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/kbgod/2cbfd84a7c06e6dd8c5fec560200d778/raw/lumex-coverage.json)](https://github.com/kbgod/lumex/actions/workflows/test.yml)
 
 Inspired by [paulsonoflars/gotgbot](https://github.com/paulsonoflars/gotgbot).
 
-All Telegram types and methods are produced by lumex's own stdlib-only generator (`internal/gen`) straight from the official [Bot API docs](https://core.telegram.org/bots/api) into `types.go`, `requests.go`, `methods.go`, `constants.go` and `helpers.go`. Bumping the API version is a single `go run ./cmd/gen`.
+All Telegram types and methods are produced by lumex's own stdlib-only generator (`internal/gen`) straight from the official [Bot API docs](https://core.telegram.org/bots/api) into `*_gen.go` files. Bumping the API version is a single `go run ./cmd/gen`.
 
 ---
 

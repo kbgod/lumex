@@ -47,17 +47,26 @@ or `/cancel` gets captured as the "name"):
 
 ```go
 enterName := r.UseState(StateEnterName)
-enterName.OnCommand("cancel", h.CancelSignup)   // 1. escape hatch — BEFORE input
-enterName.OnCommand("back", h.EnteredNameBack)  // 2. optional: go to previous step
-enterName.OnText(h.EnteredName)                 // 3. the expected input (text only)
+enterName.OnCommand("cancel", h.CancelSignup)   // 1. escape hatches — BEFORE the input route
+enterName.OnCommand("back", h.EnteredNameBack)  // 2. optional: go to the previous step
+enterName.OnNonCommandText(h.EnteredName)        // 3. the expected input
 enterName.OnUpdate(h.InvalidName)               // 4. local fallback: anything else in this state
 ```
 
+- **A command is also text — this is the subtle one.** If 3 were `OnText`, a stray
+  `/foo` would be captured *as the answer* ("name: /foo"): `OnText` matches it, and
+  first-match-wins means `OnUpdate` never gets a look. **`OnNonCommandText` excludes
+  commands**, so `/foo` falls through to the step's fallback (4). Want a *distinct*
+  reply for unknown commands? Add `enterName.OnAnyCommand(h.UnknownCommand)` just
+  before the input route.
 - **3 uses a specific filter**, not `OnMessage` — a sticker/photo IS a message, so
-  matching only what you asked for makes wrong input fall through to the local
-  fallback (4). Use the built-in that fits the step: `OnText` (a text field),
-  `OnPhoto`/`OnDocument`/`OnVideo` (a media step), `OnCaption` / `OnTextOrCaption`
-  (a captioned upload). If none fits, write a small custom filter (`lumex` skill §7).
+  matching only what you asked for makes wrong input fall to the fallback (4). Pick
+  the built-in that fits the step: `OnNonCommandText` (a text field), `OnContact` (a
+  shared phone number), `OnPhoto`/`OnDocument`/`OnVideo` (a media step), `OnCaption`
+  / `OnTextOrCaption` (a captioned upload). If none fits, write a small custom
+  filter (`lumex` skill §7).
+- Commands that must keep working **mid-flow** (e.g. `/help`) have to be declared
+  **above** the flow states — a state route never falls through to a later global one.
 - **4 is the per-state fallback.** It's an `OnUpdate` registered *inside* the
   state router, so it only fires in this state and (being registered before the
   global fallback) shields the user from the generic "unknown command" reply.
@@ -129,13 +138,13 @@ const (
 
 enterTaskName := r.UseState(StateEnterTaskName)
 enterTaskName.OnCommand("cancel", h.CancelTaskCreation)
-enterTaskName.OnText(h.EnteredTaskName)                 // saves name → StateEnterTaskDescription
+enterTaskName.OnNonCommandText(h.EnteredTaskName)        // saves name → StateEnterTaskDescription
 enterTaskName.OnUpdate(h.InvalidTaskName)               // "Please send the task name as text."
 
 enterTaskDescription := r.UseState(StateEnterTaskDescription)
 enterTaskDescription.OnCommand("cancel", h.CancelTaskCreation)
 enterTaskDescription.OnCommand("back", h.EnteredTaskDescriptionBack) // → StateEnterTaskName, re-asks name
-enterTaskDescription.OnText(h.EnteredTaskDescription)               // saves desc → next step / finish
+enterTaskDescription.OnNonCommandText(h.EnteredTaskDescription)       // saves desc → next step / finish
 enterTaskDescription.OnUpdate(h.InvalidTaskDescription)
 ```
 
@@ -152,8 +161,10 @@ gate is lost.
 - [ ] Asked the user about local fallbacks and cancel/back.
 - [ ] Each waiting state: `cancel`/`back` **before** the input route, input route
       before the local `OnUpdate` fallback.
-- [ ] Input route uses a specific filter (`OnText`/`OnPhoto`/`OnCaption`/…), so
-      wrong input hits the local fallback, not the handler.
+- [ ] Input route uses a specific filter (`OnNonCommandText`/`OnContact`/`OnPhoto`/…),
+      so wrong input hits the local fallback, not the handler.
+- [ ] Text steps use `OnNonCommandText`, not `OnText` — otherwise a stray `/foo` is
+      saved as the answer.
 - [ ] Handlers mutate **persisted** state (`store.SetState`), not just `ctx.SetState`.
 - [ ] Global/catch-all routes registered **after** every flow state.
 - [ ] Naming: `State…`, `Entered…` / `Entered…Back` / `Invalid…` / `Cancel<Flow>`.

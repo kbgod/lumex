@@ -134,7 +134,7 @@ func (ctx *Context) Sender() *lumex.User {
 		return ctx.Update.ShippingQuery.From
 	case ctx.Update.PreCheckoutQuery != nil:
 		return ctx.Update.PreCheckoutQuery.From
-	case ctx.Update.PurchasedPaidMedia != nil: // ← додано
+	case ctx.Update.PurchasedPaidMedia != nil:
 		return ctx.Update.PurchasedPaidMedia.From
 	case ctx.Update.PollAnswer != nil:
 		return ctx.Update.PollAnswer.User
@@ -144,11 +144,11 @@ func (ctx *Context) Sender() *lumex.User {
 		return ctx.Update.ChatMember.From
 	case ctx.Update.ChatJoinRequest != nil:
 		return ctx.Update.ChatJoinRequest.From
-	case ctx.Update.BusinessConnection != nil: // ← додано
+	case ctx.Update.BusinessConnection != nil:
 		return ctx.Update.BusinessConnection.User
-	case ctx.Update.MessageReaction != nil: // ← додано (може бути nil, якщо actor_chat)
+	case ctx.Update.MessageReaction != nil:
 		return ctx.Update.MessageReaction.User
-	case ctx.Update.ManagedBot != nil: // ← додано
+	case ctx.Update.ManagedBot != nil:
 		return ctx.Update.ManagedBot.User
 	case ctx.Update.Subscription != nil: // ← нове в 10.2
 		return ctx.Update.Subscription.User
@@ -171,16 +171,18 @@ func (ctx *Context) Chat() *lumex.Chat {
 		return ctx.Update.ChatMember.Chat
 	case ctx.Update.ChatJoinRequest != nil:
 		return ctx.Update.ChatJoinRequest.Chat
-	case ctx.Update.MessageReaction != nil: // ← додано
+	case ctx.Update.MessageReaction != nil:
 		return ctx.Update.MessageReaction.Chat
-	case ctx.Update.MessageReactionCount != nil: // ← додано
+	case ctx.Update.MessageReactionCount != nil:
 		return ctx.Update.MessageReactionCount.Chat
-	case ctx.Update.ChatBoost != nil: // ← додано
+	case ctx.Update.ChatBoost != nil:
 		return ctx.Update.ChatBoost.Chat
-	case ctx.Update.RemovedChatBoost != nil: // ← додано
+	case ctx.Update.RemovedChatBoost != nil:
 		return ctx.Update.RemovedChatBoost.Chat
-	case ctx.Update.DeletedBusinessMessages != nil: // ← додано
+	case ctx.Update.DeletedBusinessMessages != nil:
 		return ctx.Update.DeletedBusinessMessages.Chat
+	case ctx.Update.StoppedMessageGeneration != nil:
+		return ctx.Update.StoppedMessageGeneration.Chat
 	}
 
 	return nil
