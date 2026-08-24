@@ -31,12 +31,14 @@ jobs:
         id: cov
         run: |
           go test -race -coverprofile=coverage.txt -covermode=atomic ./...
-          # Exclude generated files (*_gen.go) so the badge reflects the
-          # hand-written code, not the code-generated Bot API client.
-          grep -vE '_gen\.go:' coverage.txt > coverage.filtered.txt
+          # Measure only the shipped library. Exclude: generated output (*_gen.go),
+          # the build-time generator (internal/gen — its own guard tests are
+          # snapshot-gated and skip in CI), demo bots (examples/), CLI entrypoints
+          # (cmd/) and generated mocks (mocks/).
+          grep -vE '_gen\.go:|/internal/gen/|/examples/|/cmd/|/mocks/' coverage.txt > coverage.filtered.txt
           pct=$(go tool cover -func=coverage.filtered.txt | awk '/^total:/ {print $NF}' | tr -d '%')
           echo "pct=$pct" >> "$GITHUB_OUTPUT"
-          echo "Coverage (excluding generated): ${pct}%"
+          echo "Library coverage: ${pct}%"
         env:
           TEST_BOT_TOKEN: ${{ secrets.TEST_BOT_TOKEN }}
 
