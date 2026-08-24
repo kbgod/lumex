@@ -108,3 +108,33 @@ func TestRichMenu(t *testing.T) {
 		t.Errorf("len(msg.Blocks) = %d; want 2", len(msg.Blocks))
 	}
 }
+
+func TestRichMenu_Buttons(t *testing.T) {
+	menu := NewRichMenu().
+		WebAppBtn("app", "https://app.example").
+		LoginBtn("login", "https://login.example").
+		SwitchInlineQueryBtn("share", "q1").
+		SwitchInlineCurrentChatBtn("here", "q2")
+
+	if len(menu.Buttons) != 4 {
+		t.Fatalf("len(Buttons) = %d; want 4", len(menu.Buttons))
+	}
+	if b := menu.Buttons[0]; b.WebApp == nil || b.WebApp.URL != "https://app.example" {
+		t.Errorf("WebAppBtn = %+v; want WebApp.URL set", b)
+	}
+	if b := menu.Buttons[1]; b.LoginURL == nil || b.LoginURL.URL != "https://login.example" {
+		t.Errorf("LoginBtn = %+v; want LoginURL.URL set", b)
+	}
+	if b := menu.Buttons[2]; b.SwitchInlineQuery != "q1" {
+		t.Errorf("SwitchInlineQueryBtn = %+v; want SwitchInlineQuery q1", b)
+	}
+	if b := menu.Buttons[3]; b.SwitchInlineQueryCurrentChat != "q2" {
+		t.Errorf("SwitchInlineCurrentChatBtn = %+v; want SwitchInlineQueryCurrentChat q2", b)
+	}
+	// every helper wraps its label as a *RichTextPlain
+	for i, b := range menu.Buttons {
+		if _, ok := b.Text.(*RichTextPlain); !ok {
+			t.Errorf("Buttons[%d].Text = %T; want *RichTextPlain", i, b.Text)
+		}
+	}
+}

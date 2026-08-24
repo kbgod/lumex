@@ -37,7 +37,7 @@ func formatGo(src string) ([]byte, error) {
 	return formatted, nil
 }
 
-// renderTypes emits types.go: object types, enumerations and the polymorphic
+// renderTypes emits types_gen.go: object types, enumerations and the polymorphic
 // (union) type machinery.
 func (g *generator) renderTypes() ([]byte, error) {
 	var b strings.Builder
@@ -64,7 +64,7 @@ func (g *generator) renderTypes() ([]byte, error) {
 	return formatGo(b.String())
 }
 
-// renderRequests emits requests.go: one payload struct per method.
+// renderRequests emits requests_gen.go: one payload struct per method.
 func (g *generator) renderRequests() ([]byte, error) {
 	var b strings.Builder
 	g.fileHeader(&b) // plain structs, no imports needed
@@ -77,7 +77,7 @@ func (g *generator) renderRequests() ([]byte, error) {
 	return formatGo(b.String())
 }
 
-// renderMethods emits methods.go: a typed wrapper on *Bot for every API method.
+// renderMethods emits methods_gen.go: a typed wrapper on *Bot for every API method.
 func (g *generator) renderMethods() ([]byte, error) {
 	var b strings.Builder
 	g.fileHeader(&b, "context", "encoding/json")
@@ -141,7 +141,7 @@ func (g *generator) renderMethod(b *strings.Builder, m methodInfo) {
 	}
 }
 
-// renderConstants emits constants.go: string constant groups that are handy but
+// renderConstants emits constants_gen.go: string constant groups that are handy but
 // not captured by field enums — update-type names (from the Update fields) and
 // the message parse modes (from the "Formatting options" doc section).
 func (g *generator) renderConstants() ([]byte, error) {
@@ -213,7 +213,7 @@ func emValues(raw string) []string {
 	return vals
 }
 
-// renderHelpers emits helpers.go: the hand-crafted convenience types and their
+// renderHelpers emits helpers_gen.go: the hand-crafted convenience types and their
 // constructors (ReplyMarkup, InputFile, ChatID).
 func (g *generator) renderHelpers() ([]byte, error) {
 	var b strings.Builder
@@ -303,7 +303,7 @@ func (g *generator) renderStruct(b *strings.Builder, td *typeDecl) {
 }
 
 // renderRequest emits a request as an Opts struct (optional fields) plus the
-// Request struct (required fields + an embedded Opts). The method (methods.go)
+// Request struct (required fields + an embedded Opts). The method (methods_gen.go)
 // takes the required fields as positional args and the Opts pointer.
 func (g *generator) renderRequest(b *strings.Builder, td *typeDecl) {
 	var required, optional []field

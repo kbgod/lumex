@@ -5,31 +5,56 @@ on:
     branches:
       - main
       - develop
+      - v2
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   build:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go 1.x
-        uses: actions/setup-go@v2
-        with:
-          go-version: ^1.19
-        id: go
+      - name: Check out code
+        uses: actions/checkout@v4
 
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
 
       - name: Build
-        run: go build -v .
+        run: go build ./...
 
       - name: Run coverage
-        run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+        id: cov
+        run: |
+          go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+          # Exclude generated files (*_gen.go) so the badge reflects the
+          # hand-written code, not the code-generated Bot API client.
+          grep -vE '_gen\.go:' coverage.txt > coverage.filtered.txt
+          pct=$(go tool cover -func=coverage.filtered.txt | awk '/^total:/ {print $NF}' | tr -d '%')
+          echo "pct=$pct" >> "$GITHUB_OUTPUT"
+          echo "Coverage (excluding generated): ${pct}%"
         env:
           TEST_BOT_TOKEN: ${{ secrets.TEST_BOT_TOKEN }}
 
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v3
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      # Publish the coverage % to a Gist that shields.io renders as the README
+      # badge. Only on a push to the active line (v2) or the default branch —
+      # secrets aren't available to fork PRs, and we don't want PR runs to
+      # overwrite the published number. Auth is the GIST_SECRET repo secret (a PAT
+      # with the `gist` scope). Drop `v2` from the condition once it becomes the
+      # default branch.
+      - name: Update coverage badge
+        if: github.event_name == 'push' && (github.ref_name == 'v2' || github.ref_name == github.event.repository.default_branch)
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: 2cbfd84a7c06e6dd8c5fec560200d778
+          filename: lumex-coverage.json
+          label: coverage
+          message: ${{ steps.cov.outputs.pct }}%
+          valColorRange: ${{ steps.cov.outputs.pct }}
+          minColorRange: 0
+          maxColorRange: 100
