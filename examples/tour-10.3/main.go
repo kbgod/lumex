@@ -90,7 +90,7 @@ func sendRichTour(ctx *router.Context) error {
 // referenced from the message text and bound to that id with AddMedia — the same
 // pattern tg://photo?id= already used, now extended to arbitrary documents.
 func sendReferencedDoc(ctx *router.Context) error {
-	msg := lumex.MarkdownRichMessage("Here's a file: ![](tg://document?id=doc1)").
+	msg := lumex.MarkdownRichMessage("Here's a file:\n\n![](tg://document?id=doc1)").
 		AddMedia(lumex.RichMedia("doc1", lumex.NewInputMediaDocument(
 			lumex.InputFileURL("https://telegram.org/example/document.zip"),
 		)))
