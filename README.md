@@ -2,7 +2,7 @@
 
 [![Test](https://github.com/kbgod/lumex/actions/workflows/test.yml/badge.svg)](https://github.com/kbgod/lumex/actions/workflows/test.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kbgod/lumex/v2)](https://goreportcard.com/report/github.com/kbgod/lumex/v2)
-[![Telegram Bot API Version](https://img.shields.io/static/v1?label=Supported%20Telegram%20Bot%20API&color=29a1d4&logo=telegram&message=v10.3)](https://core.telegram.org/bots/api)
+[![Telegram Bot API Version](https://img.shields.io/static/v1?label=Supported%20Telegram%20Bot%20API&color=29a1d4&logo=telegram&message=v10.4)](https://core.telegram.org/bots/api)
 [![coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/kbgod/2cbfd84a7c06e6dd8c5fec560200d778/raw/lumex-coverage.json)](https://github.com/kbgod/lumex/actions/workflows/test.yml)
 
 Inspired by [paulsonoflars/gotgbot](https://github.com/paulsonoflars/gotgbot).
@@ -314,6 +314,8 @@ typingGroup.OnMessage(processMessageViaAI)
 | [Keyboards](/examples/keyboard/main.go) | Reply and inline keyboard usage |
 | [CallbackQuery](/examples/callback/main.go) | Handling callback queries |
 | [Rich message](/examples/richmessage/main.go) | Building rich messages: HTML, Markdown, media, and blocks |
+| [Tour 10.4](/examples/tour-10.4/main.go) | Bot API 10.4, menu-driven: HTML widgets end-to-end, a live shared-widget ticker, ephemeral replies, rich-message quotes, TON text |
+| [Tour 10.3](/examples/tour-10.3/main.go) | Bot API 10.3: rich buttons, expandable quotes, compact tables, disabled buttons |
 | [Webhook](/examples/webhook/main.go) | Single-bot webhook setup |
 | [Webhook (multi-bot)](/examples/webhook_many/main.go) | Webhook for multiple bots or mini-app builders |
 

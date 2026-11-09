@@ -95,8 +95,8 @@ ctx.Bot.SendChatAction(ctx.Context(), ctx.ChatID(), lumex.ChatActionTyping)
 - **Rich messages** (Bot API 10.2) — `lumex.HTMLRichMessage(html)`,
   `MarkdownRichMessage(md)`, `BlocksRichMessage(blocks...)`, chained with
   `.RTL()`, `.SkipEntities()`, `.AddMedia(RichMedia(id, media))`; `PlainText(s)`
-  / `RichSequence(parts...)` wrap strings as the `RichText` union for the block
-  builders. Send with `bot.SendRichMessage(ctx, chatID, msg)`.
+  / `RichSequence(parts...)` / `TONAddress(address, text...)` (10.4) wrap a string
+  as the `RichText` union for the block builders. Send with `bot.SendRichMessage(ctx, chatID, msg)`.
   - **Referencing media from HTML/Markdown** — media attached with
     `.AddMedia(RichMedia("id", media))` is referenced from the text by a
     `tg://photo?id=id` / `tg://video?id=id` / `tg://audio?id=id` /
@@ -110,6 +110,20 @@ ctx.Bot.SendChatAction(ctx.Context(), ctx.ChatID(), lumex.ChatActionTyping)
     `.SwitchInlineQueryBtn`, each stylable via a `RichMessageButtonStyle*`
     (danger/success/primary/link) arg; `.SetAlign(..)` / `WithRichMenuAlign(..)`;
     `.Unwrap()` returns an `InputRichBlock` to drop into `BlocksRichMessage`.
+- **Widgets** (Bot API 10.4) — an HTML widget inside a message bubble.
+  `bot.SendWidget(ctx, chatID, html, opts)` / `SendSharedWidget`, answered with
+  `ctx.AnswerWidget(data)` and updated with `ctx.EditWidgetData(opts)` /
+  `bot.EditSharedWidgetData(...)`; route the queries with `OnWidgetQuery` /
+  `OnSharedWidgetQuery` (§4). Check the HTML with `lumex.ValidateWidgetHTML(html)`
+  before sending — 32768 bytes raw and **4096 compressed** are hard limits, and
+  the constants (`lumex.WidgetHTMLMaxBytes`, `WidgetDataMaxBytes`,
+  `WidgetAnswerTimeout`, …) live in `widget.go`, with `ValidateWidgetData` for the
+  state. A **live** widget (ticker, scoreboard) is a *shared* one: send it with
+  `IsShared: true`, then `bot.EditSharedWidgetData(ctx, widgetID, state, opts)`
+  updates every copy with one call — see `examples/tour-10.4`. **Writing the widget's HTML/CSS/JS
+  is a subject of its own — read the `telegram-widgets` skill for the sandbox's
+  rules, the `window.TelegramWidget` API and the request cycle.** In production a
+  widget goes only to a private chat with the bot.
 
 ---
 
@@ -164,6 +178,8 @@ Register routes with `On(filter, handlers...)` or the `OnX` shortcuts
 `OnText`, `OnNonCommandText`, `OnCaption`, `OnTextOrCaption`, `OnContact`,
 `OnCallbackQuery`, `OnCallbackPrefix`, `OnInlineQuery`, `OnPhoto`, `OnGuestMessage`,
 `OnRichMessage`, `OnMyChatMember`, `OnChatMember`, `OnChatJoinRequest`,
+`OnWidgetQuery`, `OnSharedWidgetQuery`, `OnAnyWidgetQuery`, `OnWidgetDataPrefix`,
+`OnWidget`, `OnTONWalletTransfer`, `OnPaidMessagesWaived`,
 `OnUpdate`, …). Each returns a `*Route` (chain `.Name("...")` for diagnostics).
 
 **A command is text**, so `OnText` matches `/foo` too. When a route should take
@@ -253,7 +269,9 @@ Built-in filters live in `router` (`Command`, `CommandWithAt`, `AnyCommand`,
 `AnyCommandWithAt`, `Message`, `Text`, `NonCommandText`, `Caption`, `TextOrCaption`,
 `Contact`, `CallbackQuery`, `CallbackPrefix`, `TextPrefix`, `TextEquals`,
 `TextContains`, `Photo`, `Video`, `Document`, `GuestMessage`, `RichMessage`,
-`MyChatMember`, `ChatMember`, `ChatJoinRequest`, `ForwardedChannelMessage`, …).
+`MyChatMember`, `ChatMember`, `ChatJoinRequest`, `ForwardedChannelMessage`,
+`WidgetQuery`, `SharedWidgetQuery`, `AnyWidgetQuery`, `WidgetDataPrefix`, `Widget`,
+`TONWalletTransfer`, `PaidMessagesWaived`, …).
 When none fit, a filter is just a
 `func(*Context) bool` — write your own and pass it to `On`:
 
@@ -353,6 +371,12 @@ with state as one more condition.
 - **empty non-nil slice → receive ALL types except the three above**:
   `AllowedUpdates: make([]string, 0)` (or `[]string{}`)
 - `nil` / unset → keep the previous setting.
+
+**This is the #1 reason a brand-new update type never arrives.** A token that was
+ever polled with an explicit list keeps that list, and a list written before the
+type existed cannot contain it — so e.g. a 10.4 widget just reports `TIMEOUT`
+while the bot sees nothing. When you start handling a new update type, name it
+(or send `[]string{}`) instead of leaving `AllowedUpdates` unset.
 
 ```go
 d.StartPolling(100, lumex.WithGetUpdatesOpts(lumex.GetUpdatesOpts{

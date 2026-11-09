@@ -2961,3 +2961,169 @@ func TestContext_ReplyEmojiBigReactionVoid(t *testing.T) {
 		t.Errorf("ctx.ReplyEmojiBigReactionVoid() = %v; want big reaction void error", err)
 	}
 }
+
+func TestContext_WidgetQueryGetters(t *testing.T) {
+	r := New(&lumex.Bot{})
+
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		WidgetQuery: &lumex.WidgetQuery{ID: "wq_1", Data: "inc:3", WidgetID: "w_1"},
+	})
+	assert.Equal(t, "wq_1", ctx.WidgetQueryID())
+	assert.Equal(t, "inc:3", ctx.WidgetData())
+	assert.Equal(t, "w_1", ctx.WidgetID())
+
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
+		SharedWidgetQuery: &lumex.SharedWidgetQuery{ID: "sq_1", Data: "inc:9", WidgetID: "w_2"},
+	})
+	assert.Equal(t, "sq_1", ctx.WidgetQueryID())
+	assert.Equal(t, "inc:9", ctx.WidgetData())
+	assert.Equal(t, "w_2", ctx.WidgetID())
+
+	ctx = r.acquireContext(context.Background(), &lumex.Update{})
+	assert.Equal(t, "", ctx.WidgetQueryID())
+	assert.Equal(t, "", ctx.WidgetData())
+	assert.Equal(t, "", ctx.WidgetID())
+}
+
+func TestContext_WidgetQuerySenderAndChat(t *testing.T) {
+	r := New(&lumex.Bot{})
+
+	// A widget query in a chat gives both a sender and a chat.
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		WidgetQuery: &lumex.WidgetQuery{
+			ID:   "wq_1",
+			From: &lumex.User{ID: 1},
+			Chat: &lumex.Chat{ID: 2},
+		},
+	})
+	if ctx.Sender() == nil || ctx.Sender().ID != 1 {
+		t.Errorf("ctx.Sender()[WidgetQuery] = %v; want 1", ctx.Sender())
+	}
+	if ctx.Chat() == nil || ctx.Chat().ID != 2 {
+		t.Errorf("ctx.Chat()[WidgetQuery] = %v; want 2", ctx.Chat())
+	}
+	assert.Equal(t, int64(2), ctx.ChatID())
+
+	// A widget in an inline message has no chat; ChatID then falls back to the sender.
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
+		WidgetQuery: &lumex.WidgetQuery{ID: "wq_2", From: &lumex.User{ID: 7}, InlineMessageID: "inline_1"},
+	})
+	assert.Nil(t, ctx.Chat())
+	assert.Equal(t, int64(7), ctx.ChatID())
+
+	// A shared widget query names only its sender.
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
+		SharedWidgetQuery: &lumex.SharedWidgetQuery{ID: "sq_1", From: &lumex.User{ID: 3}},
+	})
+	if ctx.Sender() == nil || ctx.Sender().ID != 3 {
+		t.Errorf("ctx.Sender()[SharedWidgetQuery] = %v; want 3", ctx.Sender())
+	}
+	assert.Nil(t, ctx.Chat())
+}
+
+func TestContext_AnswerWidget(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+
+	cl.On("RequestWithContext", mock.Anything, "getMe", mock.Anything).
+		Return(json.RawMessage(`{"id":1}`), nil)
+
+	cl.On(
+		"RequestWithContext",
+		mock.Anything,
+		"answerWidgetQuery",
+		mock.MatchedBy(func(req any) bool {
+			r, _ := req.(*lumex.AnswerWidgetQueryRequest)
+			return r != nil && r.WidgetQueryID == "wq_1" && r.Data == `{"n":4}`
+		}),
+	).Return(json.RawMessage(`true`), nil).Twice()
+
+	bot, err := lumex.NewBot("123:test", lumex.WithClient(cl))
+	assert.Nil(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		WidgetQuery: &lumex.WidgetQuery{ID: "wq_1", Data: "inc"},
+	})
+
+	ok, err := ctx.AnswerWidget(`{"n":4}`)
+	assert.Nil(t, err)
+	assert.True(t, ok)
+
+	assert.Nil(t, ctx.AnswerWidgetVoid(`{"n":4}`))
+
+	// A shared widget query is answered the same way.
+	cl.On(
+		"RequestWithContext",
+		mock.Anything,
+		"answerWidgetQuery",
+		mock.MatchedBy(func(req any) bool {
+			r, _ := req.(*lumex.AnswerWidgetQueryRequest)
+			return r != nil && r.WidgetQueryID == "sq_1"
+		}),
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
+		SharedWidgetQuery: &lumex.SharedWidgetQuery{ID: "sq_1"},
+	})
+	assert.Nil(t, ctx.AnswerWidgetVoid("done"))
+}
+
+func TestContext_EditWidgetData(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+
+	cl.On("RequestWithContext", mock.Anything, "getMe", mock.Anything).
+		Return(json.RawMessage(`{"id":1}`), nil)
+
+	// A widget in a chat is addressed by chat id + message id.
+	cl.On(
+		"RequestWithContext",
+		mock.Anything,
+		"editMessageWidgetData",
+		mock.MatchedBy(func(req any) bool {
+			r, _ := req.(*lumex.EditMessageWidgetDataRequest)
+			return r != nil && r.ChatID == 2 && r.MessageID == 10 &&
+				r.InlineMessageID == "" && r.ChatData == `{"n":1}`
+		}),
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	// A widget in an inline message is addressed by inline message id only.
+	cl.On(
+		"RequestWithContext",
+		mock.Anything,
+		"editMessageWidgetData",
+		mock.MatchedBy(func(req any) bool {
+			r, _ := req.(*lumex.EditMessageWidgetDataRequest)
+			return r != nil && r.InlineMessageID == "inline_1" &&
+				r.ChatID == 0 && r.MessageID == 0 && r.PublicData == "shared"
+		}),
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	bot, err := lumex.NewBot("123:test", lumex.WithClient(cl))
+	assert.Nil(t, err, "lumex.NewBot() = %v; want <nil>", err)
+
+	r := New(bot)
+
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		WidgetQuery: &lumex.WidgetQuery{
+			ID:        "wq_1",
+			From:      &lumex.User{ID: 1},
+			Chat:      &lumex.Chat{ID: 2},
+			MessageID: 10,
+		},
+	})
+	ok, err := ctx.EditWidgetData(lumex.EditMessageWidgetDataOpts{ChatData: `{"n":1}`})
+	assert.Nil(t, err)
+	assert.True(t, ok)
+
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
+		WidgetQuery: &lumex.WidgetQuery{ID: "wq_2", From: &lumex.User{ID: 1}, InlineMessageID: "inline_1"},
+	})
+	assert.Nil(t, ctx.EditWidgetDataVoid(lumex.EditMessageWidgetDataOpts{PublicData: "shared"}))
+
+	// A shared widget query names no message, so it cannot be edited this way.
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
+		SharedWidgetQuery: &lumex.SharedWidgetQuery{ID: "sq_1"},
+	})
+	_, err = ctx.EditWidgetData()
+	assert.ErrorIs(t, err, ErrContextWidgetQueryIsNil)
+}

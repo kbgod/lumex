@@ -1,0 +1,173 @@
+<!-- A live price ticker for examples/tour-10.4 — a SHARED widget.
+
+     This is a SHARED widget: one widget object that any number of messages and
+     forwards refer to, with one shared state (public_data) for all of them. The
+     bot edits that state once with editSharedWidgetData and every copy follows.
+
+     The widget asks to be kept fresh with watchPublicData(): while it is on
+     screen the app polls the shared state at the widget's refresh period
+     (cache_time) and fires publicDataChanged. Off screen it stops — so the
+     widget re-watches on 'activated' and stops on 'deactivated'.
+
+     Rules it obeys (https://core.telegram.org/bots/widgets): no network, no vh,
+     no overflow: auto, system fonts, theme variables, one animated element, and
+     a revision guard so a late poll cannot show an older price. -->
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0;
+    font: 15px -apple-system, system-ui, sans-serif;
+    color: var(--tg-theme-text-color, #000);
+    touch-action: pan-y;
+    user-select: none;
+  }
+  .card {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--tg-theme-secondary-bg-color, rgba(127, 127, 127, .12));
+  }
+  .top { display: flex; align-items: baseline; justify-content: space-between; }
+  .sym { font-weight: 600; letter-spacing: .02em; }
+  .live { font-size: 11px; opacity: .65; display: flex; align-items: center; gap: 5px; }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: light-dark(#1a7f37, #3fb950);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .stale .dot { background: var(--tg-theme-hint-color, #8c8c8c); animation: none; }
+  @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: .25 } }
+  @media (prefers-reduced-motion: reduce) { .dot { animation: none } }
+
+  .price {
+    font-size: 30px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+    margin-top: 2px;
+  }
+  .row { display: flex; align-items: baseline; gap: 8px; font-size: 13px; }
+  .delta { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .up { color: light-dark(#1a7f37, #3fb950); }
+  .down { color: light-dark(#c62828, #f85149); }
+  .at { color: var(--tg-theme-hint-color, #8c8c8c); font-variant-numeric: tabular-nums; }
+  .spark { display: block; width: 100%; height: 34px; margin-top: 8px; }
+  .hint { font-size: 11px; color: var(--tg-theme-hint-color, #8c8c8c); margin-top: 6px; }
+</style>
+
+<div class="card" id="card">
+  <div class="top">
+    <span class="sym" id="sym">—</span>
+    <span class="live" id="live"><span class="dot"></span><span id="livetext">live</span></span>
+  </div>
+  <div class="price" id="price">—</div>
+  <div class="row">
+    <span class="delta" id="delta"></span>
+    <span class="at" id="at"></span>
+  </div>
+  <svg class="spark" id="spark" viewBox="0 0 100 34" preserveAspectRatio="none" aria-hidden="true">
+    <polyline id="line" fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+  </svg>
+  <div class="hint" id="hint">Tap to refresh now</div>
+</div>
+
+<script>
+  var tg = window.TelegramWidget;
+  var el = function (id) { return document.getElementById(id); };
+  var seen = -1; // highest revision drawn — a late poll must not go backwards
+
+  function parse(data) {
+    if (!data) return null;
+    try {
+      var s = JSON.parse(data);
+      return typeof s.r === 'number' ? s : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function spark(points) {
+    if (!points || points.length < 2) {
+      el('line').removeAttribute('points');
+      return;
+    }
+    var lo = Math.min.apply(null, points);
+    var hi = Math.max.apply(null, points);
+    var span = hi - lo || 1;
+    var step = 100 / (points.length - 1);
+    var out = [];
+    for (var i = 0; i < points.length; i++) {
+      // 2 px of padding top and bottom, y grows downwards
+      out.push((i * step).toFixed(2) + ',' + (32 - ((points[i] - lo) / span) * 30).toFixed(2));
+    }
+    el('line').setAttribute('points', out.join(' '));
+  }
+
+  function render(s) {
+    if (!s || s.r <= seen) return; // nothing newer to draw
+    seen = s.r;
+
+    el('sym').textContent = s.s || '';
+    el('price').textContent = s.p || '—';
+    el('at').textContent = s.t ? 'as of ' + s.t : '';
+
+    var delta = el('delta');
+    delta.textContent = s.d ? s.d + '%' : '';
+    delta.className = 'delta ' + (parseFloat(s.d) < 0 ? 'down' : 'up');
+    el('spark').style.color = parseFloat(s.d) < 0
+      ? 'light-dark(#c62828, #f85149)'
+      : 'light-dark(#1a7f37, #3fb950)';
+
+    spark(s.h);
+  }
+
+  function stale(text) {
+    el('live').classList.add('stale');
+    el('livetext').textContent = text;
+  }
+
+  if (!tg) {
+    // A plain browser: there is no state to draw and nobody to ask.
+    stale('offline');
+    el('hint').textContent = 'Open this widget in Telegram.';
+  } else {
+    // Draw synchronously from the state the widget already has — nothing loads.
+    render(parse(tg.publicData));
+
+    // Ask to be kept fresh. Only a watching widget on screen gets new shared
+    // state; the app polls once per shared widget, however many messages show it.
+    tg.watchPublicData();
+    tg.onEvent('publicDataChanged', function () { render(parse(tg.publicData)); });
+    tg.onEvent('activated', function () { tg.watchPublicData(); });
+    tg.onEvent('deactivated', function () { tg.unwatchPublicData(); });
+
+    if (tg.isPreview) {
+      // A preview in the inline results takes no taps and never watches.
+      stale('preview');
+      el('hint').textContent = 'Send it to see it live.';
+    } else {
+      el('card').addEventListener('click', function () {
+        // A tap pulls the current state straight from the bot, instead of
+        // waiting for the next poll. One request at a time.
+        if (el('hint').dataset.busy) return;
+        el('hint').dataset.busy = '1';
+        el('hint').textContent = 'Refreshing…';
+        if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+
+        tg.request('refresh').then(function (res) {
+          render(parse(res.result));
+          el('hint').textContent = 'Tap to refresh now';
+        }).catch(function (err) {
+          var code = err && err.code ? err.code : 'FAILED';
+          el('hint').textContent = code === 'NOT_ALLOWED'
+            ? 'Live updates only — this copy cannot ask the bot.'
+            : 'Refresh failed: ' + code;
+        }).then(function () {
+          delete el('hint').dataset.busy;
+        });
+      });
+    }
+
+    tg.ready();
+  }
+</script>

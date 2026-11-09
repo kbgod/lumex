@@ -285,6 +285,34 @@ func (r *Router) OnUsersShared(handlers ...Handler) *Route {
 	return r.On(UsersShared(), handlers...)
 }
 
+func (r *Router) OnWidgetQuery(handlers ...Handler) *Route {
+	return r.On(WidgetQuery(), handlers...)
+}
+
+func (r *Router) OnSharedWidgetQuery(handlers ...Handler) *Route {
+	return r.On(SharedWidgetQuery(), handlers...)
+}
+
+func (r *Router) OnAnyWidgetQuery(handlers ...Handler) *Route {
+	return r.On(AnyWidgetQuery(), handlers...)
+}
+
+func (r *Router) OnWidgetDataPrefix(prefix string, handlers ...Handler) *Route {
+	return r.On(WidgetDataPrefix(prefix), handlers...)
+}
+
+func (r *Router) OnWidget(handlers ...Handler) *Route {
+	return r.On(Widget(), handlers...)
+}
+
+func (r *Router) OnTONWalletTransfer(handlers ...Handler) *Route {
+	return r.On(TONWalletTransfer(), handlers...)
+}
+
+func (r *Router) OnPaidMessagesWaived(handlers ...Handler) *Route {
+	return r.On(PaidMessagesWaived(), handlers...)
+}
+
 func (r *Router) acquireContext(ctx context.Context, update *lumex.Update) *Context {
 	eventCtx := r.contextPool.Get().(*Context)
 	eventCtx.ctx = ctx

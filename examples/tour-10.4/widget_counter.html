@@ -1,0 +1,120 @@
+<!-- A counter widget for examples/tour-10.4 — a STATIC widget.
+
+     Its state belongs to this one message: the bot pushes a new count with
+     editMessageWidgetData, which arrives as chatDataChanged. A forward is a
+     frozen copy that can never ask the bot. (widget_ticker.html is the other
+     kind: a shared widget, whose one state every copy follows.)
+
+     It follows the rules at https://core.telegram.org/bots/widgets: one
+     self-contained document, inline <style>/<script>, no network, no form
+     controls (a <button> is fine), no vh units, no overflow: auto, system
+     fonts only, and the chat's own colors through the --tg-theme-* variables.
+
+     The count lives in the widget's chat state, which only the bot can
+     change: a tap calls TelegramWidget.request(), the bot answers with the
+     new count and writes it back with editMessageWidgetData, which reaches
+     the widget as a chatDataChanged event. -->
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0;
+    font: 15px -apple-system, system-ui, sans-serif;
+    color: var(--tg-theme-text-color, #000);
+    touch-action: pan-y;
+  }
+  .card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--tg-theme-secondary-bg-color, rgba(127, 127, 127, .12));
+  }
+  .count {
+    font-size: 28px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .hint { font-size: 12px; opacity: .6; margin: 8px 2px 0; }
+  button {
+    font: inherit;
+    font-weight: 600;
+    padding: 10px 18px;
+    border: 0;
+    border-radius: 10px;
+    color: var(--tg-theme-button-text-color, #fff);
+    background: var(--tg-theme-button-color, #2ea6ff);
+    transition: opacity .15s;
+  }
+  button[disabled] { opacity: .4; }
+</style>
+
+<div class="card">
+  <div>
+    <div class="count" id="count">0</div>
+    <div id="label">taps</div>
+  </div>
+  <button id="tap">+1</button>
+</div>
+<p class="hint" id="hint">The bot keeps the count in the widget's chat state.</p>
+
+<script>
+  var tg = window.TelegramWidget;
+  var countEl = document.getElementById('count');
+  var hintEl = document.getElementById('hint');
+  var btn = document.getElementById('tap');
+
+  function parse(data) {
+    if (!data) return 0;
+    try {
+      var v = JSON.parse(data);
+      return typeof v.n === 'number' ? v.n : 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  function render(n) {
+    countEl.textContent = n;
+    document.getElementById('label').textContent = n === 1 ? 'tap' : 'taps';
+  }
+
+  if (!tg) {
+    // Opened outside Telegram (a plain browser): show the static card only.
+    btn.disabled = true;
+    hintEl.textContent = 'Open this widget in Telegram to tap it.';
+  } else {
+    render(parse(tg.chatData));
+
+    // A preview of an inline result, and a forward of a static widget, can
+    // never ask the bot — NOT_ALLOWED. Say so instead of failing on tap.
+    if (tg.isPreview || tg.isForward) {
+      btn.disabled = true;
+      hintEl.textContent = 'Taps work in the original message.';
+    }
+
+    btn.addEventListener('click', function () {
+      if (btn.disabled) return;
+      btn.disabled = true;
+      if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+
+      tg.request('inc').then(function (res) {
+        // The answer reaches this widget only; the state arrives separately
+        // via chatDataChanged, so render the answer right away.
+        render(parse(res.result));
+        btn.disabled = false;
+      }).catch(function (err) {
+        hintEl.textContent = 'Request failed: ' + (err && err.code ? err.code : 'FAILED');
+        btn.disabled = false;
+      });
+    });
+
+    tg.onEvent('chatDataChanged', function () { render(parse(tg.chatData)); });
+    tg.onEvent('publicDataChanged', function () {
+      hintEl.textContent = 'Shared state: ' + (tg.publicData || 'none');
+    });
+
+    tg.ready();
+  }
+</script>

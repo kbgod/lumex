@@ -1063,6 +1063,166 @@ func TestRouter_Events(t *testing.T) {
 
 		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
 	})
+
+	t.Run("OnWidgetQuery", func(t *testing.T) {
+		router := New(nil)
+		router.OnWidgetQuery(func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+		assert.Equal(
+			t, "test", router.GetRoutes()[0].GetName(),
+			"router.GetRoutes()[0].GetName() = %s; want test", router.GetRoutes()[0].GetName(),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			WidgetQuery: &lumex.WidgetQuery{ID: "q", Data: "inc"},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
+	t.Run("OnSharedWidgetQuery", func(t *testing.T) {
+		router := New(nil)
+		router.OnSharedWidgetQuery(func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+		assert.Equal(
+			t, "test", router.GetRoutes()[0].GetName(),
+			"router.GetRoutes()[0].GetName() = %s; want test", router.GetRoutes()[0].GetName(),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			SharedWidgetQuery: &lumex.SharedWidgetQuery{ID: "s", Data: "inc"},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
+	t.Run("OnAnyWidgetQuery", func(t *testing.T) {
+		router := New(nil)
+		router.OnAnyWidgetQuery(func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+		assert.Equal(
+			t, "test", router.GetRoutes()[0].GetName(),
+			"router.GetRoutes()[0].GetName() = %s; want test", router.GetRoutes()[0].GetName(),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			SharedWidgetQuery: &lumex.SharedWidgetQuery{ID: "s", Data: "inc"},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
+	t.Run("OnWidgetDataPrefix", func(t *testing.T) {
+		router := New(nil)
+		router.OnWidgetDataPrefix("inc", func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+		assert.Equal(
+			t, "test", router.GetRoutes()[0].GetName(),
+			"router.GetRoutes()[0].GetName() = %s; want test", router.GetRoutes()[0].GetName(),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			WidgetQuery: &lumex.WidgetQuery{ID: "q", Data: "inc"},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
+	t.Run("OnWidget", func(t *testing.T) {
+		router := New(nil)
+		router.OnWidget(func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+		assert.Equal(
+			t, "test", router.GetRoutes()[0].GetName(),
+			"router.GetRoutes()[0].GetName() = %s; want test", router.GetRoutes()[0].GetName(),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				Widget: &lumex.Widget{},
+			},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
+	t.Run("OnTONWalletTransfer", func(t *testing.T) {
+		router := New(nil)
+		router.OnTONWalletTransfer(func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+		assert.Equal(
+			t, "test", router.GetRoutes()[0].GetName(),
+			"router.GetRoutes()[0].GetName() = %s; want test", router.GetRoutes()[0].GetName(),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				TONWalletTransfer: &lumex.TONWalletTransfer{},
+			},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
+	t.Run("OnPaidMessagesWaived", func(t *testing.T) {
+		router := New(nil)
+		router.OnPaidMessagesWaived(func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+		assert.Equal(
+			t, "test", router.GetRoutes()[0].GetName(),
+			"router.GetRoutes()[0].GetName() = %s; want test", router.GetRoutes()[0].GetName(),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				PaidMessagesWaived: &lumex.PaidMessagesWaived{},
+			},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
 }
 
 func TestRouter_ErrorHandler(t *testing.T) {
