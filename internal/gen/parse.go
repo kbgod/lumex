@@ -9,6 +9,52 @@ import (
 // Type & method parsing
 // ---------------------------------------------------------------------------
 
+// keepPositional lists method parameters that the Bot API documentation marks
+// Optional but that lumex keeps as a positional method argument.
+//
+// Bot API 10.4 relaxed chat_id to Optional in every method that accepts
+// ephemeral_message_parameters: an ephemeral reply to a callback query is
+// addressed by callback_query_id alone, and chat_id is then explicitly ignored
+// (the bot may not even be a member of that chat). Following the docs literally
+// would move chat_id into XxxOpts and silently change the signature of nearly
+// every send method, so those parameters stay where callers expect them. The
+// field keeps its ",omitempty", so passing 0 simply omits it from the request —
+// which is exactly what the ephemeral-reply case needs.
+//
+// Keys are "<apiMethod>.<json_name>". The pin is a no-op for a parameter the
+// docs still mark required, so an entry can stay here across API versions.
+var keepPositional = map[string]bool{
+	"sendMessage.chat_id":     true,
+	"sendRichMessage.chat_id": true,
+	"sendPhoto.chat_id":       true,
+	"sendLivePhoto.chat_id":   true,
+	"sendAudio.chat_id":       true,
+	"sendDocument.chat_id":    true,
+	"sendVideo.chat_id":       true,
+	"sendAnimation.chat_id":   true,
+	"sendVoice.chat_id":       true,
+	"sendVideoNote.chat_id":   true,
+	"sendLocation.chat_id":    true,
+	"sendVenue.chat_id":       true,
+	"sendContact.chat_id":     true,
+	"sendSticker.chat_id":     true,
+}
+
+// pinPositional flags the parameters of method that keepPositional names.
+func pinPositional(method string, fields []field) {
+	for i := range fields {
+		if fields[i].OmitEmpty && keepPositional[method+"."+fields[i].JSONName] {
+			fields[i].Positional = true
+		}
+	}
+}
+
+// positional reports whether a request field belongs in the request struct and
+// among the method's positional arguments, rather than in its Opts struct.
+func positional(f field) bool {
+	return !f.OmitEmpty || f.Positional
+}
+
 func (g *generator) parseTypes(src string) {
 	// Preserve documentation order for stable, readable output.
 	heads := h4Re.FindAllStringSubmatch(src, -1)
@@ -53,6 +99,7 @@ func (g *generator) parseMethods(src string) {
 		}
 		if t := tableRe.FindStringSubmatch(section); t != nil && strings.Contains(t[1], "<th>Parameter</th>") {
 			td.Fields = g.parseFields(owner, t[1], true)
+			pinPositional(name, td.Fields)
 		}
 		g.requests = append(g.requests, td)
 
@@ -60,11 +107,11 @@ func (g *generator) parseMethods(src string) {
 		var required []field
 		optional := false
 		for _, f := range td.Fields {
-			if f.OmitEmpty {
-				optional = true
-			} else {
+			if positional(f) {
 				required = append(required, f)
+				continue
 			}
+			optional = true
 		}
 		optsType := ""
 		if optional {

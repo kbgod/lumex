@@ -585,3 +585,49 @@ func TestCommandFilters(t *testing.T) {
 	assert.False(t, Contact()(ctxOf(msg("hello"))))
 	assert.False(t, Contact()(ctxOf(empty)))
 }
+
+func TestWidgetFilters(t *testing.T) {
+	r := New(&lumex.Bot{})
+	ctxOf := func(u *lumex.Update) *Context {
+		return r.acquireContext(context.Background(), u)
+	}
+	query := &lumex.Update{WidgetQuery: &lumex.WidgetQuery{ID: "q", Data: "inc:1"}}
+	shared := &lumex.Update{SharedWidgetQuery: &lumex.SharedWidgetQuery{ID: "s", Data: "inc:2"}}
+	plainMsg := &lumex.Update{Message: &lumex.Message{}}
+	empty := &lumex.Update{}
+
+	assert.True(t, WidgetQuery()(ctxOf(query)))
+	assert.False(t, WidgetQuery()(ctxOf(shared)))
+	assert.False(t, WidgetQuery()(ctxOf(empty)))
+
+	assert.True(t, SharedWidgetQuery()(ctxOf(shared)))
+	assert.False(t, SharedWidgetQuery()(ctxOf(query)))
+	assert.False(t, SharedWidgetQuery()(ctxOf(empty)))
+
+	assert.True(t, AnyWidgetQuery()(ctxOf(query)))
+	assert.True(t, AnyWidgetQuery()(ctxOf(shared)))
+	assert.False(t, AnyWidgetQuery()(ctxOf(empty)))
+
+	// WidgetDataPrefix reads the data of either kind of query.
+	assert.True(t, WidgetDataPrefix("inc")(ctxOf(query)))
+	assert.True(t, WidgetDataPrefix("inc")(ctxOf(shared)))
+	assert.True(t, WidgetDataPrefix("inc:1")(ctxOf(query)))
+	assert.False(t, WidgetDataPrefix("dec")(ctxOf(query)))
+	assert.False(t, WidgetDataPrefix("inc")(ctxOf(empty)))
+
+	assert.True(t, Widget()(ctxOf(&lumex.Update{Message: &lumex.Message{Widget: &lumex.Widget{}}})))
+	assert.False(t, Widget()(ctxOf(plainMsg)))
+	assert.False(t, Widget()(ctxOf(empty)))
+
+	assert.True(t, TONWalletTransfer()(ctxOf(&lumex.Update{
+		Message: &lumex.Message{TONWalletTransfer: &lumex.TONWalletTransfer{}},
+	})))
+	assert.False(t, TONWalletTransfer()(ctxOf(plainMsg)))
+	assert.False(t, TONWalletTransfer()(ctxOf(empty)))
+
+	assert.True(t, PaidMessagesWaived()(ctxOf(&lumex.Update{
+		Message: &lumex.Message{PaidMessagesWaived: &lumex.PaidMessagesWaived{}},
+	})))
+	assert.False(t, PaidMessagesWaived()(ctxOf(plainMsg)))
+	assert.False(t, PaidMessagesWaived()(ctxOf(empty)))
+}

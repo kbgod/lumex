@@ -326,3 +326,61 @@ func UsersShared() RouteFilter {
 		return ctx.Update.Message != nil && ctx.Update.Message.UsersShared != nil
 	}
 }
+
+// WidgetQuery returns a filter that checks if the update is a query from a
+// widget in a message sent by the bot or via the bot (Bot API 10.4).
+func WidgetQuery() RouteFilter {
+	return func(ctx *Context) bool {
+		return ctx.Update.WidgetQuery != nil
+	}
+}
+
+// SharedWidgetQuery returns a filter that checks if the update is a query from
+// a forwarded message with a shared widget created by the bot (Bot API 10.4).
+func SharedWidgetQuery() RouteFilter {
+	return func(ctx *Context) bool {
+		return ctx.Update.SharedWidgetQuery != nil
+	}
+}
+
+// AnyWidgetQuery returns a filter that checks if the update is a widget query
+// of either kind — from the widget's own message or from a forward of it.
+// Context.WidgetQueryID, WidgetData and AnswerWidget handle both.
+func AnyWidgetQuery() RouteFilter {
+	return func(ctx *Context) bool {
+		return ctx.Update.WidgetQuery != nil || ctx.Update.SharedWidgetQuery != nil
+	}
+}
+
+// WidgetDataPrefix returns a filter that checks if the data of a widget query
+// of either kind starts with the given prefix — the widget counterpart of
+// CallbackPrefix.
+func WidgetDataPrefix(text string) RouteFilter {
+	return func(ctx *Context) bool {
+		return AnyWidgetQuery()(ctx) && strings.HasPrefix(ctx.WidgetData(), text)
+	}
+}
+
+// Widget returns a filter that checks if the message contains an HTML widget
+// (Bot API 10.4).
+func Widget() RouteFilter {
+	return func(ctx *Context) bool {
+		return ctx.Update.Message != nil && ctx.Update.Message.Widget != nil
+	}
+}
+
+// TONWalletTransfer returns a filter that checks if the message is a service
+// message about a transfer with a TON wallet (Bot API 10.4).
+func TONWalletTransfer() RouteFilter {
+	return func(ctx *Context) bool {
+		return ctx.Update.Message != nil && ctx.Update.Message.TONWalletTransfer != nil
+	}
+}
+
+// PaidMessagesWaived returns a filter that checks if the message is a service
+// message about the sender using a link that waives paid messaging (Bot API 10.4).
+func PaidMessagesWaived() RouteFilter {
+	return func(ctx *Context) bool {
+		return ctx.Update.Message != nil && ctx.Update.Message.PaidMessagesWaived != nil
+	}
+}

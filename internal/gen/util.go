@@ -28,7 +28,7 @@ func cleanText(s string) string {
 var initialisms = map[string]string{
 	"id": "ID", "url": "URL", "ip": "IP", "api": "API", "gif": "GIF",
 	"html": "HTML", "json": "JSON", "ttl": "TTL", "uid": "UID",
-	"pm": "PM", "ton": "TON", "xtr": "XTR",
+	"pm": "PM", "ton": "TON", "xtr": "XTR", "nft": "NFT",
 }
 
 func goFieldName(snake string) string {

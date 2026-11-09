@@ -308,10 +308,10 @@ func (g *generator) renderStruct(b *strings.Builder, td *typeDecl) {
 func (g *generator) renderRequest(b *strings.Builder, td *typeDecl) {
 	var required, optional []field
 	for _, f := range td.Fields {
-		if f.OmitEmpty {
-			optional = append(optional, f)
-		} else {
+		if positional(f) {
 			required = append(required, f)
+		} else {
+			optional = append(optional, f)
 		}
 	}
 

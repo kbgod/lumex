@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	ErrContextMessageIsNil = fmt.Errorf("context message is nil")
+	ErrContextMessageIsNil     = fmt.Errorf("context message is nil")
+	ErrContextWidgetQueryIsNil = fmt.Errorf("context widget query is nil")
 )
 
 type BotContextKey = struct{}
@@ -124,6 +125,10 @@ func (ctx *Context) Sender() *lumex.User {
 	switch {
 	case ctx.Update.CallbackQuery != nil:
 		return ctx.Update.CallbackQuery.From
+	case ctx.Update.WidgetQuery != nil:
+		return ctx.Update.WidgetQuery.From
+	case ctx.Update.SharedWidgetQuery != nil:
+		return ctx.Update.SharedWidgetQuery.From
 	case msg != nil:
 		return msg.From
 	case ctx.Update.InlineQuery != nil:
@@ -150,7 +155,7 @@ func (ctx *Context) Sender() *lumex.User {
 		return ctx.Update.MessageReaction.User
 	case ctx.Update.ManagedBot != nil:
 		return ctx.Update.ManagedBot.User
-	case ctx.Update.Subscription != nil: // ← нове в 10.2
+	case ctx.Update.Subscription != nil:
 		return ctx.Update.Subscription.User
 	default:
 		return nil
@@ -165,6 +170,9 @@ func (ctx *Context) Chat() *lumex.Chat {
 	switch {
 	case msg != nil:
 		return msg.Chat
+	case ctx.Update.WidgetQuery != nil:
+		// Nil for a widget in an inline message, which has no chat.
+		return ctx.Update.WidgetQuery.Chat
 	case ctx.Update.MyChatMember != nil:
 		return ctx.Update.MyChatMember.Chat
 	case ctx.Update.ChatMember != nil:
@@ -236,6 +244,52 @@ func (ctx *Context) CallbackData() string {
 func (ctx *Context) CallbackID() string {
 	if ctx.Update.CallbackQuery != nil {
 		return ctx.Update.CallbackQuery.ID
+	}
+
+	return ""
+}
+
+// WidgetQueryID
+//
+// returns the id of the widget query in the update (from widget_query or
+// shared_widget_query), empty string if the update is neither
+func (ctx *Context) WidgetQueryID() string {
+	if ctx.Update.WidgetQuery != nil {
+		return ctx.Update.WidgetQuery.ID
+	}
+	if ctx.Update.SharedWidgetQuery != nil {
+		return ctx.Update.SharedWidgetQuery.ID
+	}
+
+	return ""
+}
+
+// WidgetData
+//
+// returns the data a widget sent with its query (1-64 bytes), empty string if
+// the update is not a widget query. Treat it as untrusted user input.
+func (ctx *Context) WidgetData() string {
+	if ctx.Update.WidgetQuery != nil {
+		return ctx.Update.WidgetQuery.Data
+	}
+	if ctx.Update.SharedWidgetQuery != nil {
+		return ctx.Update.SharedWidgetQuery.Data
+	}
+
+	return ""
+}
+
+// WidgetID
+//
+// returns the identifier of the shared widget that sent the query, which
+// SendSharedWidget and EditSharedWidgetData take. Empty for a widget that
+// isn't shared, and for updates that aren't widget queries.
+func (ctx *Context) WidgetID() string {
+	if ctx.Update.WidgetQuery != nil {
+		return ctx.Update.WidgetQuery.WidgetID
+	}
+	if ctx.Update.SharedWidgetQuery != nil {
+		return ctx.Update.SharedWidgetQuery.WidgetID
 	}
 
 	return ""
@@ -420,6 +474,66 @@ func (ctx *Context) AnswerQuery(results []lumex.InlineQueryResult, opts ...lumex
 
 func (ctx *Context) AnswerQueryVoid(results []lumex.InlineQueryResult, opts ...lumex.AnswerInlineQueryOpts) error {
 	_, err := ctx.AnswerQuery(results, opts...)
+
+	return err
+}
+
+// AnswerWidget answers the widget query which is in update (Bot API 10.4).
+// Telegram fails the query unless it is answered within
+// lumex.WidgetAnswerTimeout; data is up to lumex.WidgetAnswerDataMaxBytes and
+// reaches only the widget that asked — it does not change the widget's state,
+// which EditWidgetData does.
+func (ctx *Context) AnswerWidget(data string, opts ...lumex.AnswerWidgetQueryOpts) (bool, error) {
+	var opt lumex.AnswerWidgetQueryOpts
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
+
+	opt.Data = data
+
+	return ctx.Bot.AnswerWidgetQuery(ctx.Context(), ctx.WidgetQueryID(), opt)
+}
+
+// AnswerWidgetVoid answers the widget query without returning result
+func (ctx *Context) AnswerWidgetVoid(data string, opts ...lumex.AnswerWidgetQueryOpts) error {
+	_, err := ctx.AnswerWidget(data, opts...)
+
+	return err
+}
+
+// EditWidgetData changes the data of the widget that sent the query in this
+// update (Bot API 10.4), addressing its message for you — the chat and message
+// id of a widget in a chat, or the inline message id of one in an inline
+// message. Set PublicData and/or ChatData in opts; an empty string clears a
+// value, an omitted field leaves it unchanged.
+//
+// It only works for a widget_query update: a shared_widget_query comes from a
+// forwarded message and names no message, so edit it by widget id with
+// Bot.EditSharedWidgetData instead.
+func (ctx *Context) EditWidgetData(opts ...lumex.EditMessageWidgetDataOpts) (bool, error) {
+	var opt lumex.EditMessageWidgetDataOpts
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
+
+	q := ctx.Update.WidgetQuery
+	if q == nil {
+		return false, fmt.Errorf("failed to edit widget data: %w", ErrContextWidgetQueryIsNil)
+	}
+
+	if q.InlineMessageID != "" {
+		opt.InlineMessageID = q.InlineMessageID
+	} else {
+		opt.ChatID = ctx.ChatID()
+		opt.MessageID = q.MessageID
+	}
+
+	return ctx.Bot.EditMessageWidgetData(ctx.Context(), opt)
+}
+
+// EditWidgetDataVoid changes the widget data without returning result
+func (ctx *Context) EditWidgetDataVoid(opts ...lumex.EditMessageWidgetDataOpts) error {
+	_, err := ctx.EditWidgetData(opts...)
 
 	return err
 }

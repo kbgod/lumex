@@ -47,6 +47,28 @@ func RichSequence(parts ...RichText) RichText {
 	return &seq
 }
 
+// TONAddress wraps an address in the TON blockchain as a RichText (Bot API
+// 10.4), for use in the block builders. The optional text argument is the label
+// shown for the address; with no text the address itself is shown.
+//
+//	lumex.NewInputRichBlockParagraph(
+//		lumex.RichSequence(
+//			lumex.PlainText("Send to "),
+//			lumex.TONAddress("UQ…", lumex.PlainText("our wallet")),
+//		),
+//	)
+func TONAddress(address string, text ...RichText) RichText {
+	label := firstOrZero(text)
+	if label == nil {
+		label = PlainText(address)
+	}
+	return &RichTextTONAddress{
+		Type:    RichTextTypeTONAddress,
+		Text:    label,
+		Address: address,
+	}
+}
+
 // RTL marks the rich message to be shown right-to-left. Returns the receiver
 // for chaining.
 func (m *InputRichMessage) RTL() *InputRichMessage {

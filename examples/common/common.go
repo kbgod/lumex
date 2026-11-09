@@ -20,8 +20,9 @@ import (
 // Run authorizes a bot from BOT_TOKEN, builds a router, lets register attach the
 // example's handlers to it, then polls until interrupted. It blocks until the
 // process receives an interrupt signal, after which it stops the dispatcher
-// within a 5s grace period.
-func Run(register func(r *router.Router)) {
+// within a 5s grace period. Extra polling options are appended to the defaults,
+// so an example can ask for specific update types.
+func Run(register func(r *router.Router), pollOpts ...lumex.PollingOption) {
 	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	bot, err := lumex.NewBot(os.Getenv("BOT_TOKEN"))
@@ -41,10 +42,15 @@ func Run(register func(r *router.Router)) {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 
-	go func() {
-		if err := d.StartPolling(100, lumex.WithWebhookDeletion(), lumex.WithUnhandledErrFunc(func(err error) {
+	opts := append([]lumex.PollingOption{
+		lumex.WithWebhookDeletion(),
+		lumex.WithUnhandledErrFunc(func(err error) {
 			log.Error("unhandled get updates error", "error", err)
-		})); err != nil {
+		}),
+	}, pollOpts...)
+
+	go func() {
+		if err := d.StartPolling(100, opts...); err != nil {
 			log.Error("failed to start dispatcher", "error", err)
 			os.Exit(1)
 		}

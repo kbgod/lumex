@@ -56,6 +56,38 @@ func TestRichTextHelpers(t *testing.T) {
 	}
 }
 
+func TestTONAddress(t *testing.T) {
+	// With a label, the label is kept as the rich text of the address.
+	a, ok := TONAddress("UQabc", PlainText("our wallet")).(*RichTextTONAddress)
+	if !ok {
+		t.Fatalf("TONAddress = %#v; want *RichTextTONAddress", TONAddress("UQabc"))
+	}
+	if a.Address != "UQabc" {
+		t.Errorf("Address = %q; want UQabc", a.Address)
+	}
+	if a.Type != RichTextTypeTONAddress {
+		t.Errorf("Type = %q; want %q", a.Type, RichTextTypeTONAddress)
+	}
+	if p, ok := a.Text.(*RichTextPlain); !ok || string(*p) != "our wallet" {
+		t.Errorf("Text = %#v; want *RichTextPlain(\"our wallet\")", a.Text)
+	}
+
+	// Without a label the address itself is shown.
+	bare := TONAddress("UQxyz").(*RichTextTONAddress)
+	if p, ok := bare.Text.(*RichTextPlain); !ok || string(*p) != "UQxyz" {
+		t.Errorf("bare Text = %#v; want *RichTextPlain(\"UQxyz\")", bare.Text)
+	}
+
+	// The variant marshals with its discriminator and is a usable RichText.
+	raw, err := json.Marshal(NewInputRichBlockParagraph(TONAddress("UQxyz")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), `"type":"ton_address"`) {
+		t.Errorf("marshalled paragraph = %s; want a ton_address rich text", raw)
+	}
+}
+
 func TestRichMenu(t *testing.T) {
 	menu := NewRichMenu(WithRichMenuAlign(InputRichBlockButtonsAlignCenter)).
 		CallbackBtn("Yes", "yes", RichMessageButtonStyleSuccess).

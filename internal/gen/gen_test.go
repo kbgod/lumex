@@ -18,6 +18,52 @@ func TestOmitOption(t *testing.T) {
 	}
 }
 
+func TestKeepPositional(t *testing.T) {
+	// Bot API 10.4 relaxed chat_id to Optional in the send methods that accept
+	// ephemeral_message_parameters. keepPositional keeps it a positional method
+	// argument (positional == true) while leaving it omitempty (OmitEmpty stays
+	// true), so the signatures don't change but a zero chat_id is omitted.
+	fields := []field{
+		{GoName: "ChatID", JSONName: "chat_id", OmitEmpty: true},
+		{GoName: "Text", JSONName: "text"},
+		{GoName: "ParseMode", JSONName: "parse_mode", OmitEmpty: true},
+	}
+	pinPositional("sendMessage", fields)
+
+	if !fields[0].Positional {
+		t.Error("sendMessage.chat_id was not pinned")
+	}
+	if !fields[0].OmitEmpty {
+		t.Error("pinning chat_id must not clear OmitEmpty")
+	}
+	if fields[2].Positional {
+		t.Error("sendMessage.parse_mode must not be pinned")
+	}
+
+	// positional() is what parseMethods and renderRequest both split on.
+	for i, want := range []bool{true, true, false} {
+		if got := positional(fields[i]); got != want {
+			t.Errorf("positional(%s) = %v, want %v", fields[i].JSONName, got, want)
+		}
+	}
+
+	// A method the list doesn't name keeps the documented optionality: editMessageText
+	// has had an optional chat_id since long before 10.4 and stays in its Opts.
+	other := []field{{GoName: "ChatID", JSONName: "chat_id", OmitEmpty: true}}
+	pinPositional("editMessageText", other)
+	if other[0].Positional || positional(other[0]) {
+		t.Error("editMessageText.chat_id must stay optional")
+	}
+
+	// Pinning a parameter the docs still mark required is a no-op, so an entry
+	// can stay in the list across API versions.
+	required := []field{{GoName: "ChatID", JSONName: "chat_id"}}
+	pinPositional("sendPhoto", required)
+	if required[0].Positional {
+		t.Error("a required parameter must not be flagged Positional")
+	}
+}
+
 func TestScanUntyped(t *testing.T) {
 	// deterministic (no snapshot): a field typed `any` or `[]any` is reported as
 	// "Owner.Field"; a `map[string]any` in a method body (no json tag) is not.
@@ -81,6 +127,9 @@ func TestGoTypeName(t *testing.T) {
 		"InlineQueryResultGif": "InlineQueryResultGIF",
 		"Gift":                 "Gift", // whole word "gift" ≠ initialism "gif"
 		"UniqueGift":           "UniqueGift",
+		"RichTextTonAddress":   "RichTextTONAddress",
+		"TonWalletCard":        "TONWalletCard",
+		"TonNftAttribute":      "TONNFTAttribute",
 		"InlineKeyboardMarkup": "InlineKeyboardMarkup",
 		"sendPhoto":            "sendPhoto", // methods (lower-case) unchanged
 	}

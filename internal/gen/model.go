@@ -9,7 +9,11 @@ type field struct {
 	GoType    string
 	JSONName  string
 	OmitEmpty bool
-	Comment   string
+	// Positional keeps a parameter that the docs mark Optional in the request
+	// struct — and therefore among the method's positional arguments — instead
+	// of moving it into the Opts struct. See keepPositional (parse.go).
+	Positional bool
+	Comment    string
 }
 
 type typeDecl struct {
