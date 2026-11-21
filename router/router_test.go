@@ -1246,3 +1246,67 @@ func TestRouter_ErrorHandler(t *testing.T) {
 		assert.Equal(t, ErrRouteNotFound, err, "router.HandleUpdate() = %v; want ErrRouteNotFound")
 	})
 }
+
+// TestRouter_MiddlewareInheritance pins how middlewares reach a route through
+// nested Group / UseState sub-routers: each one exactly once, in declaration
+// order, root middlewares first (they run globally, not as part of the route).
+func TestRouter_MiddlewareInheritance(t *testing.T) {
+	var calls []string
+	record := func(name string) Handler {
+		return func(ctx *Context) error {
+			calls = append(calls, name)
+			return ctx.Next()
+		}
+	}
+	handle := func(t *testing.T, r *Router, text string, state *string) []string {
+		t.Helper()
+		calls = nil
+		r.Use(func(ctx *Context) error {
+			if state != nil {
+				ctx.SetState(*state)
+			}
+			return ctx.Next()
+		})
+		err := r.HandleUpdate(context.Background(), &lumex.Update{Message: &lumex.Message{Text: text}})
+		assert.NoError(t, err)
+		return calls
+	}
+	state := "s"
+
+	t.Run("UseState on a group keeps the group middlewares", func(t *testing.T) {
+		r := New(nil)
+		r.Group(record("group")).UseState(state, record("state")).OnCommand("x", record("h"))
+		assert.Equal(t, []string{"group", "state", "h"}, handle(t, r, "/x", &state))
+	})
+
+	t.Run("Group on a state router keeps the state middlewares", func(t *testing.T) {
+		r := New(nil)
+		r.UseState(state, record("state")).Group(record("group")).OnCommand("x", record("h"))
+		assert.Equal(t, []string{"state", "group", "h"}, handle(t, r, "/x", &state))
+	})
+
+	t.Run("deeply nested groups run each middleware once", func(t *testing.T) {
+		r := New(nil)
+		r.Use(record("root"))
+		r.Group(record("a")).Group(record("b")).Group(record("c")).OnCommand("x", record("h"))
+		assert.Equal(t, []string{"root", "a", "b", "c", "h"}, handle(t, r, "/x", nil))
+	})
+
+	t.Run("routes of one group do not share handler slices", func(t *testing.T) {
+		r := New(nil)
+		// five middlewares leave spare capacity in the group's handler slice
+		g := r.Group(record("a")).Group(record("b"), record("c"), record("d"), record("e"))
+		g.OnCommand("one", record("one"))
+		g.OnCommand("two", record("two"))
+		assert.Equal(t, []string{"a", "b", "c", "d", "e", "one"}, handle(t, r, "/one", nil))
+	})
+
+	t.Run("sub-routers do not keep a copy of the routes", func(t *testing.T) {
+		r := New(nil)
+		r.OnCommand("root", record("root"))
+		s := r.UseState(state)
+		s.OnCommand("x", record("h"))
+		assert.Len(t, r.GetRoutes(), 2)
+		assert.Empty(t, s.GetRoutes())
+	})
+}

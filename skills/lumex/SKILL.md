@@ -236,6 +236,22 @@ admin.OnCommand("ban", banHandler)
 admin.OnCommand("stats", statsHandler)
 ```
 
+**Sub-routers compose.** `Group(mw...)` and `UseState(state, mw...)` both return a
+sub-router that carries its middlewares, and they nest freely in any order: a
+route runs the global `r.Use` middlewares, then every enclosing sub-router's
+middlewares outermost-first (each once), then its own handlers.
+
+```go
+admin := r.Group(requireAdmin)
+editing := admin.UseState("editing", loadDraft)
+editing.OnMessage(saveDraft) // global mws → requireAdmin → loadDraft → saveDraft
+```
+
+A sub-router fixes its middleware chain when it is **created** and when each
+route is **registered**: call `sub.Use(mw)` before `sub.On…`, since it reaches only
+routes registered on `sub` afterwards (not earlier routes, not child groups
+created before it).
+
 ---
 
 ## 6. Order matters — the #1 source of bugs
@@ -300,7 +316,9 @@ r.On(And(router.Message(), FromAdmin(1)), handler)
 
 `r.UseState("name")` returns a sub-router whose routes are **gated on state**:
 they match only when the context's state equals `"name"`. Stateless routes
-(everything on the base router) match regardless of state.
+(everything on the base router) match regardless of state. Like `Group`, it takes
+optional middlewares (`r.UseState("name", mw...)`) and keeps those of the group it
+is called on (§5).
 
 ```go
 ask := r.UseState("ask_name")
