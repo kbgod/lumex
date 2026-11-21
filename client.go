@@ -18,6 +18,15 @@ import (
 // DefaultAPIHost is the public Bot API endpoint.
 const DefaultAPIHost = "https://api.telegram.org"
 
+// DefaultRequestTimeout and DefaultUploadTimeout are the limits NewClient
+// applies unless WithRequestTimeout / WithUploadTimeout override them.
+const (
+	DefaultRequestTimeout = 30 * time.Second
+	DefaultUploadTimeout  = 5 * time.Minute
+)
+
+const jsonContentType = "application/json"
+
 // Marshaler and Unmarshaler mirror encoding/json's function signatures, so any
 // drop-in codec (json-iterator, goccy/go-json, sonic, …) can be plugged in.
 // A replacement MUST still honour the json.Marshaler / json.Unmarshaler
@@ -65,6 +74,18 @@ func WithHTTPClient(h *http.Client) ClientOption {
 	}
 }
 
+// WithRequestTimeout bounds each request that uploads no files and whose ctx
+// has no deadline of its own. A value <= 0 disables it. A long-polling
+// getUpdates must carry a deadline beyond its Timeout (GetUpdatesChan does).
+func WithRequestTimeout(d time.Duration) ClientOption {
+	return func(c *Client) { c.requestTimeout = d }
+}
+
+// WithUploadTimeout is WithRequestTimeout for requests that upload files.
+func WithUploadTimeout(d time.Duration) ClientOption {
+	return func(c *Client) { c.uploadTimeout = d }
+}
+
 // WithMarshaler overrides the request codec (e.g. sonic.Marshal).
 func WithMarshaler(m Marshaler) ClientOption {
 	return func(c *Client) {
@@ -90,6 +111,9 @@ type Client struct {
 	http      *http.Client
 	marshal   Marshaler
 	unmarshal Unmarshaler
+
+	requestTimeout time.Duration
+	uploadTimeout  time.Duration
 }
 
 // NewClient builds a Client for the given bot token. With no options it uses
@@ -102,6 +126,9 @@ func NewClient(token string, opts ...ClientOption) *Client {
 		http:      &http.Client{},
 		marshal:   json.Marshal,
 		unmarshal: json.Unmarshal,
+
+		requestTimeout: DefaultRequestTimeout,
+		uploadTimeout:  DefaultUploadTimeout,
 	}
 	for _, o := range opts {
 		o(c)
@@ -172,6 +199,12 @@ func (c *Client) RequestWithContext(ctx context.Context, method string, request 
 		return nil, fmt.Errorf("encode %s: %w", method, err)
 	}
 
+	if d := c.timeoutFor(ctx, contentType); d > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, d)
+		defer cancel()
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.methodURL(method), bytes.NewReader(body))
 	if err != nil {
 		return nil, err
@@ -224,7 +257,19 @@ func (c *Client) encode(request any) ([]byte, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	return b, "application/json", nil
+	return b, jsonContentType, nil
+}
+
+// timeoutFor returns the deadline RequestWithContext adds to ctx; 0 means none.
+// A deadline already on ctx always wins, so a single call can set its own limit.
+func (c *Client) timeoutFor(ctx context.Context, contentType string) time.Duration {
+	if _, ok := ctx.Deadline(); ok {
+		return 0
+	}
+	if contentType != jsonContentType {
+		return c.uploadTimeout
+	}
+	return c.requestTimeout
 }
 
 // encodeMultipart builds a multipart/form-data body from the request's Fields

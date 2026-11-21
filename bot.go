@@ -190,8 +190,9 @@ func WithLogger(l Logger) PollingOption {
 // Failed calls are retried after RetryTimeout (default 1s). Polling stops and
 // the channel is closed when ctx is cancelled.
 //
-// Note: the client must not impose an HTTP timeout shorter than the poll timeout
-// (the default client has none).
+// Each call carries its own deadline just beyond the poll timeout, so the
+// client's WithRequestTimeout does not cut it short. An http.Client.Timeout
+// shorter than the poll timeout still would.
 func (b *Bot) GetUpdatesChan(ctx context.Context, opts ...PollingOption) <-chan Update {
 	cfg := pollConfig{poolSize: 100, retryTimeout: time.Second}
 	for _, o := range opts {

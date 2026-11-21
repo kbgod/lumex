@@ -50,7 +50,24 @@ variadic options it compiles but **panics at runtime** (the `nil` gets invoked a
 an option). `BotOption`s: `WithClient`, `WithClientOptions`, `WithoutTokenCheck`,
 `WithTokenCheckTimeout`. The lower-level client mirrors this —
 `lumex.NewClient(token, ...ClientOption)` with `WithAPIHost`, `WithHTTPClient`,
-`WithMarshaler`, `WithUnmarshaler`. Functional options everywhere; **no options
+`WithMarshaler`, `WithUnmarshaler`, `WithRequestTimeout`, `WithUploadTimeout`.
+
+**Timeouts.** Every Bot API call is bounded by default: 30s
+(`DefaultRequestTimeout`), or 5m (`DefaultUploadTimeout`) when it uploads files.
+A deadline already on the call's `ctx` replaces that limit, longer or shorter — so
+one slow call (a big video upload, a hand-rolled long-polling `GetUpdates` with
+`Timeout` > 30s) passes its own `context.WithTimeout`. `GetUpdatesChan` already
+does. `<= 0` disables a limit. Don't set `http.Client.Timeout` via
+`WithHTTPClient` — it can't tell these calls apart.
+
+```go
+bot, err := lumex.NewBot(token, lumex.WithClientOptions(
+    lumex.WithRequestTimeout(10*time.Second),
+    lumex.WithUploadTimeout(15*time.Minute),
+))
+```
+
+Functional options everywhere; **no options
 structs, never a trailing `nil`** — this applies to `NewBot`, `NewClient`, and
 `GetUpdatesChan(ctx, ...PollingOption)`.
 

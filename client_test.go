@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func testClient(t *testing.T, h http.HandlerFunc, opts ...ClientOption) *Client {
@@ -130,5 +131,66 @@ func TestClientCustomCodec(t *testing.T) {
 	}
 	if marshalCalls == 0 || unmarshalCalls == 0 {
 		t.Errorf("custom codec unused: marshal=%d unmarshal=%d", marshalCalls, unmarshalCalls)
+	}
+}
+
+func TestNewClientDefaultTimeouts(t *testing.T) {
+	c := NewClient("TOKEN")
+	if c.requestTimeout != DefaultRequestTimeout || c.uploadTimeout != DefaultUploadTimeout {
+		t.Errorf("timeouts = %s / %s, want %s / %s",
+			c.requestTimeout, c.uploadTimeout, DefaultRequestTimeout, DefaultUploadTimeout)
+	}
+}
+
+// The client bounds a request by the timeout of its kind (JSON vs upload)
+// unless ctx already carries a deadline, which then wins in either direction.
+func TestClientTimeouts(t *testing.T) {
+	const (
+		short = 50 * time.Millisecond
+		delay = 300 * time.Millisecond
+	)
+	slow := func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-time.After(delay):
+			io.WriteString(w, `{"ok":true,"result":{"message_id":7,"date":1,"chat":{"id":1,"type":"private"}}}`)
+		case <-r.Context().Done():
+		}
+	}
+	jsonReq := func() any { return SendMessageRequest{ChatID: 1, Text: "hi"} }
+	uploadReq := func() any {
+		return SendPhotoRequest{ChatID: 1, Photo: InputFileReader("pic.jpg", strings.NewReader("IMG"))}
+	}
+	withDeadline := func(d time.Duration) context.Context {
+		ctx, cancel := context.WithTimeout(context.Background(), d)
+		t.Cleanup(cancel)
+		return ctx
+	}
+
+	tests := []struct {
+		name     string
+		opts     []ClientOption
+		ctx      context.Context
+		request  any
+		wantTime bool // want context.DeadlineExceeded
+	}{
+		{"json request hits request timeout", []ClientOption{WithRequestTimeout(short)}, context.Background(), jsonReq(), true},
+		{"json request ignores upload timeout", []ClientOption{WithUploadTimeout(short)}, context.Background(), jsonReq(), false},
+		{"upload hits upload timeout", []ClientOption{WithUploadTimeout(short)}, context.Background(), uploadReq(), true},
+		{"upload ignores request timeout", []ClientOption{WithRequestTimeout(short)}, context.Background(), uploadReq(), false},
+		{"zero disables the timeout", []ClientOption{WithRequestTimeout(0)}, context.Background(), jsonReq(), false},
+		{"longer ctx deadline wins", []ClientOption{WithRequestTimeout(short)}, withDeadline(5 * time.Second), jsonReq(), false},
+		{"shorter ctx deadline wins", nil, withDeadline(short), jsonReq(), true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := testClient(t, slow, tt.opts...)
+			_, err := c.RequestWithContext(tt.ctx, "method", tt.request)
+			if got := errors.Is(err, context.DeadlineExceeded); got != tt.wantTime {
+				t.Errorf("deadline exceeded = %v (err %v), want %v", got, err, tt.wantTime)
+			}
+			if !tt.wantTime && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+		})
 	}
 }
