@@ -145,6 +145,14 @@ source to "find" the update, it's a plain exported field.
 segment — handy with prefix routes: after `OnCallbackPrefix("product")`, data
 `"product:42"` → `ctx.ShiftCallbackData(":")` is `"42"`.
 
+**Entities** — Telegram's entity offsets are UTF-16 units, so never slice
+`msg.Text` with them. `ctx.Message().ParseEntities()` (nil-safe) returns
+`[]lumex.ParsedMessageEntity` with the entity's `Text` and UTF-8 `Offset`/`Length`
+(a `url` entity also gets `URL`). Also `ParseCaptionEntities()`,
+`ParseAnyEntities()` (caption, poll, checklist, game, gift texts too),
+`ParseEntity(e)`, and `…Types(map[lumex.MessageEntityType]struct{}{…})` filters;
+for any other text use `lumex.ParseEntities(text, entities)`.
+
 **Reply/action helpers** — each has a `…Void` variant that drops the returned
 value and returns only `error` (convenient for `return`):
 - `Reply(text, opts…)`, `ReplyWithMenu(text, menu, opts…)`
