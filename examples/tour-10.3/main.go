@@ -69,15 +69,16 @@ func sendRichTour(ctx *router.Context) error {
 	msg := lumex.BlocksRichMessage(
 		lumex.NewInputRichBlockSectionHeading(lumex.PlainText("Bot API 10.3 tour"), 1),
 		lumex.NewInputRichBlockParagraph(lumex.PlainText("A quick walk through the new rich-message blocks:")),
-		// 10.3: an expandable / collapsible block quotation.
-		lumex.NewInputRichBlockExpandableBlockQuotation(
-			lumex.PlainText("Tap to expand — this is the new expandable block quotation.\n\n\n"+
-				"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut "+
-				"labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris "+
-				"nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit "+
-				"esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt "+
-				"in culpa qui officia deserunt mollit anim id est laborum."),
-		),
+		// 10.3: an expandable / collapsible block quotation. Since 10.5 it holds
+		// blocks rather than a single text.
+		lumex.NewInputRichBlockExpandableBlockQuotation([]lumex.InputRichBlock{
+			lumex.NewInputRichBlockParagraph(lumex.PlainText("Tap to expand — this is the new expandable block quotation.\n\n\n" +
+				"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut " +
+				"labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris " +
+				"nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit " +
+				"esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt " +
+				"in culpa qui officia deserunt mollit anim id est laborum.")),
+		}),
 		table,
 		buttons,
 	)

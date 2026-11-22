@@ -30,7 +30,7 @@ func Run(register func(r *router.Router), pollOpts ...lumex.PollingOption) {
 		log.Error("failed to create bot", "error", err)
 		return
 	}
-	log.Info("bot authorized", "username", bot.User.Username)
+	log.Info("bot authorized", "username", bot.Username)
 
 	r := router.New(bot, router.WithErrorHandler(func(ctx *router.Context, err error) {
 		log.Error("handle update error", "error", err, "update", ctx.Update)

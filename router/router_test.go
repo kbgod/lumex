@@ -313,9 +313,7 @@ func TestRouter_HandleUpdate(t *testing.T) {
 
 	t.Run("bot injected from context", func(t *testing.T) {
 		bot := &lumex.Bot{
-			User: lumex.User{
-				ID: 123,
-			},
+			ID: 123,
 		}
 
 		router := New(nil)
@@ -536,9 +534,7 @@ func TestRouter_Events(t *testing.T) {
 
 	t.Run("OnCommandWithAt authorized bot", func(t *testing.T) {
 		router := New(&lumex.Bot{
-			User: lumex.User{
-				Username: "bot",
-			},
+			Username: "bot",
 		})
 		router.OnCommandWithAt("test", func(ctx *Context) error {
 			return nil
@@ -612,6 +608,46 @@ func TestRouter_Events(t *testing.T) {
 		err := router.HandleUpdate(context.Background(), &lumex.Update{
 			CallbackQuery: &lumex.CallbackQuery{
 				Data: "test",
+			},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
+	t.Run("OnCallbackQuerySuffix", func(t *testing.T) {
+		router := New(nil)
+		router.OnCallbackQuerySuffix(":done", func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			CallbackQuery: &lumex.CallbackQuery{
+				Data: "task:1:done",
+			},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
+	t.Run("OnCallbackQueryEquals", func(t *testing.T) {
+		router := New(nil)
+		router.OnCallbackQueryEquals("menu", func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			CallbackQuery: &lumex.CallbackQuery{
+				Data: "menu",
 			},
 		})
 
@@ -1218,6 +1254,30 @@ func TestRouter_Events(t *testing.T) {
 		err := router.HandleUpdate(context.Background(), &lumex.Update{
 			Message: &lumex.Message{
 				PaidMessagesWaived: &lumex.PaidMessagesWaived{},
+			},
+		})
+
+		assert.Nil(t, err, "router.HandleUpdate() = %v; want <nil>", err)
+	})
+
+	t.Run("OnBotInvite", func(t *testing.T) {
+		router := New(nil)
+		router.OnBotInvite(func(ctx *Context) error {
+			return nil
+		}).Name("test")
+
+		assert.Equal(
+			t, 1, len(router.GetRoutes()),
+			"router.GetRoutes() = %d; want 1", len(router.GetRoutes()),
+		)
+		assert.Equal(
+			t, "test", router.GetRoutes()[0].GetName(),
+			"router.GetRoutes()[0].GetName() = %s; want test", router.GetRoutes()[0].GetName(),
+		)
+
+		err := router.HandleUpdate(context.Background(), &lumex.Update{
+			Message: &lumex.Message{
+				WriteAccessAllowed: &lumex.WriteAccessAllowed{Inviter: &lumex.User{ID: 1}},
 			},
 		})
 

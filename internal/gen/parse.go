@@ -55,6 +55,101 @@ func positional(f field) bool {
 	return !f.OmitEmpty || f.Positional
 }
 
+// explicitZero lists the optional fields whose zero value (False, "", 0) means
+// something different from leaving the field out. With ",omitempty" a plain
+// bool/string/int64 can never send its zero value, so a listed field is typed
+// as a pointer instead: nil leaves it out, new(false) / new("") sends the zero.
+//
+// Keys are "<apiMethod>.<param>" or "<DocType>.<field>", or a bare "<apiMethod>"
+// / "<DocType>" covering all of its optional fields. A field-level entry wins
+// over a bare one. true makes the field a pointer; false records that the field
+// was reviewed and stays a value (it silences zeroCandidate for it).
+//
+// zeroCandidate flags likely members from the docs' wording; a flagged field
+// that this map doesn't name is reported in Stats.ZeroCandidates.
+var explicitZero = map[string]bool{
+	// Bot API 10.5: "Settings that aren't specified remain unchanged."
+	"setMySettings": true,
+	// "pass an empty string to remove … If omitted, … isn't changed".
+	"editMessageWidgetData.public_data":   true,
+	"editMessageWidgetData.chat_data":     true,
+	"editForumTopic.icon_custom_emoji_id": true,
+	// Telegram's default is True, so False has to be sent explicitly.
+	"sendPoll.is_anonymous":                  true,
+	"sendPoll.allows_revoting":               true,
+	"promoteChatMember.can_restrict_members": true,
+	// "If omitted, defaults to the value of …".
+	"ChatPermissions.can_react_to_messages": true,
+	"ChatPermissions.can_edit_tag":          true,
+	"ChatPermissions.can_manage_topics":     true,
+	// True and False each request something; omitted means "no restriction".
+	"KeyboardButtonRequestUsers.user_is_bot":      true,
+	"KeyboardButtonRequestUsers.user_is_premium":  true,
+	"KeyboardButtonRequestChat.chat_is_forum":     true,
+	"KeyboardButtonRequestChat.chat_has_username": true,
+	// Received: "" means the icon was removed, an absent field that it wasn't edited.
+	"ForumTopicEdited.icon_custom_emoji_id": true,
+}
+
+// lookupExplicitZero returns the explicitZero entry for a field of owner and
+// the key it was found under ("" when the map doesn't name the field).
+func lookupExplicitZero(owner, jsonName string) (pointer bool, key string) {
+	for _, k := range []string{owner + "." + jsonName, owner} {
+		if v, ok := explicitZero[k]; ok {
+			return v, k
+		}
+	}
+	return false, ""
+}
+
+// zeroDropped reports whether omitempty silently drops f's zero value: an
+// optional bool/string/int64/float64 (enums never have a meaningful "").
+func zeroDropped(f field) bool {
+	switch f.GoType {
+	case "bool", "string", "int64", "float64":
+		return f.OmitEmpty && !f.Positional
+	}
+	return false
+}
+
+// zeroCandidate reports whether the docs suggest that an optional field's zero
+// value differs from leaving it out. intro is the owner's description, desc the
+// field's; method tells method parameters from object fields.
+func zeroCandidate(intro, desc, goType string, method bool) bool {
+	switch {
+	case method && zeroUnchangedRe.MatchString(intro):
+		return true
+	case goType == "bool":
+		return zeroDefaultTrueRe.MatchString(desc) ||
+			zeroPassFalseRe.MatchString(desc) && zeroOmittedRe.MatchString(desc)
+	case !method && zeroEmptyMeansRe.MatchString(desc):
+		return true
+	default:
+		return zeroEmptyRe.MatchString(desc) && zeroOmittedRe.MatchString(desc)
+	}
+}
+
+// applyExplicitZero turns the fields of owner that explicitZero names into
+// pointers, and records the zeroCandidate fields it leaves unresolved.
+func (g *generator) applyExplicitZero(owner, intro string, fields []field, method bool) {
+	for i := range fields {
+		f := &fields[i]
+		pointer, key := lookupExplicitZero(owner, f.JSONName)
+		if key != "" {
+			g.explicitZeroUsed[key] = true
+		}
+		if !zeroDropped(*f) {
+			continue
+		}
+		switch {
+		case pointer:
+			f.GoType = "*" + f.GoType
+		case key == "" && zeroCandidate(intro, f.Comment, f.GoType, method):
+			g.zeroUnresolved = append(g.zeroUnresolved, owner+"."+f.JSONName)
+		}
+	}
+}
+
 func (g *generator) parseTypes(src string) {
 	// Preserve documentation order for stable, readable output.
 	heads := h4Re.FindAllStringSubmatch(src, -1)
@@ -73,6 +168,7 @@ func (g *generator) parseTypes(src string) {
 		td := &typeDecl{Name: name, Doc: firstParagraph(section)}
 		if t := tableRe.FindStringSubmatch(section); t != nil && strings.Contains(t[1], "<th>Field</th>") {
 			td.Fields = g.parseFields(name, t[1], false)
+			g.applyExplicitZero(strings.TrimSpace(h[1]), td.Doc, td.Fields, false)
 		}
 		g.register(td)
 	}
@@ -100,6 +196,7 @@ func (g *generator) parseMethods(src string) {
 		if t := tableRe.FindStringSubmatch(section); t != nil && strings.Contains(t[1], "<th>Parameter</th>") {
 			td.Fields = g.parseFields(owner, t[1], true)
 			pinPositional(name, td.Fields)
+			g.applyExplicitZero(name, firstParagraph(section), td.Fields, true)
 		}
 		g.requests = append(g.requests, td)
 

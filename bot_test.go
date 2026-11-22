@@ -15,7 +15,8 @@ func TestNewBotTokenCheckAndTypedMethod(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case strings.HasSuffix(r.URL.Path, "/getMe"):
-			io.WriteString(w, `{"ok":true,"result":{"id":99,"is_bot":true,"first_name":"MyBot","username":"my_bot"}}`)
+			io.WriteString(w, `{"ok":true,"result":{"id":99,"is_bot":true,"first_name":"MyBot","username":"my_bot",`+
+				`"active_usernames":["my_bot","my_other_bot"],"can_join_groups":true,"has_topic_sidebar":true}}`)
 		case strings.HasSuffix(r.URL.Path, "/sendMessage"):
 			io.WriteString(w, `{"ok":true,"result":{"message_id":10,"date":1,"chat":{"id":5,"type":"private"},"text":"hi"}}`)
 		default:
@@ -24,13 +25,14 @@ func TestNewBotTokenCheckAndTypedMethod(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	// Default client + token check populates Bot.User via getMe.
+	// Default client + token check populates Bot.BotFullInfo via getMe, and its
+	// fields promote onto the Bot.
 	b, err := NewBot("TOKEN", WithClientOptions(WithAPIHost(srv.URL)))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if b.User.ID != 99 || b.User.Username != "my_bot" {
-		t.Errorf("bot.User = %+v", b.User)
+	if b.ID != 99 || b.Username != "my_bot" || !b.CanJoinGroups || !b.HasTopicSidebar || len(b.ActiveUsernames) != 2 {
+		t.Errorf("bot.BotFullInfo = %+v", b.BotFullInfo)
 	}
 
 	// A generated typed method.
@@ -64,24 +66,24 @@ func TestNewBotTokenCheckTimeout(t *testing.T) {
 }
 
 func TestNewBotDisableTokenCheck(t *testing.T) {
-	// No network happens because the check is disabled; the User is filled in
+	// No network happens because the check is disabled; BotFullInfo is filled in
 	// from the token (the bot ID is its first ":"-separated field) with
 	// placeholder profile fields.
 	b, err := NewBot("123:abc", WithoutTokenCheck())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if b.User.ID != 123 {
-		t.Errorf("User.ID = %d, want 123", b.User.ID)
+	if b.ID != 123 {
+		t.Errorf("ID = %d, want 123", b.ID)
 	}
-	if !b.User.IsBot {
-		t.Error("User.IsBot = false, want true")
+	if !b.IsBot {
+		t.Error("IsBot = false, want true")
 	}
-	if b.User.FirstName != "<unauthenticated>" {
-		t.Errorf("User.FirstName = %q, want %q", b.User.FirstName, "<unauthenticated>")
+	if b.FirstName != "<unauthenticated>" {
+		t.Errorf("FirstName = %q, want %q", b.FirstName, "<unauthenticated>")
 	}
-	if b.User.Username != "<unauthenticated>" {
-		t.Errorf("User.Username = %q, want %q", b.User.Username, "<unauthenticated>")
+	if b.Username != "<unauthenticated>" {
+		t.Errorf("Username = %q, want %q", b.Username, "<unauthenticated>")
 	}
 	if b.BotClient == nil {
 		t.Error("expected a default client to be created")

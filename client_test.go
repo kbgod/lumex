@@ -31,7 +31,7 @@ func TestClientJSONPath(t *testing.T) {
 		io.WriteString(w, `{"ok":true,"result":{"id":42,"is_bot":true,"first_name":"Bot"}}`)
 	})
 
-	me, err := Call[User](context.Background(), c, "getMe", GetMeRequest{})
+	me, err := Call[BotFullInfo](context.Background(), c, "getMe", GetMeRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,9 +81,9 @@ func TestClientMultipartPath(t *testing.T) {
 	})
 
 	photo := InputFileReader("pic.jpg", strings.NewReader("IMG"))
-	req := SendPhotoRequest{ChatID: 123, Photo: photo}
-	req.MessageThreadID = 5 // promoted from SendPhotoOpts
-	req.Caption = "hi & bye"
+	req := SendPhotoRequest{ChatID: 123, Photo: photo,
+		MessageThreadID: 5, // promoted from SendPhotoOpts
+		Caption:         "hi & bye"}
 	msg, err := Call[Message](context.Background(), c, "sendPhoto", req)
 	if err != nil {
 		t.Fatal(err)

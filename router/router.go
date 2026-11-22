@@ -221,6 +221,14 @@ func (r *Router) OnCallbackPrefix(prefix string, handlers ...Handler) *Route {
 	return r.On(CallbackPrefix(prefix), handlers...)
 }
 
+func (r *Router) OnCallbackQuerySuffix(suffix string, handlers ...Handler) *Route {
+	return r.On(CallbackQuerySuffix(suffix), handlers...)
+}
+
+func (r *Router) OnCallbackQueryEquals(data string, handlers ...Handler) *Route {
+	return r.On(CallbackQueryEquals(data), handlers...)
+}
+
 func (r *Router) OnInlineQuery(handlers ...Handler) *Route {
 	return r.On(InlineQuery(), handlers...)
 }
@@ -323,6 +331,10 @@ func (r *Router) OnTONWalletTransfer(handlers ...Handler) *Route {
 
 func (r *Router) OnPaidMessagesWaived(handlers ...Handler) *Route {
 	return r.On(PaidMessagesWaived(), handlers...)
+}
+
+func (r *Router) OnBotInvite(handlers ...Handler) *Route {
+	return r.On(BotInvite(), handlers...)
 }
 
 func (r *Router) acquireContext(ctx context.Context, update *lumex.Update) *Context {

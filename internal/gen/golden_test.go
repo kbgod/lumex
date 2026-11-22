@@ -89,6 +89,27 @@ func TestNoUntypedFields(t *testing.T) {
 	}
 }
 
+// TestExplicitZeroResolved fails if the docs flag an optional field whose zero
+// value differs from leaving it out (zeroCandidate) but explicitZero doesn't
+// decide it, or if an explicitZero key no longer matches any field. Fix by
+// reading the field's doc entry and adding it to explicitZero (parse.go): true
+// for a pointer, false when the zero value is harmless. Skips when the snapshot
+// is absent.
+func TestExplicitZeroResolved(t *testing.T) {
+	src := readSnapshot(t)
+	_, stats, err := Generate(src, Config{Package: genPkg, Origin: testOrigin, Enums: true, Requests: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(stats.ZeroCandidates) > 0 {
+		t.Errorf("%d optional field(s) may need to send their zero value, add them to explicitZero: %v",
+			len(stats.ZeroCandidates), stats.ZeroCandidates)
+	}
+	if len(stats.UnusedExplicitZero) > 0 {
+		t.Errorf("explicitZero keys that match no field: %v", stats.UnusedExplicitZero)
+	}
+}
+
 // TestDeterministic checks that generating twice yields identical bytes (no map
 // iteration order or other nondeterminism leaks into the output).
 func TestDeterministic(t *testing.T) {

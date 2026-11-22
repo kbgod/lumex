@@ -28,7 +28,7 @@ func main() {
 		return
 	}
 
-	log.Info("bot authorized successfully", "username", bot.User.Username)
+	log.Info("bot authorized successfully", "username", bot.Username)
 
 	r := router.New(bot, router.WithErrorHandler(func(ctx *router.Context, err error) {
 		log.Error("handle update error", "error", err, "update", ctx.Update)

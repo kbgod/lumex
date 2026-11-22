@@ -183,6 +183,28 @@ func CallbackPrefix(text string) RouteFilter {
 	}
 }
 
+// CallbackQuerySuffix returns a filter that checks if the callback data ends with the given text.
+func CallbackQuerySuffix(text string) RouteFilter {
+	return func(ctx *Context) bool {
+		if ctx.Update.CallbackQuery == nil {
+			return false
+		}
+
+		return strings.HasSuffix(ctx.Update.CallbackQuery.Data, text)
+	}
+}
+
+// CallbackQueryEquals returns a filter that checks if the callback data is exactly the given text.
+func CallbackQueryEquals(text string) RouteFilter {
+	return func(ctx *Context) bool {
+		if ctx.Update.CallbackQuery == nil {
+			return false
+		}
+
+		return ctx.Update.CallbackQuery.Data == text
+	}
+}
+
 // InlineQuery returns a filter that checks if the update is an inline query.
 func InlineQuery() RouteFilter {
 	return func(ctx *Context) bool {
@@ -382,5 +404,16 @@ func TONWalletTransfer() RouteFilter {
 func PaidMessagesWaived() RouteFilter {
 	return func(ctx *Context) bool {
 		return ctx.Update.Message != nil && ctx.Update.Message.PaidMessagesWaived != nil
+	}
+}
+
+// BotInvite returns a filter that checks if the message is a service message
+// about a user the bot's owner invited to the private chat with the bot, with
+// the link https://t.me/botinvite/<bot_username> (Bot API 10.5). The bot may
+// message the invited user from then on; WriteAccessAllowed.Inviter is the owner.
+func BotInvite() RouteFilter {
+	return func(ctx *Context) bool {
+		m := ctx.Update.Message
+		return m != nil && m.WriteAccessAllowed != nil && m.WriteAccessAllowed.Inviter != nil
 	}
 }

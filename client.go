@@ -358,8 +358,7 @@ func formValue(v []byte) string {
 
 // sanitizeError scrubs the bot token from URL errors so it never reaches logs.
 func sanitizeError(token string, err error) error {
-	var ue *url.Error
-	if errors.As(err, &ue) {
+	if ue, ok := errors.AsType[*url.Error](err); ok {
 		ue.URL = strings.ReplaceAll(ue.URL, token, "<token>")
 		return ue
 	}
@@ -368,7 +367,7 @@ func sanitizeError(token string, err error) error {
 
 // Call is a generic convenience wrapper that decodes the raw result into T.
 //
-//	me, err := telegram.Call[telegram.User](ctx, c, "getMe", telegram.GetMeRequest{})
+//	me, err := lumex.Call[lumex.BotFullInfo](ctx, c, "getMe", lumex.GetMeRequest{})
 func Call[T any](ctx context.Context, c BotClient, method string, request any) (T, error) {
 	var out T
 	raw, err := c.RequestWithContext(ctx, method, request)

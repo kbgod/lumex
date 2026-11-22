@@ -74,6 +74,19 @@ func main() {
 		}
 		fmt.Fprintln(os.Stderr, "Teach the generator a mapping (e.g. patchUnionSubtypes) or add a helper.")
 	}
+
+	// Optional fields whose zero value may differ from omitting them: with a
+	// plain value type and omitempty, that zero value can never be sent.
+	if len(stats.ZeroCandidates) > 0 {
+		fmt.Fprintf(os.Stderr, "\nWARNING: %d optional field(s) may need to send their zero value (False, \"\", 0):\n", len(stats.ZeroCandidates))
+		for _, f := range stats.ZeroCandidates {
+			fmt.Fprintf(os.Stderr, "  - %s\n", f)
+		}
+		fmt.Fprintln(os.Stderr, "Read each doc entry and add it to explicitZero (internal/gen/parse.go): true for a pointer, false if the zero value is harmless.")
+	}
+	if len(stats.UnusedExplicitZero) > 0 {
+		fmt.Fprintf(os.Stderr, "\nWARNING: %d explicitZero key(s) matched no field: %v\n", len(stats.UnusedExplicitZero), stats.UnusedExplicitZero)
+	}
 }
 
 // loadSource returns the HTML to parse and a human-readable origin for the file
