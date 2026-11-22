@@ -16,6 +16,7 @@ package gen
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -34,6 +35,13 @@ type Stats struct {
 	// to `any` because no typed mapping was found — a post-generation guard so a
 	// new/unrecognised type in a fresh API version can't slip through untyped.
 	Untyped []string
+	// ZeroCandidates lists optional fields ("owner.json_name") whose docs suggest
+	// that the zero value differs from leaving the field out, but that
+	// explicitZero (parse.go) neither types as a pointer nor marks as reviewed.
+	ZeroCandidates []string
+	// UnusedExplicitZero lists explicitZero keys that matched no field — a typo,
+	// or a field the docs have since dropped.
+	UnusedExplicitZero []string
 }
 
 var (
@@ -108,5 +116,26 @@ func Generate(src string, cfg Config) (map[string][]byte, Stats, error) {
 		Requests:    len(g.requests),
 		Methods:     len(g.methods),
 		Untyped:     scanUntyped(files),
+
+		ZeroCandidates:     sortedCopy(g.zeroUnresolved),
+		UnusedExplicitZero: g.unusedExplicitZero(),
 	}, nil
+}
+
+func sortedCopy(ss []string) []string {
+	out := slices.Clone(ss)
+	sort.Strings(out)
+	return out
+}
+
+// unusedExplicitZero returns the explicitZero keys no parsed field matched.
+func (g *generator) unusedExplicitZero() []string {
+	var out []string
+	for k := range explicitZero {
+		if !g.explicitZeroUsed[k] {
+			out = append(out, k)
+		}
+	}
+	sort.Strings(out)
+	return out
 }

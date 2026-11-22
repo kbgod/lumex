@@ -62,9 +62,7 @@ func TestCommandWithAt(t *testing.T) {
 
 	t.Run("router with defined bot", func(t *testing.T) {
 		r := New(&lumex.Bot{
-			User: lumex.User{
-				Username: "testbot",
-			},
+			Username: "testbot",
 		})
 		if !CommandWithAt("test")(r.acquireContext(context.Background(), &lumex.Update{
 			Message: &lumex.Message{
@@ -257,6 +255,24 @@ func TestCallbackPrefix(t *testing.T) {
 	if CallbackPrefix("test")(r.acquireContext(context.Background(), &lumex.Update{})) {
 		t.Error("CallbackPrefix (empty update) failed")
 	}
+}
+
+func TestCallbackQuerySuffixAndEquals(t *testing.T) {
+	r := New(&lumex.Bot{})
+	ctxOf := func(u *lumex.Update) *Context { return r.acquireContext(context.Background(), u) }
+	cb := func(data string) *lumex.Update {
+		return &lumex.Update{CallbackQuery: &lumex.CallbackQuery{Data: data}}
+	}
+
+	assert.True(t, CallbackQuerySuffix(":done")(ctxOf(cb("task:42:done"))))
+	assert.True(t, CallbackQuerySuffix(":done")(ctxOf(cb(":done"))))
+	assert.False(t, CallbackQuerySuffix(":done")(ctxOf(cb("task:done:42"))))
+	assert.False(t, CallbackQuerySuffix(":done")(ctxOf(&lumex.Update{})))
+
+	assert.True(t, CallbackQueryEquals("menu")(ctxOf(cb("menu"))))
+	assert.False(t, CallbackQueryEquals("menu")(ctxOf(cb("menu:1"))))
+	assert.False(t, CallbackQueryEquals("menu")(ctxOf(cb("main_menu"))))
+	assert.False(t, CallbackQueryEquals("")(ctxOf(&lumex.Update{})))
 }
 
 func TestInlineQuery(t *testing.T) {
@@ -554,7 +570,7 @@ func TestContentFilters(t *testing.T) {
 }
 
 func TestCommandFilters(t *testing.T) {
-	r := New(&lumex.Bot{User: lumex.User{Username: "my_bot"}})
+	r := New(&lumex.Bot{Username: "my_bot"})
 	ctxOf := func(u *lumex.Update) *Context {
 		return r.acquireContext(context.Background(), u)
 	}
@@ -630,4 +646,14 @@ func TestWidgetFilters(t *testing.T) {
 	})))
 	assert.False(t, PaidMessagesWaived()(ctxOf(plainMsg)))
 	assert.False(t, PaidMessagesWaived()(ctxOf(empty)))
+
+	// A write-access message counts as a bot invite only when it names an inviter.
+	assert.True(t, BotInvite()(ctxOf(&lumex.Update{
+		Message: &lumex.Message{WriteAccessAllowed: &lumex.WriteAccessAllowed{Inviter: &lumex.User{ID: 1}}},
+	})))
+	assert.False(t, BotInvite()(ctxOf(&lumex.Update{
+		Message: &lumex.Message{WriteAccessAllowed: &lumex.WriteAccessAllowed{FromRequest: true}},
+	})))
+	assert.False(t, BotInvite()(ctxOf(plainMsg)))
+	assert.False(t, BotInvite()(ctxOf(empty)))
 }

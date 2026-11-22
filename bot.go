@@ -19,10 +19,11 @@ type Bot struct {
 	// BotClient performs the actual requests. Embedded so RequestWithContext is
 	// available directly on the Bot.
 	BotClient
-	// User is the bot's own account, filled in by NewBot unless the token check
-	// is disabled. Embedded so its fields promote — bot.Username, bot.ID, … —
-	// while the whole value is still reachable as bot.User.
-	User
+	// BotFullInfo is the bot's own account as getMe returns it, filled in by
+	// NewBot unless the token check is disabled. Embedded so its fields
+	// promote — bot.Username, bot.ID, bot.CanJoinGroups, … — while the whole
+	// value is still reachable as bot.BotFullInfo.
+	BotFullInfo
 }
 
 // DefaultTokenCheckTimeout bounds the getMe call NewBot makes by default, so a
@@ -64,7 +65,7 @@ func WithTokenCheckTimeout(d time.Duration) BotOption {
 }
 
 // NewBot builds a Bot for the given token. With no options it builds the default
-// client and calls getMe to validate the token and populate Bot.User.
+// client and calls getMe to validate the token and populate Bot.BotFullInfo.
 func NewBot(token string, opts ...BotOption) (*Bot, error) {
 	cfg := botConfig{tokenCheckTimeout: DefaultTokenCheckTimeout}
 	for _, o := range opts {
@@ -89,7 +90,7 @@ func NewBot(token string, opts ...BotOption) (*Bot, error) {
 			return nil, fmt.Errorf("token check failed: %w", err)
 		}
 		if me != nil {
-			b.User = *me
+			b.BotFullInfo = *me
 		}
 	} else {
 		tokenSplit := strings.Split(token, ":")
@@ -100,7 +101,7 @@ func NewBot(token string, opts ...BotOption) (*Bot, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse bot ID from token: %w", err)
 		}
-		b.User = User{
+		b.BotFullInfo = BotFullInfo{
 			ID:        id,
 			IsBot:     true,
 			FirstName: "<unauthenticated>",
@@ -190,8 +191,9 @@ func WithLogger(l Logger) PollingOption {
 // Failed calls are retried after RetryTimeout (default 1s). Polling stops and
 // the channel is closed when ctx is cancelled.
 //
-// Note: the client must not impose an HTTP timeout shorter than the poll timeout
-// (the default client has none).
+// Each call carries its own deadline just beyond the poll timeout, so the
+// client's WithRequestTimeout does not cut it short. An http.Client.Timeout
+// shorter than the poll timeout still would.
 func (b *Bot) GetUpdatesChan(ctx context.Context, opts ...PollingOption) <-chan Update {
 	cfg := pollConfig{poolSize: 100, retryTimeout: time.Second}
 	for _, o := range opts {

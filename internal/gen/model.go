@@ -92,6 +92,9 @@ type generator struct {
 	typeNames  map[string]bool
 	referenced map[string]bool
 
+	explicitZeroUsed map[string]bool // explicitZero keys that matched a field
+	zeroUnresolved   []string        // zeroCandidate fields explicitZero doesn't name
+
 	version string
 }
 
@@ -109,5 +112,7 @@ func newGenerator(pkg, origin string) *generator {
 		decodable:      map[string]string{},
 		typeNames:      map[string]bool{},
 		referenced:     map[string]bool{},
+
+		explicitZeroUsed: map[string]bool{},
 	}
 }

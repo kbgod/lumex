@@ -78,8 +78,9 @@ func onQuery(ctx *router.Context) error {
 	}
 
 	// Changing what the widget shows is a separate edit. Context addresses the
-	// widget's message (or inline message) from the query for you.
-	return ctx.EditWidgetDataVoid(lumex.EditMessageWidgetDataOpts{ChatData: `{"n":1}`})
+	// widget's message (or inline message) from the query for you. The data
+	// fields are pointers: new(state) sets, new("") clears, nil leaves unchanged.
+	return ctx.EditWidgetDataVoid(lumex.EditMessageWidgetDataOpts{ChatData: new(`{"n":1}`)})
 }
 
 func onSharedQuery(ctx *router.Context) error {

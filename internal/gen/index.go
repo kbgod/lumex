@@ -37,6 +37,15 @@ var (
 
 	allowsStringRe = regexp.MustCompile(`(?i)can be (?:either )?a String`)
 
+	// Phrases that flag an optional field whose zero value differs from leaving
+	// it out (see zeroCandidate in parse.go).
+	zeroUnchangedRe   = regexp.MustCompile(`(?i)aren't specified remain unchanged`)
+	zeroDefaultTrueRe = regexp.MustCompile(`[Dd]efaults? to [^.]*\bTrue\b|defaults to the value of`)
+	zeroPassFalseRe   = regexp.MustCompile(`(?i)\bpass False\b`)
+	zeroEmptyRe       = regexp.MustCompile(`(?i)\bempty string\b|\bpass 0\b`)
+	zeroEmptyMeansRe  = regexp.MustCompile(`(?i)\ban empty string if\b`)
+	zeroOmittedRe     = regexp.MustCompile(`(?i)\bif (?:omitted|not specified)\b|isn't changed|will be kept|is kept`)
+
 	replyMarkupType = "InlineKeyboardMarkup or ReplyKeyboardMarkup or ReplyKeyboardRemove or ForceReply"
 	discFields      = map[string]bool{"type": true, "status": true, "source": true}
 )

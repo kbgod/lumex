@@ -19,10 +19,8 @@ type MenuOption func(*Menu)
 
 func NewMenu(options ...MenuOption) *Menu {
 	menu := &Menu{
-		ReplyKeyboardMarkup: ReplyKeyboardMarkup{
-			ResizeKeyboard: true,
-			Keyboard:       make([][]KeyboardButton, 1),
-		},
+		ResizeKeyboard: true,
+		Keyboard:       make([][]KeyboardButton, 1),
 	}
 	for _, option := range options {
 		option(menu)
@@ -213,9 +211,7 @@ type InlineMenu struct {
 
 func NewInlineMenu() *InlineMenu {
 	menu := &InlineMenu{
-		InlineKeyboardMarkup: InlineKeyboardMarkup{
-			InlineKeyboard: make([][]InlineKeyboardButton, 1),
-		},
+		InlineKeyboard: make([][]InlineKeyboardButton, 1),
 	}
 
 	return menu

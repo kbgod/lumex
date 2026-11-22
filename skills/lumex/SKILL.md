@@ -45,12 +45,37 @@ bot, err := lumex.NewBot(token,
 )
 ```
 
+**The bot's own account** is on the `Bot` itself: `NewBot` calls `getMe`, which
+returns a `BotFullInfo` (Bot API 10.5), and `Bot` embeds it — so `bot.Username`,
+`bot.ID`, `bot.CanJoinGroups`, `bot.ActiveUsernames`, `bot.HasTopicSidebar`, …
+There is **no `bot.User`** any more, and `lumex.User` no longer has the getMe-only
+flags (`CanJoinGroups`, `SupportsInlineQueries`, …). In a test, build one with
+`&lumex.Bot{Username: "my_bot"}` — since Go 1.27 a composite literal can set
+promoted fields directly.
+
 **DON'T write `lumex.NewBot(token, nil)`.** It's the old v1 signature; with the
 variadic options it compiles but **panics at runtime** (the `nil` gets invoked as
 an option). `BotOption`s: `WithClient`, `WithClientOptions`, `WithoutTokenCheck`,
 `WithTokenCheckTimeout`. The lower-level client mirrors this —
 `lumex.NewClient(token, ...ClientOption)` with `WithAPIHost`, `WithHTTPClient`,
-`WithMarshaler`, `WithUnmarshaler`. Functional options everywhere; **no options
+`WithMarshaler`, `WithUnmarshaler`, `WithRequestTimeout`, `WithUploadTimeout`.
+
+**Timeouts.** Every Bot API call is bounded by default: 30s
+(`DefaultRequestTimeout`), or 5m (`DefaultUploadTimeout`) when it uploads files.
+A deadline already on the call's `ctx` replaces that limit, longer or shorter — so
+one slow call (a big video upload, a hand-rolled long-polling `GetUpdates` with
+`Timeout` > 30s) passes its own `context.WithTimeout`. `GetUpdatesChan` already
+does. `<= 0` disables a limit. Don't set `http.Client.Timeout` via
+`WithHTTPClient` — it can't tell these calls apart.
+
+```go
+bot, err := lumex.NewBot(token, lumex.WithClientOptions(
+    lumex.WithRequestTimeout(10*time.Second),
+    lumex.WithUploadTimeout(15*time.Minute),
+))
+```
+
+Functional options everywhere; **no options
 structs, never a trailing `nil`** — this applies to `NewBot`, `NewClient`, and
 `GetUpdatesChan(ctx, ...PollingOption)`.
 
@@ -66,10 +91,32 @@ Two ways, both fine:
   ```
 - **Context helper** inside a handler — shorter, replies into the current chat
   (see §3).
+- **A request struct by hand** (e.g. for `lumex.Call`) — `XxxRequest` embeds
+  `XxxOpts`, and since Go 1.27 one literal sets both:
+  `lumex.SendPhotoRequest{ChatID: id, Photo: p, Caption: "hi"}`.
 
 "Message or True" methods (`EditMessageText`, `StopMessageLiveLocation`,
 `SetGameScore`, …) return `(*Message, bool, error)` — a message, or `true` for
 inline messages.
+
+**Pointer options: when zero means something.** A few optional fields are
+`*bool` / `*string` / `*int64` instead of plain values, because Telegram treats
+their zero value differently from leaving them out — e.g. every `SetMySettingsOpts`
+field ("settings that aren't specified remain unchanged"), `SendPollOpts.IsAnonymous`
+(defaults to true), `EditMessageWidgetDataOpts.PublicData`/`ChatData` (`""` clears),
+`ChatPermissions.CanManageTopics`, `KeyboardButtonRequestUsers.UserIsBot`. Set them
+with Go 1.26's `new(value)`; `nil` leaves the field out:
+
+```go
+// Bot API 10.5: change the bot's own settings — only what you pass changes.
+bot.SetMySettings(ctx, lumex.SetMySettingsOpts{
+    SupportsInlineQueries:  new(true),
+    InlineQueryPlaceholder: new(""),     // "" = back to the default placeholder
+    CanJoinGroups:          new(false),  // false is sent, not dropped
+    CallbackQueryMode:      lumex.SetMySettingsCallbackQueryModeInline,
+})
+bot.SendPoll(ctx, chatID, "Lunch?", options, lumex.SendPollOpts{IsAnonymous: new(false)})
+```
 
 **Inside a handler always call the API through `ctx.Bot`, never a captured
 `bot` variable.** `ctx.Bot` is the bot that received *this* update, which matters
@@ -83,8 +130,9 @@ ctx.Bot.SendChatAction(ctx.Context(), ctx.ChatID(), lumex.ChatActionTyping)
 
 ## 2. Files, keyboards, rich messages (hand-written builders)
 
-- **Files** — `InputFileID(id)`, `InputFileURL(url)`, `InputFilePath(path)`,
-  `InputFileReader(name, r)` return `*InputFile`. Files nested in
+- **Files** — `InputFileID(id)`, `InputFileURL(url)`, `InputFileReader(name, r)`
+  return `*InputFile`; `InputFilePath(path)` opens the file and returns
+  `(*InputFile, error)`. Files nested in
   `SendMediaGroup` upload automatically; no reflection, nothing to implement.
 - **Keyboards** — `lumex.NewMenu()` / `lumex.NewInlineMenu()` build reply/inline
   keyboards fluently: `menu.Row().TextBtn(..)`, `.URLBtn`, `.CallbackBtn`,
@@ -92,11 +140,15 @@ ctx.Bot.SendChatAction(ctx.Context(), ctx.ChatID(), lumex.ChatActionTyping)
   builder `.DisabledBtn(text)` (10.3) and `.SetForceReply(bool)` (10.3, also on
   `Menu`). Send with the context menu helpers (§3) or pass `menu` as a
   `ReplyMarkup` in opts. Package button ctor: `lumex.CallbackBtn(text, data)`.
+  A `WebAppBtn` opens a Mini App; **authenticating its users on your backend
+  (initData) is covered by the `mini-app-auth` skill.**
 - **Rich messages** (Bot API 10.2) — `lumex.HTMLRichMessage(html)`,
   `MarkdownRichMessage(md)`, `BlocksRichMessage(blocks...)`, chained with
   `.RTL()`, `.SkipEntities()`, `.AddMedia(RichMedia(id, media))`; `PlainText(s)`
   / `RichSequence(parts...)` / `TONAddress(address, text...)` (10.4) wrap a string
   as the `RichText` union for the block builders. Send with `bot.SendRichMessage(ctx, chatID, msg)`.
+  **For anything beyond a quick message — blocks, tables, media, inline
+  formatting, buttons, drafts, limits — read the `rich-messages` skill.**
   - **Referencing media from HTML/Markdown** — media attached with
     `.AddMedia(RichMedia("id", media))` is referenced from the text by a
     `tg://photo?id=id` / `tg://video?id=id` / `tg://audio?id=id` /
@@ -110,6 +162,9 @@ ctx.Bot.SendChatAction(ctx.Context(), ctx.ChatID(), lumex.ChatActionTyping)
     `.SwitchInlineQueryBtn`, each stylable via a `RichMessageButtonStyle*`
     (danger/success/primary/link) arg; `.SetAlign(..)` / `WithRichMenuAlign(..)`;
     `.Unwrap()` returns an `InputRichBlock` to drop into `BlocksRichMessage`.
+  - **Expandable quotes** hold blocks since Bot API 10.5:
+    `lumex.NewInputRichBlockExpandableBlockQuotation([]lumex.InputRichBlock{…})`,
+    like `NewInputRichBlockBlockQuotation` — paragraphs, lists, nested quotes.
 - **Widgets** (Bot API 10.4) — an HTML widget inside a message bubble.
   `bot.SendWidget(ctx, chatID, html, opts)` / `SendSharedWidget`, answered with
   `ctx.AnswerWidget(data)` and updated with `ctx.EditWidgetData(opts)` /
@@ -139,11 +194,29 @@ source to "find" the update, it's a plain exported field.
 **Getters** (work across update kinds, return nil/zero when absent):
 `ctx.Message()`, `ctx.Sender() *User`, `ctx.Chat() *Chat`, `ctx.ChatID() int64`,
 `ctx.CommandArgs() []string`, `ctx.CallbackData()`, `ctx.CallbackID()`,
-`ctx.Query()` (inline), `ctx.QueryID()`.
+`ctx.Query()` (inline), `ctx.QueryID()`, `ctx.InlineMessageID()` (callback
+query, chosen inline result or widget query from an inline message).
+
+**Callback queries without a message.** Since Bot API 10.5 a bot can set
+`setMySettings` `callback_query_mode` to `"inline"` (or `"auto"`): a callback
+query from a button in the bot's *own* message then carries `inline_message_id`
+instead of `message`. `ctx.EditMessageText` handles both (it edits by
+`InlineMessageID()` when there is no message), but `ctx.Message()` and
+`ctx.Chat()` are nil for such a query, and `ctx.ChatID()` falls back to the
+sender — right in a private chat, wrong in a group. Don't depend on
+`ctx.Message()` in callback handlers of a bot that uses those modes.
 
 `ctx.ShiftCallbackData(sep)` / `ctx.ShiftInlineQuery(sep)` split off the leading
 segment — handy with prefix routes: after `OnCallbackPrefix("product")`, data
 `"product:42"` → `ctx.ShiftCallbackData(":")` is `"42"`.
+
+**Entities** — Telegram's entity offsets are UTF-16 units, so never slice
+`msg.Text` with them. `ctx.Message().ParseEntities()` (nil-safe) returns
+`[]lumex.ParsedMessageEntity` with the entity's `Text` and UTF-8 `Offset`/`Length`
+(a `url` entity also gets `URL`). Also `ParseCaptionEntities()`,
+`ParseAnyEntities()` (caption, poll, checklist, game, gift texts too),
+`ParseEntity(e)`, and `…Types(map[lumex.MessageEntityType]struct{}{…})` filters;
+for any other text use `lumex.ParseEntities(text, entities)`.
 
 **Reply/action helpers** — each has a `…Void` variant that drops the returned
 value and returns only `error` (convenient for `return`):
@@ -176,11 +249,13 @@ r := router.New(bot, router.WithErrorHandler(func(ctx *router.Context, err error
 Register routes with `On(filter, handlers...)` or the `OnX` shortcuts
 (`OnStart`, `OnCommand`, `OnAnyCommand`, `OnAnyCommandWithAt`, `OnMessage`,
 `OnText`, `OnNonCommandText`, `OnCaption`, `OnTextOrCaption`, `OnContact`,
-`OnCallbackQuery`, `OnCallbackPrefix`, `OnInlineQuery`, `OnPhoto`, `OnGuestMessage`,
+`OnCallbackQuery`, `OnCallbackPrefix`, `OnCallbackQuerySuffix`, `OnCallbackQueryEquals`, `OnInlineQuery`, `OnPhoto`, `OnGuestMessage`,
 `OnRichMessage`, `OnMyChatMember`, `OnChatMember`, `OnChatJoinRequest`,
 `OnWidgetQuery`, `OnSharedWidgetQuery`, `OnAnyWidgetQuery`, `OnWidgetDataPrefix`,
-`OnWidget`, `OnTONWalletTransfer`, `OnPaidMessagesWaived`,
-`OnUpdate`, …). Each returns a `*Route` (chain `.Name("...")` for diagnostics).
+`OnWidget`, `OnTONWalletTransfer`, `OnPaidMessagesWaived`, `OnBotInvite`
+(10.5: a user the owner invited via `https://t.me/botinvite/<bot_username>`;
+`Message.WriteAccessAllowed.Inviter` is the owner, and the bot may write to the
+user), `OnUpdate`, …). Each returns a `*Route` (chain `.Name("...")` for diagnostics).
 
 **A command is text**, so `OnText` matches `/foo` too. When a route should take
 free-form text but not commands (wizard steps especially), use `OnNonCommandText`.
@@ -236,6 +311,22 @@ admin.OnCommand("ban", banHandler)
 admin.OnCommand("stats", statsHandler)
 ```
 
+**Sub-routers compose.** `Group(mw...)` and `UseState(state, mw...)` both return a
+sub-router that carries its middlewares, and they nest freely in any order: a
+route runs the global `r.Use` middlewares, then every enclosing sub-router's
+middlewares outermost-first (each once), then its own handlers.
+
+```go
+admin := r.Group(requireAdmin)
+editing := admin.UseState("editing", loadDraft)
+editing.OnMessage(saveDraft) // global mws → requireAdmin → loadDraft → saveDraft
+```
+
+A sub-router fixes its middleware chain when it is **created** and when each
+route is **registered**: call `sub.Use(mw)` before `sub.On…`, since it reaches only
+routes registered on `sub` afterwards (not earlier routes, not child groups
+created before it).
+
 ---
 
 ## 6. Order matters — the #1 source of bugs
@@ -267,7 +358,7 @@ Rules of thumb:
 
 Built-in filters live in `router` (`Command`, `CommandWithAt`, `AnyCommand`,
 `AnyCommandWithAt`, `Message`, `Text`, `NonCommandText`, `Caption`, `TextOrCaption`,
-`Contact`, `CallbackQuery`, `CallbackPrefix`, `TextPrefix`, `TextEquals`,
+`Contact`, `CallbackQuery`, `CallbackPrefix`, `CallbackQuerySuffix`, `CallbackQueryEquals`, `TextPrefix`, `TextEquals`,
 `TextContains`, `Photo`, `Video`, `Document`, `GuestMessage`, `RichMessage`,
 `MyChatMember`, `ChatMember`, `ChatJoinRequest`, `ForwardedChannelMessage`,
 `WidgetQuery`, `SharedWidgetQuery`, `AnyWidgetQuery`, `WidgetDataPrefix`, `Widget`,
@@ -300,7 +391,9 @@ r.On(And(router.Message(), FromAdmin(1)), handler)
 
 `r.UseState("name")` returns a sub-router whose routes are **gated on state**:
 they match only when the context's state equals `"name"`. Stateless routes
-(everything on the base router) match regardless of state.
+(everything on the base router) match regardless of state. Like `Group`, it takes
+optional middlewares (`r.UseState("name", mw...)`) and keeps those of the group it
+is called on (§5).
 
 ```go
 ask := r.UseState("ask_name")

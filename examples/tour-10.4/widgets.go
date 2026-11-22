@@ -102,7 +102,7 @@ func onCounterQuery(ctx *router.Context) error {
 	// render, and after a chatDataChanged event. Context fills in the message
 	// for us from the query.
 	return ctx.EditWidgetDataVoid(lumex.EditMessageWidgetDataOpts{
-		ChatData: counterState(n),
+		ChatData: new(counterState(n)),
 	})
 }
 

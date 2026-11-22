@@ -64,6 +64,101 @@ func TestKeepPositional(t *testing.T) {
 	}
 }
 
+func TestExplicitZero(t *testing.T) {
+	g := newGenerator("lumex", "")
+	fields := []field{
+		{JSONName: "can_join_groups", GoType: "bool", OmitEmpty: true},
+		{JSONName: "inline_query_placeholder", GoType: "string", OmitEmpty: true},
+		{JSONName: "inline_feedback_share_denominator", GoType: "int64", OmitEmpty: true},
+		{JSONName: "callback_query_mode", GoType: "SetMySettingsCallbackQueryMode", OmitEmpty: true},
+	}
+	// A bare method key covers every optional scalar of the method; an enum has
+	// no meaningful "" and stays a value.
+	g.applyExplicitZero("setMySettings", "", fields, true)
+	for i, want := range []string{"*bool", "*string", "*int64", "SetMySettingsCallbackQueryMode"} {
+		if fields[i].GoType != want {
+			t.Errorf("setMySettings.%s = %s, want %s", fields[i].JSONName, fields[i].GoType, want)
+		}
+		if !fields[i].OmitEmpty {
+			t.Errorf("setMySettings.%s lost omitempty", fields[i].JSONName)
+		}
+	}
+
+	// A field-level key touches only that field; required, positional, slice and
+	// struct fields are never retyped.
+	other := []field{
+		{JSONName: "public_data", GoType: "string", OmitEmpty: true},
+		{JSONName: "inline_message_id", GoType: "string", OmitEmpty: true},
+		{JSONName: "chat_id", GoType: "int64"},
+	}
+	g.applyExplicitZero("editMessageWidgetData", "", other, true)
+	for i, want := range []string{"*string", "string", "int64"} {
+		if other[i].GoType != want {
+			t.Errorf("editMessageWidgetData.%s = %s, want %s", other[i].JSONName, other[i].GoType, want)
+		}
+	}
+
+	pinned := []field{{JSONName: "chat_id", GoType: "int64", OmitEmpty: true, Positional: true}}
+	if zeroDropped(pinned[0]) {
+		t.Error("a positional parameter must not be retyped")
+	}
+
+	// false records a reviewed field: it stays a value and is not reported.
+	explicitZero["testMethod.text"] = false
+	defer delete(explicitZero, "testMethod.text")
+	reviewed := []field{{JSONName: "text", GoType: "string", OmitEmpty: true,
+		Comment: "Pass an empty string to clear. If omitted, the text isn't changed."}}
+	g.applyExplicitZero("testMethod", "", reviewed, true)
+	if reviewed[0].GoType != "string" || len(g.zeroUnresolved) != 0 {
+		t.Errorf("reviewed field: type %s, unresolved %v", reviewed[0].GoType, g.zeroUnresolved)
+	}
+
+	// An unlisted candidate is reported, not retyped.
+	g.applyExplicitZero("otherMethod", "", []field{{JSONName: "text", GoType: "string", OmitEmpty: true,
+		Comment: "Pass an empty string to clear. If omitted, the text isn't changed."}}, true)
+	if !slices.Equal(g.zeroUnresolved, []string{"otherMethod.text"}) {
+		t.Errorf("zeroUnresolved = %v, want [otherMethod.text]", g.zeroUnresolved)
+	}
+
+	for _, k := range []string{"setMySettings", "editMessageWidgetData.public_data", "testMethod.text"} {
+		if !g.explicitZeroUsed[k] {
+			t.Errorf("key %q not recorded as used", k)
+		}
+	}
+}
+
+func TestZeroCandidate(t *testing.T) {
+	cases := []struct {
+		intro, desc, goType string
+		method              bool
+		want                bool
+	}{
+		{"Use this method to change settings of the bot. Settings that aren't specified remain unchanged.",
+			"Pass True to enable inline mode for the bot or False to disable it", "bool", true, true},
+		{"", "True, if the poll needs to be anonymous, defaults to True", "bool", true, true},
+		{"", "Pass True if the poll allows to change chosen answer options, defaults to False for quizzes and to True for regular polls", "bool", true, true},
+		{"", "Optional. True, if the user is allowed to edit their own tag. If omitted, defaults to the value of can_pin_messages.", "bool", false, true},
+		{"", "Optional. Pass True to request bots, pass False to request regular users. If not specified, no additional restrictions are applied.", "bool", false, true},
+		{"", "New public data of the widget, 0-1024 bytes; pass an empty string to remove the public data. If omitted, then the public data isn't changed.", "string", true, true},
+		{"", "Optional. New identifier of the custom emoji shown as the topic icon, if it was edited; an empty string if the icon was removed", "string", false, true},
+
+		// Omitted and zero mean the same here.
+		{"", "If True, an alert will be shown by the client instead of a notification at the top of the chat screen. Defaults to False.", "bool", true, false},
+		{"", "New topic name, 0-128 characters. If not specified or empty, the current name of the topic will be kept.", "string", true, false},
+		{"", "New caption for media, 0-1024 characters after entities parsing. If not specified, the original caption is kept.", "string", true, false},
+		{"", "Pass the offset that a client should send in the next query with the same text to receive more results. Pass an empty string if there are no more results or if you don't support pagination.", "string", true, false},
+		{"", "Payment provider token, obtained via @BotFather. Pass an empty string for payments in Telegram Stars.", "string", true, false},
+		{"", "Optional. Pass True to request a chat with the bot as a member. Otherwise, no additional restrictions are applied.", "bool", false, false},
+		// The method-level phrase only counts for methods.
+		{"Settings that aren't specified remain unchanged.", "Optional. Some flag", "bool", false, false},
+	}
+	for _, c := range cases {
+		if got := zeroCandidate(c.intro, c.desc, c.goType, c.method); got != c.want {
+			t.Errorf("zeroCandidate(%q) = %v, want %v", c.desc, got, c.want)
+		}
+	}
+}
+
 func TestScanUntyped(t *testing.T) {
 	// deterministic (no snapshot): a field typed `any` or `[]any` is reported as
 	// "Owner.Field"; a `map[string]any` in a method body (no json tag) is not.

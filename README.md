@@ -2,7 +2,7 @@
 
 [![Test](https://github.com/kbgod/lumex/actions/workflows/test.yml/badge.svg)](https://github.com/kbgod/lumex/actions/workflows/test.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kbgod/lumex/v2)](https://goreportcard.com/report/github.com/kbgod/lumex/v2)
-[![Telegram Bot API Version](https://img.shields.io/static/v1?label=Supported%20Telegram%20Bot%20API&color=29a1d4&logo=telegram&message=v10.4)](https://core.telegram.org/bots/api)
+[![Telegram Bot API Version](https://img.shields.io/static/v1?label=Supported%20Telegram%20Bot%20API&color=29a1d4&logo=telegram&message=v10.5)](https://core.telegram.org/bots/api)
 [![coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/kbgod/2cbfd84a7c06e6dd8c5fec560200d778/raw/lumex-coverage.json)](https://github.com/kbgod/lumex/actions/workflows/test.yml)
 
 Inspired by [paulsonoflars/gotgbot](https://github.com/paulsonoflars/gotgbot).
@@ -47,10 +47,16 @@ teaches the assistant how lumex works. Install it into your own bot project:
 /plugin install lumex@lumex
 ```
 
-It ships two skills: [`lumex`](/skills/lumex/SKILL.md) (framework reference —
+It ships five skills: [`lumex`](/skills/lumex/SKILL.md) (framework reference —
 Context helpers, router filters/middleware/state, keyboard & rich-message
-builders, polling/webhook) and [`dialog-flows`](/skills/dialog-flows/SKILL.md)
-(best practices for multi-step conversation flows / wizards).
+builders, polling/webhook), [`dialog-flows`](/skills/dialog-flows/SKILL.md)
+(best practices for multi-step conversation flows / wizards),
+[`rich-messages`](/skills/rich-messages/SKILL.md) (building, sending and reading
+rich messages with the ready-made constructors),
+[`mini-app-auth`](/skills/mini-app-auth/SKILL.md) (verifying Mini App `initData`
+on your backend) and
+[`telegram-widgets`](/skills/telegram-widgets/SKILL.md) (writing HTML widgets and
+the bot side behind them).
 
 ---
 
@@ -113,7 +119,7 @@ func main() {
         log.Error("failed to create bot", "error", err)
         return
     }
-    log.Info("bot authorized successfully", "username", bot.User.Username)
+    log.Info("bot authorized successfully", "username", bot.Username)
 
     r := router.New(bot, router.WithErrorHandler(func(ctx *router.Context, err error) {
         log.Error("handle update error", "error", err, "update", ctx.Update)
@@ -314,6 +320,7 @@ typingGroup.OnMessage(processMessageViaAI)
 | [Keyboards](/examples/keyboard/main.go) | Reply and inline keyboard usage |
 | [CallbackQuery](/examples/callback/main.go) | Handling callback queries |
 | [Rich message](/examples/richmessage/main.go) | Building rich messages: HTML, Markdown, media, and blocks |
+| [Tour 10.5](/examples/tour-10.5/main.go) | Bot API 10.5, menu-driven: `getMe` → `BotFullInfo`, a `setMySettings` panel, callback query modes, expandable quotes with blocks, bot invite links |
 | [Tour 10.4](/examples/tour-10.4/main.go) | Bot API 10.4, menu-driven: HTML widgets end-to-end, a live shared-widget ticker, ephemeral replies, rich-message quotes, TON text |
 | [Tour 10.3](/examples/tour-10.3/main.go) | Bot API 10.3: rich buttons, expandable quotes, compact tables, disabled buttons |
 | [Webhook](/examples/webhook/main.go) | Single-bot webhook setup |

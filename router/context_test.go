@@ -2688,6 +2688,58 @@ func TestContext_EditMessageText(t *testing.T) {
 	}
 }
 
+func TestContext_InlineMessageID(t *testing.T) {
+	r := New(nil)
+	cases := []struct {
+		update *lumex.Update
+		want   string
+	}{
+		{&lumex.Update{CallbackQuery: &lumex.CallbackQuery{ID: "c", InlineMessageID: "cb_inline"}}, "cb_inline"},
+		{&lumex.Update{ChosenInlineResult: &lumex.ChosenInlineResult{ResultID: "r", InlineMessageID: "chosen_inline"}}, "chosen_inline"},
+		{&lumex.Update{WidgetQuery: &lumex.WidgetQuery{ID: "w", InlineMessageID: "widget_inline"}}, "widget_inline"},
+		{&lumex.Update{CallbackQuery: &lumex.CallbackQuery{ID: "c"}}, ""},
+		{&lumex.Update{Message: &lumex.Message{}}, ""},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.want, r.acquireContext(context.Background(), c.update).InlineMessageID())
+	}
+}
+
+// With callback_query_mode "inline" (Bot API 10.5) a callback query from the
+// bot's own message carries inline_message_id instead of message, and
+// EditMessageText edits by that id.
+func TestContext_EditMessageTextInline(t *testing.T) {
+	cl := mocks.NewBotClient(t)
+	cl.On(
+		"RequestWithContext",
+		mock.Anything,
+		"editMessageText",
+		mock.MatchedBy(func(req any) bool {
+			r, _ := req.(*lumex.EditMessageTextRequest)
+			return r != nil && r.InlineMessageID == "inline_1" && r.ChatID == 0 && r.MessageID == 0 && r.Text == "edited"
+		}),
+	).Return(json.RawMessage(`true`), nil).Once()
+
+	bot, err := lumex.NewBot("123:test", lumex.WithClient(cl), lumex.WithoutTokenCheck())
+	assert.Nil(t, err)
+
+	r := New(bot)
+	ctx := r.acquireContext(context.Background(), &lumex.Update{
+		CallbackQuery: &lumex.CallbackQuery{ID: "cb", From: &lumex.User{ID: 7}, InlineMessageID: "inline_1"},
+	})
+	msg, ok, err := ctx.EditMessageText("edited")
+	assert.Nil(t, err)
+	assert.True(t, ok)
+	assert.Nil(t, msg)
+
+	// Neither a message nor an inline message: nothing to edit.
+	ctx = r.acquireContext(context.Background(), &lumex.Update{
+		CallbackQuery: &lumex.CallbackQuery{ID: "cb", From: &lumex.User{ID: 7}},
+	})
+	_, _, err = ctx.EditMessageText("edited")
+	assert.ErrorIs(t, err, ErrContextMessageIsNil)
+}
+
 func TestContext_EditMessageTextVoid(t *testing.T) {
 	cl := mocks.NewBotClient(t)
 
@@ -3082,7 +3134,7 @@ func TestContext_EditWidgetData(t *testing.T) {
 		mock.MatchedBy(func(req any) bool {
 			r, _ := req.(*lumex.EditMessageWidgetDataRequest)
 			return r != nil && r.ChatID == 2 && r.MessageID == 10 &&
-				r.InlineMessageID == "" && r.ChatData == `{"n":1}`
+				r.InlineMessageID == "" && r.ChatData != nil && *r.ChatData == `{"n":1}` && r.PublicData == nil
 		}),
 	).Return(json.RawMessage(`true`), nil).Once()
 
@@ -3094,7 +3146,7 @@ func TestContext_EditWidgetData(t *testing.T) {
 		mock.MatchedBy(func(req any) bool {
 			r, _ := req.(*lumex.EditMessageWidgetDataRequest)
 			return r != nil && r.InlineMessageID == "inline_1" &&
-				r.ChatID == 0 && r.MessageID == 0 && r.PublicData == "shared"
+				r.ChatID == 0 && r.MessageID == 0 && r.PublicData != nil && *r.PublicData == "" && r.ChatData == nil
 		}),
 	).Return(json.RawMessage(`true`), nil).Once()
 
@@ -3111,14 +3163,14 @@ func TestContext_EditWidgetData(t *testing.T) {
 			MessageID: 10,
 		},
 	})
-	ok, err := ctx.EditWidgetData(lumex.EditMessageWidgetDataOpts{ChatData: `{"n":1}`})
+	ok, err := ctx.EditWidgetData(lumex.EditMessageWidgetDataOpts{ChatData: new(`{"n":1}`)})
 	assert.Nil(t, err)
 	assert.True(t, ok)
 
 	ctx = r.acquireContext(context.Background(), &lumex.Update{
 		WidgetQuery: &lumex.WidgetQuery{ID: "wq_2", From: &lumex.User{ID: 1}, InlineMessageID: "inline_1"},
 	})
-	assert.Nil(t, ctx.EditWidgetDataVoid(lumex.EditMessageWidgetDataOpts{PublicData: "shared"}))
+	assert.Nil(t, ctx.EditWidgetDataVoid(lumex.EditMessageWidgetDataOpts{PublicData: new("")}))
 
 	// A shared widget query names no message, so it cannot be edited this way.
 	ctx = r.acquireContext(context.Background(), &lumex.Update{

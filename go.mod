@@ -1,6 +1,6 @@
 module github.com/kbgod/lumex/v2
 
-go 1.26.1
+go 1.27
 
 require (
 	github.com/rs/zerolog v1.31.0

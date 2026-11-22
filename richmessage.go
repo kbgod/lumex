@@ -124,10 +124,8 @@ func WithRichMenuAlign(align InputRichBlockButtonsAlign) RichMenuOption {
 // NewRichMenu creates an empty rich buttons block builder.
 func NewRichMenu(options ...RichMenuOption) *RichMenu {
 	menu := &RichMenu{
-		InputRichBlockButtons: InputRichBlockButtons{
-			Type:    InputRichBlockTypeButtons,
-			Buttons: make([]RichMessageButton, 0),
-		},
+		Type:    InputRichBlockTypeButtons,
+		Buttons: make([]RichMessageButton, 0),
 	}
 	for _, option := range options {
 		option(menu)

@@ -5,6 +5,7 @@
 *.dylib
 scripts/
 generate.go
+examples/localtest
 
 # Test binary, build with `go test -c`
 *.test

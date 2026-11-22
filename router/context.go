@@ -295,6 +295,27 @@ func (ctx *Context) WidgetID() string {
 	return ""
 }
 
+// InlineMessageID
+//
+// returns the inline message the update refers to: the one a callback query
+// came from, the one a chosen inline result was sent as, or the one holding a
+// widget that sent a query. Empty string otherwise. A callback query from a
+// message sent by the bot itself carries one instead of a message when the
+// bot's callback_query_mode is "inline", or "auto" and the message is
+// inaccessible (Bot API 10.5).
+func (ctx *Context) InlineMessageID() string {
+	switch {
+	case ctx.Update.CallbackQuery != nil:
+		return ctx.Update.CallbackQuery.InlineMessageID
+	case ctx.Update.ChosenInlineResult != nil:
+		return ctx.Update.ChosenInlineResult.InlineMessageID
+	case ctx.Update.WidgetQuery != nil:
+		return ctx.Update.WidgetQuery.InlineMessageID
+	}
+
+	return ""
+}
+
 // ShiftCallbackData
 //
 // returns callback data without count parts separated by separator. Default count is 1
@@ -504,8 +525,8 @@ func (ctx *Context) AnswerWidgetVoid(data string, opts ...lumex.AnswerWidgetQuer
 // EditWidgetData changes the data of the widget that sent the query in this
 // update (Bot API 10.4), addressing its message for you — the chat and message
 // id of a widget in a chat, or the inline message id of one in an inline
-// message. Set PublicData and/or ChatData in opts; an empty string clears a
-// value, an omitted field leaves it unchanged.
+// message. Set PublicData and/or ChatData in opts: new(state) sets a value,
+// new("") clears it, and nil leaves it unchanged.
 //
 // It only works for a widget_query update: a shared_widget_query comes from a
 // forwarded message and names no message, so edit it by widget id with
@@ -555,21 +576,25 @@ func (ctx *Context) DeleteMessageVoid() error {
 	return err
 }
 
-// EditMessageText edits message text which is in update
+// EditMessageText edits message text which is in update. Without a message it
+// edits the inline message the update refers to (see InlineMessageID); the
+// result is then (nil, true, nil).
 func (ctx *Context) EditMessageText(text string, opts ...lumex.EditMessageTextOpts) (*lumex.Message, bool, error) {
-	msg := ctx.Message()
-	if msg == nil {
-		return nil, false, fmt.Errorf("failed to edit context message: %w", ErrContextMessageIsNil)
-	}
-
 	var opt lumex.EditMessageTextOpts
 	if len(opts) > 0 {
 		opt = opts[0]
 	}
 
+	if msg := ctx.Message(); msg != nil {
+		opt.ChatID = ctx.ChatID()
+		opt.MessageID = msg.MessageID
+	} else if id := ctx.InlineMessageID(); id != "" {
+		opt.InlineMessageID = id
+	} else {
+		return nil, false, fmt.Errorf("failed to edit context message: %w", ErrContextMessageIsNil)
+	}
+
 	opt.Text = text
-	opt.ChatID = ctx.ChatID()
-	opt.MessageID = msg.MessageID
 
 	if ctx.parseMode != nil {
 		opt.ParseMode = *ctx.parseMode

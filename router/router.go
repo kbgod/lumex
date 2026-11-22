@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"slices"
 	"sync"
 	"time"
 
@@ -69,13 +70,19 @@ func (r *Router) Use(middlewares ...Handler) {
 	r.handlers = append(r.handlers, middlewares...)
 }
 
+// UseState creates a sub-router whose routes match only when the context is in
+// the given state. It inherits the middlewares of the group it is created from.
+//
+// Example:
+// r.Use(loadState) // calls ctx.SetState with the user's persisted state
+// ask := r.UseState("ask_name", stateMiddleware)
+// ask.OnMessage(saveName) // only in "ask_name": loadState → stateMiddleware → saveName
 func (r *Router) UseState(state string, handlers ...Handler) *Router {
 	return &Router{
 		parent:   r,
 		state:    &state,
 		bot:      r.bot,
-		routes:   r.routes,
-		handlers: handlers,
+		handlers: append(r.handlersToInherit(), handlers...),
 	}
 }
 
@@ -91,22 +98,32 @@ func (r *Router) UseState(state string, handlers ...Handler) *Router {
 // g.On(Message(), handler3)
 // g.On(Message(), handler4)
 // g.On(Message(), handler5)
+//
+// A sub-router captures its middlewares when it is created: Use on a group
+// affects only the routes registered on it afterwards, not existing child groups.
 func (r *Router) Group(handlers ...Handler) *Router {
 	return &Router{
 		parent:   r,
 		state:    r.state,
 		bot:      r.bot,
-		routes:   nil,
-		handlers: append(r.getAllSubRouterHandlers(), handlers...),
+		handlers: append(r.handlersToInherit(), handlers...),
 	}
 }
 
-func (r *Router) getAllSubRouterHandlers() []Handler {
-	if r.parent != nil {
-		return append(r.parent.getAllSubRouterHandlers(), r.handlers...)
+// handlersToInherit returns the middleware chain a child router or a route
+// registered on r must carry, as a fresh slice so that appending to it never
+// writes into r.handlers (or into another route's handlers).
+//
+// The root router's handlers are global middlewares that Context.Next runs for
+// every update before route matching, so they are never copied. A sub-router's
+// handlers already hold the whole chain of its ancestors (flattened when it was
+// created), so they are copied as is, without walking up the parents.
+func (r *Router) handlersToInherit() []Handler {
+	if r.parent == nil {
+		return nil
 	}
 
-	return nil
+	return slices.Clone(r.handlers)
 }
 
 func (r *Router) GetRoutes() []*Route {
@@ -123,12 +140,7 @@ func (r *Router) addRoute(route *Route) {
 
 // On registers a new route with the given filter and handlers.
 func (r *Router) On(filter RouteFilter, handlers ...Handler) *Route {
-	var route *Route
-	if r.parent != nil {
-		route = newRoute(filter, r.state, append(r.handlers, handlers...)...)
-	} else {
-		route = newRoute(filter, r.state, handlers...)
-	}
+	route := newRoute(filter, r.state, append(r.handlersToInherit(), handlers...)...)
 	r.addRoute(route)
 	return route
 }
@@ -207,6 +219,14 @@ func (r *Router) OnCallbackQuery(handlers ...Handler) *Route {
 
 func (r *Router) OnCallbackPrefix(prefix string, handlers ...Handler) *Route {
 	return r.On(CallbackPrefix(prefix), handlers...)
+}
+
+func (r *Router) OnCallbackQuerySuffix(suffix string, handlers ...Handler) *Route {
+	return r.On(CallbackQuerySuffix(suffix), handlers...)
+}
+
+func (r *Router) OnCallbackQueryEquals(data string, handlers ...Handler) *Route {
+	return r.On(CallbackQueryEquals(data), handlers...)
 }
 
 func (r *Router) OnInlineQuery(handlers ...Handler) *Route {
@@ -311,6 +331,10 @@ func (r *Router) OnTONWalletTransfer(handlers ...Handler) *Route {
 
 func (r *Router) OnPaidMessagesWaived(handlers ...Handler) *Route {
 	return r.On(PaidMessagesWaived(), handlers...)
+}
+
+func (r *Router) OnBotInvite(handlers ...Handler) *Route {
+	return r.On(BotInvite(), handlers...)
 }
 
 func (r *Router) acquireContext(ctx context.Context, update *lumex.Update) *Context {

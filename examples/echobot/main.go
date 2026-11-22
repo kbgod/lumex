@@ -28,7 +28,7 @@ func main() {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to create bot")
 	}
-	logger.Info().Str("username", bot.User.Username).Msg("bot authorized successfully")
+	logger.Info().Str("username", bot.Username).Msg("bot authorized successfully")
 
 	routerLogger := zerologAdapter.NewAdapter(&logger)
 	r := router.New(
@@ -111,5 +111,5 @@ func main() {
 		}),
 	)
 
-	logger.Info().Str("username", bot.User.Username).Msg("bot stopped")
+	logger.Info().Str("username", bot.Username).Msg("bot stopped")
 }

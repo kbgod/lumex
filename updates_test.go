@@ -13,13 +13,13 @@ import (
 )
 
 func TestGetUpdatesChan(t *testing.T) {
-	var calls int32
+	var calls atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasSuffix(r.URL.Path, "/getUpdates") {
 			t.Errorf("unexpected path %s", r.URL.Path)
 			return
 		}
-		if atomic.AddInt32(&calls, 1) == 1 {
+		if calls.Add(1) == 1 {
 			io.WriteString(w, `{"ok":true,"result":[
 				{"update_id":10,"message":{"message_id":1,"date":1,"chat":{"id":1,"type":"private"},"text":"a"}},
 				{"update_id":11,"message":{"message_id":2,"date":1,"chat":{"id":1,"type":"private"},"text":"b"}}

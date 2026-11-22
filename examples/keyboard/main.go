@@ -27,7 +27,7 @@ func main() {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to create bot")
 	}
-	logger.Info().Str("username", bot.User.Username).Msg("bot authorized successfully")
+	logger.Info().Str("username", bot.Username).Msg("bot authorized successfully")
 
 	r := router.New(bot, router.WithErrorHandler(func(ctx *router.Context, err error) {
 		if err != nil {
@@ -131,7 +131,7 @@ func main() {
 
 	r.Listen(ctx, interrupt, 5*time.Second, 100)
 
-	logger.Info().Str("username", bot.User.Username).Msg("bot stopped")
+	logger.Info().Str("username", bot.Username).Msg("bot stopped")
 }
 
 func prettyMarshalMessage(ctx *router.Context) string {
